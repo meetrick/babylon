@@ -698,9 +698,9 @@ func (app *BabylonApp) RegisterAPIRoutes(apiSvr *api.Server, apiConfig config.AP
 
 	// todo(lazar): either remove the corresponding code or move it to a different pkg within bbn repo
 	// register swagger API from root so that other applications can override easily
-	//if apiConfig.Swagger {
+	// if apiConfig.Swagger {
 	//	docs.RegisterOpenAPIService(apiSvr.Router)
-	//}
+	// }
 }
 
 // RegisterTxService implements the Application.RegisterTxService method.
