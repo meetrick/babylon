@@ -9,8 +9,8 @@ import (
 	"time"
 
 	sdkmath "cosmossdk.io/math"
-	"github.com/babylonlabs-io/babylon/btcstaking"
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
+	"github.com/babylonlabs-io/babylon/v3/btcstaking"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -34,7 +34,6 @@ func NewStakingScriptData(
 	fpKey,
 	covenantKey *btcec.PublicKey,
 	stakingTime uint16) (*StakingScriptData, error) {
-
 	if stakerKey == nil || fpKey == nil || covenantKey == nil {
 		return nil, fmt.Errorf("staker, finality provider and covenant keys cannot be nil")
 	}
@@ -84,7 +83,7 @@ func FuzzGeneratingValidStakingSlashingTx(f *testing.F) {
 		minFee := 2000
 		// generate a random slashing rate with random precision,
 		// this will include both valid and invalid ranges, so we can test both cases
-		randomPrecision := r.Int63n(4)                                                                   // [0,3]
+		randomPrecision := r.Int63n(6)                                                                   // [0,3]
 		slashingRate := sdkmath.LegacyNewDecWithPrec(int64(datagen.RandomInt(r, 1001)), randomPrecision) // [0,1000] / 10^{randomPrecision}
 
 		for i := 0; i < stakingTxNumOutputs; i++ {
@@ -166,7 +165,7 @@ func testSlashingTx(
 		&chaincfg.MainNetParams,
 	)
 
-	if btcstaking.IsRateValid(slashingRate) {
+	if btcstaking.IsSlashingRateValid(slashingRate) {
 		// If the slashing rate is valid i.e., in the range (0,1) with at most 2 decimal places,
 		// it is still possible that the slashing transaction is invalid. The following checks will confirm that
 		// slashing tx is not constructed if
@@ -185,13 +184,14 @@ func testSlashingTx(
 		slashingOutput := outputFromAddressAndValue(t, slashingAddress, slashingAmount)
 		changeOutput := taprootOutputWithValue(t, r, changeAmount)
 
-		if changeAmount <= 0 {
+		switch {
+		case changeAmount <= 0:
 			require.Error(t, err)
 			require.ErrorIs(t, err, btcstaking.ErrInsufficientChangeAmount)
-		} else if mempool.IsDust(slashingOutput, mempool.DefaultMinRelayTxFee) || mempool.IsDust(changeOutput, mempool.DefaultMinRelayTxFee) {
+		case mempool.IsDust(slashingOutput, mempool.DefaultMinRelayTxFee) || mempool.IsDust(changeOutput, mempool.DefaultMinRelayTxFee):
 			require.Error(t, err)
 			require.ErrorIs(t, err, btcstaking.ErrDustOutputFound)
-		} else {
+		default:
 			require.NoError(t, err)
 			err = btcstaking.CheckSlashingTxMatchFundingTx(
 				slashingTx,
@@ -421,6 +421,7 @@ func TestCheckPreSignedTxSanity(t *testing.T) {
 		genTx          func() *wire.MsgTx
 		numInputs      uint32
 		numOutputs     uint32
+		minTxVersion   int32
 		maxTxVersion   int32
 		wantErr        bool
 		expectedErrMsg string
@@ -435,8 +436,38 @@ func TestCheckPreSignedTxSanity(t *testing.T) {
 			},
 			numInputs:    1,
 			numOutputs:   1,
+			minTxVersion: 1,
 			maxTxVersion: 2,
 			wantErr:      false,
+		},
+		{
+			name: "valid tx with required specific version 2",
+			genTx: func() *wire.MsgTx {
+				tx := wire.NewMsgTx(2)
+				tx.AddTxIn(wire.NewTxIn(wire.NewOutPoint(&chainhash.Hash{}, 0), nil, nil))
+				tx.AddTxOut(wire.NewTxOut(1000, nil))
+				return tx
+			},
+			numInputs:    1,
+			numOutputs:   1,
+			minTxVersion: 2,
+			maxTxVersion: 2,
+			wantErr:      false,
+		},
+		{
+			name: "invalid tx when requireing specific version 2",
+			genTx: func() *wire.MsgTx {
+				tx := wire.NewMsgTx(3)
+				tx.AddTxIn(wire.NewTxIn(wire.NewOutPoint(&chainhash.Hash{}, 0), nil, nil))
+				tx.AddTxOut(wire.NewTxOut(1000, nil))
+				return tx
+			},
+			numInputs:      1,
+			numOutputs:     1,
+			minTxVersion:   2,
+			maxTxVersion:   2,
+			wantErr:        true,
+			expectedErrMsg: "tx version must be between 2 and 2",
 		},
 		{
 			name: "non standard version tx",
@@ -448,6 +479,7 @@ func TestCheckPreSignedTxSanity(t *testing.T) {
 			},
 			numInputs:      1,
 			numOutputs:     1,
+			minTxVersion:   1,
 			maxTxVersion:   2,
 			wantErr:        true,
 			expectedErrMsg: "tx version must be between 1 and 2",
@@ -463,6 +495,7 @@ func TestCheckPreSignedTxSanity(t *testing.T) {
 			},
 			numInputs:      1,
 			numOutputs:     1,
+			minTxVersion:   1,
 			maxTxVersion:   2,
 			wantErr:        true,
 			expectedErrMsg: "pre-signed tx must not have locktime",
@@ -478,6 +511,7 @@ func TestCheckPreSignedTxSanity(t *testing.T) {
 			},
 			numInputs:      1,
 			numOutputs:     1,
+			minTxVersion:   1,
 			maxTxVersion:   2,
 			wantErr:        true,
 			expectedErrMsg: "pre-signed tx must not have signature script",
@@ -493,6 +527,7 @@ func TestCheckPreSignedTxSanity(t *testing.T) {
 			},
 			numInputs:      1,
 			numOutputs:     1,
+			minTxVersion:   1,
 			maxTxVersion:   2,
 			wantErr:        true,
 			expectedErrMsg: "tx must have exactly 1 inputs",
@@ -508,6 +543,7 @@ func TestCheckPreSignedTxSanity(t *testing.T) {
 			},
 			numInputs:      1,
 			numOutputs:     1,
+			minTxVersion:   1,
 			maxTxVersion:   2,
 			wantErr:        true,
 			expectedErrMsg: "tx must have exactly 1 outputs",
@@ -523,6 +559,7 @@ func TestCheckPreSignedTxSanity(t *testing.T) {
 			},
 			numInputs:      1,
 			numOutputs:     1,
+			minTxVersion:   1,
 			maxTxVersion:   2,
 			wantErr:        true,
 			expectedErrMsg: "pre-signed tx must not be replaceable",
@@ -539,6 +576,7 @@ func TestCheckPreSignedTxSanity(t *testing.T) {
 			},
 			numInputs:      1,
 			numOutputs:     1,
+			minTxVersion:   1,
 			maxTxVersion:   2,
 			wantErr:        true,
 			expectedErrMsg: "tx weight must not exceed 400000",
@@ -549,7 +587,7 @@ func TestCheckPreSignedTxSanity(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			err := btcstaking.CheckPreSignedTxSanity(
-				tt.genTx(), tt.numInputs, tt.numOutputs, tt.maxTxVersion,
+				tt.genTx(), tt.numInputs, tt.numOutputs, tt.minTxVersion, tt.maxTxVersion,
 			)
 
 			if tt.wantErr {
@@ -560,4 +598,69 @@ func TestCheckPreSignedTxSanity(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAllowSlashingOutputToBeOPReturn(t *testing.T) {
+	t.Parallel()
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	// we do not care for inputs in staking tx
+	stakingTx := wire.NewMsgTx(2)
+	bogusInputHashBytes := [32]byte{}
+	bogusInputHash, _ := chainhash.NewHash(bogusInputHashBytes[:])
+	stakingTx.AddTxIn(
+		wire.NewTxIn(wire.NewOutPoint(bogusInputHash, 0), nil, nil),
+	)
+
+	stakingOutputIdx := 0
+	slashingLockTime := uint16(r.Intn(1000) + 1)
+	sd := genValidStakingScriptData(t, r)
+
+	minStakingValue := 500000
+	minFee := 2000
+
+	info, err := btcstaking.BuildStakingInfo(
+		sd.StakerKey,
+		[]*btcec.PublicKey{sd.FinalityProviderKey},
+		[]*btcec.PublicKey{sd.CovenantKey},
+		1,
+		sd.StakingTime,
+		btcutil.Amount(r.Intn(5000)+minStakingValue),
+		&chaincfg.MainNetParams,
+	)
+
+	require.NoError(t, err)
+	stakingTx.AddTxOut(info.StakingOutput)
+
+	// super small slashing rate, slashing output wil be 50sats
+	slashingRate := sdkmath.LegacyMustNewDecFromStr("0.0001")
+
+	opReturnSlashingScript, err := txscript.NullDataScript([]byte("hello"))
+	require.NoError(t, err)
+
+	// Construct slashing transaction using the provided parameters
+	slashingTx, err := btcstaking.BuildSlashingTxFromStakingTxStrict(
+		stakingTx,
+		uint32(stakingOutputIdx),
+		opReturnSlashingScript,
+		sd.StakerKey,
+		slashingLockTime,
+		int64(minFee),
+		slashingRate,
+		&chaincfg.MainNetParams,
+	)
+	require.NoError(t, err)
+	require.NotNil(t, slashingTx)
+
+	err = btcstaking.CheckSlashingTxMatchFundingTx(
+		slashingTx,
+		stakingTx,
+		uint32(stakingOutputIdx),
+		int64(minFee),
+		slashingRate,
+		opReturnSlashingScript,
+		sd.StakerKey,
+		slashingLockTime,
+		&chaincfg.MainNetParams,
+	)
+	require.NoError(t, err)
 }

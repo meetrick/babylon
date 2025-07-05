@@ -11,8 +11,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	bbn "github.com/babylonlabs-io/babylon/types"
-	"github.com/babylonlabs-io/babylon/x/btcstaking/types"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
 )
 
 var _ types.QueryServer = Keeper{}
@@ -98,12 +98,8 @@ func (k Keeper) BTCDelegations(ctx context.Context, req *types.QueryBTCDelegatio
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
 
-	covenantQuorum := k.GetParams(ctx).CovenantQuorum
-
 	// get current BTC height
 	btcTipHeight := k.btclcKeeper.GetTipInfo(ctx).Height
-	// get value of w
-	wValue := k.btccKeeper.GetParams(ctx).CheckpointFinalizationTimeout
 
 	store := k.btcDelegationStore(ctx)
 	var btcDels []*types.BTCDelegationResponse
@@ -111,8 +107,10 @@ func (k Keeper) BTCDelegations(ctx context.Context, req *types.QueryBTCDelegatio
 		var btcDel types.BTCDelegation
 		k.cdc.MustUnmarshal(value, &btcDel)
 
+		params := k.GetParamsByVersion(ctx, btcDel.ParamsVersion)
+
 		// hit if the queried status is ANY or matches the BTC delegation status
-		status := btcDel.GetStatus(btcTipHeight, wValue, covenantQuorum)
+		status := btcDel.GetStatus(btcTipHeight, params.CovenantQuorum)
 		if req.Status == types.BTCDelegationStatus_ANY || status == req.Status {
 			if accumulate {
 				resp := types.NewBTCDelegationResponse(&btcDel, status)
@@ -145,9 +143,7 @@ func (k Keeper) FinalityProviderDelegations(ctx context.Context, req *types.Quer
 	}
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	currentWValue := k.btccKeeper.GetParams(ctx).CheckpointFinalizationTimeout
 	btcHeight := k.btclcKeeper.GetTipInfo(ctx).Height
-	covenantQuorum := k.GetParams(ctx).CovenantQuorum
 
 	fpPK, err := bbn.NewBIP340PubKeyFromHex(req.FpBtcPkHex)
 	if err != nil {
@@ -158,8 +154,8 @@ func (k Keeper) FinalityProviderDelegations(ctx context.Context, req *types.Quer
 		btcDels []*types.BTCDelegatorDelegationsResponse
 		pageRes *query.PageResponse
 	)
-
-	if k.HasFinalityProvider(ctx, *fpPK) {
+	switch {
+	case k.HasFinalityProvider(ctx, *fpPK):
 		// this is a Babylon finality provider
 		btcDelStore := k.btcDelegatorFpStore(sdkCtx, fpPK)
 		pageRes, err = query.Paginate(btcDelStore, req.Pagination, func(key, value []byte) error {
@@ -172,10 +168,11 @@ func (k Keeper) FinalityProviderDelegations(ctx context.Context, req *types.Quer
 
 			btcDelsResp := make([]*types.BTCDelegationResponse, len(curBTCDels.Dels))
 			for i, btcDel := range curBTCDels.Dels {
+				params := k.GetParamsByVersion(sdkCtx, btcDel.ParamsVersion)
+
 				status := btcDel.GetStatus(
 					btcHeight,
-					currentWValue,
-					covenantQuorum,
+					params.CovenantQuorum,
 				)
 				btcDelsResp[i] = types.NewBTCDelegationResponse(btcDel, status)
 			}
@@ -188,13 +185,15 @@ func (k Keeper) FinalityProviderDelegations(ctx context.Context, req *types.Quer
 		if err != nil {
 			return nil, err
 		}
-	} else if k.BscKeeper.HasConsumerFinalityProvider(ctx, fpPK) {
+
+	case k.BscKeeper.HasConsumerFinalityProvider(ctx, fpPK):
 		// this is a consumer finality provider
-		btcDels, pageRes, err = k.GetBTCConsumerDelegatorDelegationsResponses(sdkCtx, fpPK, req.Pagination, currentWValue, btcHeight, covenantQuorum)
+		btcDels, pageRes, err = k.GetBTCConsumerDelegatorDelegationsResponses(sdkCtx, fpPK, req.Pagination, btcHeight)
 		if err != nil {
 			return nil, err
 		}
-	} else {
+
+	default:
 		// the given finality provider is not found
 		return nil, types.ErrFpNotFound
 	}
@@ -220,14 +219,54 @@ func (k Keeper) BTCDelegation(ctx context.Context, req *types.QueryBTCDelegation
 		return nil, types.ErrBTCDelegationNotFound
 	}
 
-	currentWValue := k.btccKeeper.GetParams(ctx).CheckpointFinalizationTimeout
+	params := k.GetParamsByVersion(ctx, btcDel.ParamsVersion)
+
 	status := btcDel.GetStatus(
 		k.btclcKeeper.GetTipInfo(ctx).Height,
-		currentWValue,
-		k.GetParams(ctx).CovenantQuorum,
+		params.CovenantQuorum,
 	)
 
 	return &types.QueryBTCDelegationResponse{
 		BtcDelegation: types.NewBTCDelegationResponse(btcDel, status),
 	}, nil
+}
+
+// LargestBtcReOrg implements types.QueryServer.
+func (k Keeper) LargestBtcReOrg(ctx context.Context, _ *types.QueryLargestBtcReOrgRequest) (*types.QueryLargestBtcReOrgResponse, error) {
+	largestBtcReorg, err := k.LargestBtcReorg.Get(ctx)
+	if err != nil {
+		return nil, types.ErrLargestBtcReorgNotFound
+	}
+
+	return &types.QueryLargestBtcReOrgResponse{
+		BlockDiff:    largestBtcReorg.BlockDiff,
+		RollbackFrom: largestBtcReorg.RollbackFrom.ToResponse(),
+		RollbackTo:   largestBtcReorg.RollbackTo.ToResponse(),
+	}, nil
+}
+
+// ParamsVersions iterates over all the versioned parameters in the store.
+func (k Keeper) ParamsVersions(c context.Context, req *types.QueryParamsVersionsRequest) (*types.QueryParamsVersionsResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "empty request")
+	}
+
+	ctx := sdk.UnwrapSDKContext(c)
+	store := k.paramsStore(ctx)
+
+	var resp []types.StoredParams
+	pageRes, err := query.Paginate(store, req.Pagination, func(key, value []byte) error {
+		var sp types.StoredParams
+		if err := sp.Unmarshal(value); err != nil {
+			return err
+		}
+
+		resp = append(resp, sp)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.QueryParamsVersionsResponse{Params: resp, Pagination: pageRes}, nil
 }

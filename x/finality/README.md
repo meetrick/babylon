@@ -45,8 +45,8 @@ holders to *trustlessly* stake their bitcoins, in order to provide economic
 security to the Babylon chain and other Proof-of-Stake (PoS) blockchains. The
 protocol composes a PoS blockchain with an off-the-shelf *finality voting round*
 run by a set of [finality
-providers](https://github.com/babylonchain/finality-provider) who receive *BTC
-delegations* from [BTC stakers](https://github.com/babylonchain/btc-staker). The
+providers](https://github.com/babylonlabs-io/finality-provider) who receive *BTC
+delegations* from [BTC stakers](https://github.com/babylonlabs-io/btc-staker). The
 finality providers and BTC delegations are maintained by Babylon's [BTC Staking
 module](../btcstaking/README.md), and the Finality module is responsible for
 maintaining the finality voting round.
@@ -56,7 +56,7 @@ maintaining the finality voting round.
 the CometBFT ledger receives *finality votes* from a set of finality providers.
 A finality vote is a signature under the [*Extractable One-Time Signature
 (EOTS)*
-primitive](https://docs.babylonchain.io/assets/files/btc_staking_litepaper-32bfea0c243773f0bfac63e148387aef.pdf).
+primitive](https://docs.babylonlabs.io/assets/files/btc_staking_litepaper-32bfea0c243773f0bfac63e148387aef.pdf).
 A block is considered finalized if it receives a quorum, i.e., votes from
 finality providers with more than 2/3 voting power at its height.
 
@@ -101,7 +101,7 @@ needs to interact with Babylon as follows:
   provider's secret key and slash it.
 
 Babylon has implemented a [BTC staking
-tracker](https://github.com/babylonchain/vigilante) daemon program that
+tracker](https://github.com/babylonlabs-io/vigilante) daemon program that
 subscribes to equivocation evidences in the Finality module, and slashes BTC
 delegations under equivocating finality providers by sending their slashing
 transactions to the Bitcoin network.
@@ -120,14 +120,17 @@ parameters. The Finality module's parameters are represented as a `Params`
 // Params defines the parameters for the module.
 message Params {
   option (gogoproto.goproto_stringer) = false;
+
+  // max_active_finality_providers is the maximum number of active finality providers in the BTC staking protocol
+  uint32 max_active_finality_providers = 1;
   // signed_blocks_window defines the size of the sliding window for tracking finality provider liveness
-  int64 signed_blocks_window  = 1;
+  int64 signed_blocks_window  = 2;
   // finality_sig_timeout defines how much time (in terms of blocks) finality providers have to cast a finality
   // vote before being judged as missing their voting turn on the given block
-  int64 finality_sig_timeout = 2;
+  int64 finality_sig_timeout = 3;
   // min_signed_per_window defines the minimum number of blocks that a finality provider is required to sign
-  // within the sliding window to avoid being detected as sluggish
-  bytes min_signed_per_window = 3 [
+  // within the sliding window to avoid being jailed
+  bytes min_signed_per_window = 4 [
     (cosmos_proto.scalar)  = "cosmos.Dec",
     (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
     (gogoproto.nullable)   = false,
@@ -135,7 +138,14 @@ message Params {
   ];
   // min_pub_rand is the minimum number of public randomness each
   // message should commit
-  uint64 min_pub_rand = 4;
+  uint64 min_pub_rand = 5;
+  // jail_duration is the minimum period of time that a finality provider remains jailed
+  google.protobuf.Duration jail_duration = 6
+  [(gogoproto.nullable) = false, (amino.dont_omitempty) = true, (gogoproto.stdduration) = true];
+  // finality_activation_height is the babylon block height which the finality module will
+  // start to accept finality voting and the minimum allowed value for the public randomness
+  // commit start height.
+  uint64 finality_activation_height = 7;
 }
 ```
 
@@ -231,9 +241,8 @@ message Evidence {
     bytes fp_btc_pk = 1 [ (gogoproto.customtype) = "github.com/babylonlabs-io/babylon/types.BIP340PubKey" ];
     // block_height is the height of the conflicting blocks
     uint64 block_height = 2;
-    // master_pub_rand is the master public randomness the finality provider has committed to
-    // encoded as a base58 string
-    string master_pub_rand = 3;
+    // pub_rand is the public randomness the finality provider has committed to
+    bytes pub_rand = 3 [ (gogoproto.customtype) = "github.com/babylonlabs-io/babylon/types.SchnorrPubRand" ];
     // canonical_app_hash is the AppHash of the canonical block
     bytes canonical_app_hash = 4;
     // fork_app_hash is the AppHash of the fork block
@@ -313,7 +322,7 @@ The message handlers are defined at
 The `MsgCommitPubRandList` message is used for committing a merkle tree
 constructed by a list of EOTS public randomness that will be used by a finality
 provider in the future. It is typically submitted by a finality provider via the
-[finality provider](https://github.com/babylonchain/finality-provider) program.
+[finality provider](https://github.com/babylonlabs-io/finality-provider) program.
 
 ```protobuf
 // MsgCommitPubRandList defines a message for committing a list of public randomness for EOTS
@@ -353,7 +362,7 @@ Upon `MsgCommitPubRandList`, a Babylon node will execute as follows:
 The `MsgAddFinalitySig` message is used for submitting a finality vote, i.e., an
 EOTS signature over a block signed by a finality provider. It is typically
 submitted by a finality provider via the [finality
-provider](https://github.com/babylonchain/finality-provider) program.
+provider](https://github.com/babylonlabs-io/finality-provider) program.
 
 ```protobuf
 // MsgAddFinalitySig defines a message for adding a finality vote
@@ -421,9 +430,32 @@ message MsgUpdateParams {
 }
 ```
 
+### MsgResumeFinalityProposal
+
+The `MsgResumeFinalityProposal` message is used for resuming finality in case
+of finality halting. It can only be executed via a governance proposal.
+
+```protobuf
+// MsgResumeFinalityProposal is a governance proposal to resume finality from halting
+message MsgResumeFinalityProposal {
+  option (cosmos.msg.v1.signer) = "authority";
+
+  // authority is the address of the governance account.
+  // just FYI: cosmos.AddressString marks that this field should use type alias
+  // for AddressString instead of string, but the functionality is not yet implemented
+  // in cosmos-proto
+  string authority = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  // fp_pks_hex is a list of finality provider public keys to jail
+  // the public key follows encoding in BIP-340 spec
+  repeated string fp_pks_hex = 2;
+  // halting_height is the height where the finality halting begins
+  uint32 halting_height = 3;
+}
+```
+
 ## BeginBlocker
 
-Upon `EndBlocker`, the Finality module of each Babylon node will [execute the
+Upon `BeginBlocker`, the Finality module of each Babylon node will [execute the
 following](./abci.go):
 
 1. Record the voting power table at the current height, by reconciling the
@@ -496,5 +528,5 @@ string public_key = 1;
 
 The Finality module provides a set of queries about finality signatures on each
 block, listed at
-[docs.babylonchain.io](https://docs.babylonchain.io/docs/developer-guides/grpcrestapi#tag/Finality).
+[docs.babylonlabs.io](https://docs.babylonlabs.io/docs/developer-guides/grpcrestapi#tag/Finality).
 <!-- TODO: update Babylon doc website -->

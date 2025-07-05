@@ -2,7 +2,8 @@ package keeper
 
 import (
 	"context"
-	"github.com/babylonlabs-io/babylon/x/incentive/types"
+
+	"github.com/babylonlabs-io/babylon/v3/x/incentive/types"
 )
 
 // SetParams sets the x/incentive module parameters.

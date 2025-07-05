@@ -7,15 +7,15 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/app"
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
-	keepertest "github.com/babylonlabs-io/babylon/testutil/keeper"
-	wasmtest "github.com/babylonlabs-io/babylon/wasmbinding/test"
-	"github.com/babylonlabs-io/babylon/x/btcstkconsumer/keeper"
-	"github.com/babylonlabs-io/babylon/x/btcstkconsumer/types"
+	"github.com/babylonlabs-io/babylon/v3/app"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
+	keepertest "github.com/babylonlabs-io/babylon/v3/testutil/keeper"
+	wasmtest "github.com/babylonlabs-io/babylon/v3/wasmbinding/test"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstkconsumer/keeper"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstkconsumer/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	ibctmtypes "github.com/cosmos/ibc-go/v8/modules/light-clients/07-tendermint"
+	ibctmtypes "github.com/cosmos/ibc-go/v10/modules/light-clients/07-tendermint"
 )
 
 func setupMsgServer(t testing.TB) (keeper.Keeper, types.MsgServer, context.Context) {
@@ -84,25 +84,25 @@ func FuzzRegisterConsumer(f *testing.F) {
 		require.Equal(t, consumerRegister.String(), consumerRegister2.String())
 
 		/*
-			Test registering ETH L2 consumer
+			Test registering rollup consumer
 		*/
 		// mock the wasm contract
 		contractAddr := mockSmartContract(t, ctx, babylonApp)
 		// generate a random consumer register
-		consumerRegister = datagen.GenRandomETHL2Register(r, contractAddr.String())
+		consumerRegister = datagen.GenRandomRollupRegister(r, contractAddr.String())
 		// Register the consumer
 		_, err = msgServer.RegisterConsumer(ctx, &types.MsgRegisterConsumer{
-			ConsumerId:                   consumerRegister.ConsumerId,
-			ConsumerName:                 consumerRegister.ConsumerName,
-			ConsumerDescription:          consumerRegister.ConsumerDescription,
-			EthL2FinalityContractAddress: contractAddr.String(),
+			ConsumerId:                    consumerRegister.ConsumerId,
+			ConsumerName:                  consumerRegister.ConsumerName,
+			ConsumerDescription:           consumerRegister.ConsumerDescription,
+			RollupFinalityContractAddress: contractAddr.String(),
 		})
 		require.NoError(t, err)
 		// check that the consumer is registered
 		consumerRegister2, err = bscKeeper.GetConsumerRegister(ctx, consumerRegister.ConsumerId)
 		require.NoError(t, err)
 		require.Equal(t, consumerRegister.String(), consumerRegister2.String())
-		require.Equal(t, types.ConsumerType_ETH_L2, consumerRegister2.Type())
+		require.Equal(t, types.ConsumerType_ROLLUP, consumerRegister2.Type())
 	})
 }
 

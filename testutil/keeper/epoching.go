@@ -12,14 +12,15 @@ import (
 	dbm "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/x/epoching/keeper"
-	"github.com/babylonlabs-io/babylon/x/epoching/types"
+	appparams "github.com/babylonlabs-io/babylon/v3/app/params"
+	"github.com/babylonlabs-io/babylon/v3/x/epoching/keeper"
+	"github.com/babylonlabs-io/babylon/v3/x/epoching/types"
+
+	"github.com/stretchr/testify/require"
 )
 
 func EpochingKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
@@ -31,6 +32,8 @@ func EpochingKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 	require.NoError(t, stateStore.LoadLatestVersion())
 
 	registry := codectypes.NewInterfaceRegistry()
+	types.RegisterInterfaces(registry)
+	cryptocodec.RegisterInterfaces(registry)
 	cdc := codec.NewProtoCodec(registry)
 
 	k := keeper.NewKeeper(
@@ -39,7 +42,8 @@ func EpochingKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 		// TODO: make this compile at the moment, will fix for integrated testing
 		nil,
 		nil,
-		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		nil,
+		appparams.AccGov.String(),
 	)
 
 	// TODO: add msgServiceRouter?

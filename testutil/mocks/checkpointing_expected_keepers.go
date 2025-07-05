@@ -8,8 +8,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	types "github.com/babylonlabs-io/babylon/x/checkpointing/types"
-	types0 "github.com/babylonlabs-io/babylon/x/epoching/types"
+	types "github.com/babylonlabs-io/babylon/v3/x/checkpointing/types"
+	types0 "github.com/babylonlabs-io/babylon/v3/x/epoching/types"
 	crypto "github.com/cometbft/cometbft/proto/tendermint/crypto"
 	types1 "github.com/cosmos/cosmos-sdk/types"
 	types2 "github.com/cosmos/cosmos-sdk/x/staking/types"
@@ -79,6 +79,20 @@ func (mr *MockEpochingKeeperMockRecorder) GetEpoch(ctx interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpoch", reflect.TypeOf((*MockEpochingKeeper)(nil).GetEpoch), ctx)
 }
 
+// GetEpochNumByHeight mocks base method.
+func (m *MockEpochingKeeper) GetEpochNumByHeight(ctx context.Context, height uint64) uint64 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEpochNumByHeight", ctx, height)
+	ret0, _ := ret[0].(uint64)
+	return ret0
+}
+
+// GetEpochNumByHeight indicates an expected call of GetEpochNumByHeight.
+func (mr *MockEpochingKeeperMockRecorder) GetEpochNumByHeight(ctx, height interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpochNumByHeight", reflect.TypeOf((*MockEpochingKeeper)(nil).GetEpochNumByHeight), ctx, height)
+}
+
 // GetPubKeyByConsAddr mocks base method.
 func (m *MockEpochingKeeper) GetPubKeyByConsAddr(ctx context.Context, consAddr types1.ConsAddress) (crypto.PublicKey, error) {
 	m.ctrl.T.Helper()
@@ -108,6 +122,21 @@ func (mr *MockEpochingKeeperMockRecorder) GetTotalVotingPower(ctx, epochNumber i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTotalVotingPower", reflect.TypeOf((*MockEpochingKeeper)(nil).GetTotalVotingPower), ctx, epochNumber)
 }
 
+// GetValidator mocks base method.
+func (m *MockEpochingKeeper) GetValidator(ctx context.Context, addr types1.ValAddress) (types2.Validator, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetValidator", ctx, addr)
+	ret0, _ := ret[0].(types2.Validator)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetValidator indicates an expected call of GetValidator.
+func (mr *MockEpochingKeeperMockRecorder) GetValidator(ctx, addr interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetValidator", reflect.TypeOf((*MockEpochingKeeper)(nil).GetValidator), ctx, addr)
+}
+
 // GetValidatorSet mocks base method.
 func (m *MockEpochingKeeper) GetValidatorSet(ctx context.Context, epochNumer uint64) types0.ValidatorSet {
 	m.ctrl.T.Helper()
@@ -120,6 +149,20 @@ func (m *MockEpochingKeeper) GetValidatorSet(ctx context.Context, epochNumer uin
 func (mr *MockEpochingKeeperMockRecorder) GetValidatorSet(ctx, epochNumer interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetValidatorSet", reflect.TypeOf((*MockEpochingKeeper)(nil).GetValidatorSet), ctx, epochNumer)
+}
+
+// StkMsgCreateValidator mocks base method.
+func (m *MockEpochingKeeper) StkMsgCreateValidator(ctx context.Context, msg *types2.MsgCreateValidator) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StkMsgCreateValidator", ctx, msg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// StkMsgCreateValidator indicates an expected call of StkMsgCreateValidator.
+func (mr *MockEpochingKeeperMockRecorder) StkMsgCreateValidator(ctx, msg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StkMsgCreateValidator", reflect.TypeOf((*MockEpochingKeeper)(nil).StkMsgCreateValidator), ctx, msg)
 }
 
 // MockCheckpointingHooks is a mock of CheckpointingHooks interface.

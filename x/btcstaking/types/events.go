@@ -7,7 +7,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	bbn "github.com/babylonlabs-io/babylon/types"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
 )
 
 func NewEventPowerDistUpdateWithBTCDel(ev *EventBTCDelegationStateUpdate) *EventPowerDistUpdate {
@@ -67,6 +67,7 @@ func NewEventFinalityProviderCreated(fp *FinalityProvider) *EventFinalityProvide
 		Website:         fp.Description.Website,
 		SecurityContact: fp.Description.SecurityContact,
 		Details:         fp.Description.Details,
+		ConsumerId:      fp.ConsumerId,
 	}
 }
 
@@ -109,6 +110,7 @@ func NewBtcDelCreationEvent(
 		UnbondingTime:             strconv.FormatUint(uint64(btcDel.UnbondingTime), 10),
 		UnbondingTx:               hex.EncodeToString(btcDel.BtcUndelegation.UnbondingTx),
 		NewState:                  BTCDelegationStatus_PENDING.String(),
+		StakerAddr:                btcDel.StakerAddr,
 	}
 }
 
@@ -150,7 +152,7 @@ func NewExpiredDelegationEvent(
 ) *EventBTCDelegationExpired {
 	return &EventBTCDelegationExpired{
 		StakingTxHash: stakingTxHash,
-		NewState:      BTCDelegationStatus_UNBONDED.String(),
+		NewState:      BTCDelegationStatus_EXPIRED.String(),
 	}
 }
 

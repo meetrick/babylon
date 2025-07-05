@@ -11,11 +11,9 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/spf13/cobra"
 
-	abci "github.com/cometbft/cometbft/abci/types"
-
-	"github.com/babylonlabs-io/babylon/x/checkpointing/client/cli"
-	"github.com/babylonlabs-io/babylon/x/checkpointing/keeper"
-	"github.com/babylonlabs-io/babylon/x/checkpointing/types"
+	"github.com/babylonlabs-io/babylon/v3/x/checkpointing/client/cli"
+	"github.com/babylonlabs-io/babylon/v3/x/checkpointing/keeper"
+	"github.com/babylonlabs-io/babylon/v3/x/checkpointing/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -26,7 +24,7 @@ import (
 var (
 	_ appmodule.AppModule       = AppModule{}
 	_ appmodule.HasBeginBlocker = AppModule{}
-	_ module.HasABCIEndBlock    = AppModule{}
+	_ appmodule.HasEndBlocker   = AppModule{}
 	_ module.AppModuleBasic     = AppModuleBasic{}
 )
 
@@ -133,6 +131,7 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 }
 
 // RegisterInvariants registers the capability module's invariants.
+// nolint staticcheck
 func (am AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
 
 // InitGenesis performs the capability module's genesis initialization It returns
@@ -143,7 +142,6 @@ func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, gs json.Ra
 	cdc.MustUnmarshalJSON(gs, &genState)
 
 	InitGenesis(ctx, am.keeper, genState)
-
 }
 
 // ExportGenesis returns the capability module's exported genesis state as raw JSON bytes.
@@ -160,10 +158,11 @@ func (am AppModule) BeginBlock(ctx context.Context) error {
 	return BeginBlocker(ctx, am.keeper)
 }
 
-// EndBlock executes all ABCI EndBlock logic respective to the capability module. It
-// returns no validator updates.
-func (am AppModule) EndBlock(_ context.Context) ([]abci.ValidatorUpdate, error) {
-	return []abci.ValidatorUpdate{}, nil
+// EndBlock returns the end blocker for the checkpointing module. It returns no validator
+// updates.
+func (am AppModule) EndBlock(ctx context.Context) error {
+	EndBlocker(ctx, am.keeper)
+	return nil
 }
 
 // IsOnePerModuleType implements the depinject.OnePerModuleType interface.

@@ -11,15 +11,16 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
-	testutil "github.com/babylonlabs-io/babylon/testutil/btcstaking-helper"
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
-	testkeeper "github.com/babylonlabs-io/babylon/testutil/keeper"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	btclctypes "github.com/babylonlabs-io/babylon/x/btclightclient/types"
-	bstypes "github.com/babylonlabs-io/babylon/x/btcstaking/types"
-	epochingtypes "github.com/babylonlabs-io/babylon/x/epoching/types"
-	"github.com/babylonlabs-io/babylon/x/finality/keeper"
-	"github.com/babylonlabs-io/babylon/x/finality/types"
+	"github.com/babylonlabs-io/babylon/v3/app/signingcontext"
+	testutil "github.com/babylonlabs-io/babylon/v3/testutil/btcstaking-helper"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
+	testkeeper "github.com/babylonlabs-io/babylon/v3/testutil/keeper"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	btclctypes "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
+	bstypes "github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
+	epochingtypes "github.com/babylonlabs-io/babylon/v3/x/epoching/types"
+	"github.com/babylonlabs-io/babylon/v3/x/finality/keeper"
+	"github.com/babylonlabs-io/babylon/v3/x/finality/types"
 )
 
 func FuzzActivatedHeight(f *testing.F) {
@@ -36,7 +37,7 @@ func FuzzActivatedHeight(f *testing.F) {
 		require.Error(t, err)
 
 		randomActivatedHeight := datagen.RandomInt(r, 100) + 1
-		fp, err := datagen.GenRandomFinalityProvider(r)
+		fp, err := datagen.GenRandomFinalityProvider(r, "")
 		require.NoError(t, err)
 		keeper.SetVotingPower(ctx, fp.BtcPk.MustMarshal(), randomActivatedHeight, uint64(10))
 
@@ -59,7 +60,7 @@ func FuzzFinalityProviderPowerAtHeight(f *testing.F) {
 		keeper, ctx := testkeeper.FinalityKeeper(t, bk, nil, nil)
 
 		// random finality provider
-		fp, err := datagen.GenRandomFinalityProvider(r)
+		fp, err := datagen.GenRandomFinalityProvider(r, "")
 		require.NoError(t, err)
 		// set random voting power at random height
 		randomHeight := datagen.RandomInt(r, 100) + 1
@@ -113,7 +114,7 @@ func FuzzFinalityProviderCurrentVotingPower(f *testing.F) {
 		keeper, ctx := testkeeper.FinalityKeeper(t, bk, nil, nil)
 
 		// random finality provider
-		fp, err := datagen.GenRandomFinalityProvider(r)
+		fp, err := datagen.GenRandomFinalityProvider(r, "")
 		require.NoError(t, err)
 		// set random voting power at random height
 		randomHeight := datagen.RandomInt(r, 100) + 1
@@ -402,11 +403,13 @@ func FuzzListPubRandCommit(f *testing.F) {
 		bip340PK := bbn.NewBIP340PubKeyFromBTCPK(sk.PubKey())
 		require.NoError(t, err)
 		// register finality provider
-		fp, err := datagen.GenRandomFinalityProviderWithBTCSK(r, sk, "")
+		fp, err := datagen.GenRandomFinalityProviderWithBTCSK(r, sk, "", "")
 		require.NoError(t, err)
 		bsKeeper.EXPECT().GetFinalityProvider(gomock.Any(), gomock.Eq(bip340PK.MustMarshal())).Return(fp, nil).AnyTimes()
 		bsKeeper.EXPECT().HasFinalityProvider(gomock.Any(), gomock.Eq(bip340PK.MustMarshal())).Return(true).AnyTimes()
 		cKeeper.EXPECT().GetEpoch(gomock.Any()).Return(&epochingtypes.Epoch{EpochNumber: 1}).AnyTimes()
+
+		commitCtxString := signingcontext.FpRandCommitContextV0(ctx.ChainID(), fKeeper.ModuleAddress())
 
 		numPrCommitList := datagen.RandomInt(r, 10) + 1
 		prCommitList := []*types.PubRandCommit{}
@@ -429,7 +432,7 @@ func FuzzListPubRandCommit(f *testing.F) {
 				NumPubRand:  numPubRand,
 				Commitment:  prCommit.Commitment,
 			}
-			hash, err := msg.HashToSign()
+			hash, err := msg.HashToSign(commitCtxString)
 			require.NoError(t, err)
 			schnorrSig, err := schnorr.Sign(sk, hash)
 			require.NoError(t, err)
@@ -480,10 +483,8 @@ func FuzzQueryEvidence(f *testing.F) {
 			require.NoError(t, err)
 			if datagen.RandomInt(r, 2) == 1 {
 				evidence.CanonicalFinalitySig = nil // not slashable
-			} else {
-				if randomFirstSlashableEvidence == nil {
-					randomFirstSlashableEvidence = evidence // first slashable
-				}
+			} else if randomFirstSlashableEvidence == nil {
+				randomFirstSlashableEvidence = evidence // first slashable
 			}
 			keeper.SetEvidence(ctx, evidence)
 

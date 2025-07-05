@@ -3,7 +3,7 @@ package keeper
 import (
 	"context"
 
-	"github.com/babylonlabs-io/babylon/x/incentive/types"
+	"github.com/babylonlabs-io/babylon/v3/x/incentive/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -27,6 +27,10 @@ func (k Keeper) RewardGauges(goCtx context.Context, req *types.QueryRewardGauges
 
 	// find reward gauge
 	for _, sType := range types.GetAllStakeholderTypes() {
+		if err := k.sendAllBtcDelegationTypeToRewardsGauge(ctx, sType, address); err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+
 		rg := k.GetRewardGauge(ctx, sType, address)
 		if rg == nil {
 			continue
@@ -55,6 +59,33 @@ func (k Keeper) BTCStakingGauge(goCtx context.Context, req *types.QueryBTCStakin
 	}
 
 	return &types.QueryBTCStakingGaugeResponse{Gauge: convertGaugeToBTCStakingResponse(*gauge)}, nil
+}
+
+// DelegationRewards returns the current rewards for the specified finality provider and delegator
+func (k Keeper) DelegationRewards(ctx context.Context, req *types.QueryDelegationRewardsRequest) (*types.QueryDelegationRewardsResponse, error) {
+	// try to cast address
+	fpAddr, err := sdk.AccAddressFromBech32(req.FinalityProviderAddress)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	delAddr, err := sdk.AccAddressFromBech32(req.DelegatorAddress)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	// Finalize the period to get a new history with the current rewards available
+	// This will not be committed anyways because it is a query
+	endPeriod, err := k.IncrementFinalityProviderPeriod(ctx, fpAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	rewards, err := k.CalculateBTCDelegationRewards(ctx, fpAddr, delAddr, endPeriod)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.QueryDelegationRewardsResponse{Rewards: rewards}, nil
 }
 
 func convertGaugeToBTCStakingResponse(gauge types.Gauge) *types.BTCStakingGaugeResponse {

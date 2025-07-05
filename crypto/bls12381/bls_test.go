@@ -28,7 +28,7 @@ func TestVerifyBlsSig(t *testing.T) {
 func TestVerifyBlsMultiSig(t *testing.T) {
 	msga := []byte("aaaaaaaa")
 	msgb := []byte("bbbbbbbb")
-	n := 100
+	n := 105
 	sks, pks := generateBatchTestKeyPairs(n)
 	sigs := make([]Signature, n)
 	for i := 0; i < n; i++ {
@@ -113,4 +113,42 @@ func generateBatchTestKeyPairs(n int) ([]PrivateKey, []PublicKey) {
 		pubks[i] = pk
 	}
 	return sks, pubks
+}
+
+// Tests BLS proof-of-possession functionality
+func TestPopProveVerify(t *testing.T) {
+	// Generate key pair
+	sk, pk := GenKeyPair()
+
+	msg := GetPopSignMsg(pk, []byte("test message for pop"))
+
+	// Create proof of possession
+	popProof := PopProve(sk, msg)
+	require.Equal(t, SignatureSize, len(popProof))
+
+	// Verify the proof with PopVerify
+	res, err := PopVerify(popProof, pk, msg)
+	require.True(t, res)
+	require.Nil(t, err)
+
+	// Different message should fail verification
+	diffMsg := []byte("different message")
+	res, err = PopVerify(popProof, pk, diffMsg)
+	require.False(t, res)
+	require.Nil(t, err)
+
+	// Test domain separation - signatures shouldn't verify across domains
+
+	// Regular signature
+	regularSig := Sign(sk, msg)
+
+	// Regular signature should not verify with PopVerify
+	res, err = PopVerify(regularSig, pk, msg)
+	require.False(t, res)
+	require.Nil(t, err)
+
+	// PoP proof should not verify with regular Verify
+	res, err = Verify(popProof, pk, msg)
+	require.False(t, res)
+	require.Nil(t, err)
 }

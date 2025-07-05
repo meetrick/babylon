@@ -3,18 +3,22 @@ package types
 import (
 	"fmt"
 	"math"
+	"sort"
 
+	"cosmossdk.io/errors"
 	sdkmath "cosmossdk.io/math"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/mempool"
 	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/cometbft/cometbft/crypto/tmhash"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	"gopkg.in/yaml.v2"
 
-	"github.com/babylonlabs-io/babylon/btcstaking"
-	bbn "github.com/babylonlabs-io/babylon/types"
+	"github.com/babylonlabs-io/babylon/v3/btcstaking"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
 )
 
 const (
@@ -63,23 +67,23 @@ func DefaultParams() Params {
 	return Params{
 		CovenantPks:          bbn.NewBIP340PKsFromBTCPKs(pks),
 		CovenantQuorum:       quorum,
-		MinStakingValueSat:   1000,
+		MinStakingValueSat:   10000,
 		MaxStakingValueSat:   10 * 10e8,
-		MinStakingTimeBlocks: 10,
+		MinStakingTimeBlocks: 400, // this should be larger than minUnbonding
 		MaxStakingTimeBlocks: math.MaxUint16,
 		SlashingPkScript:     defaultSlashingPkScript(),
 		MinSlashingTxFeeSat:  1000,
 		MinCommissionRate:    sdkmath.LegacyZeroDec(),
 		// The Default slashing rate is 0.1 i.e., 10% of the total staked BTC will be burned.
 		SlashingRate: sdkmath.LegacyNewDecWithPrec(1, 1), // 1 * 10^{-1} = 0.1
-		// The default minimum unbonding time is 0, which effectively defaults to checkpoint
-		// finalization timeout.
-		MinUnbondingTimeBlocks:       0,
+		// unbonding time should be always larger than the checkpoint finalization timeout
+		UnbondingTimeBlocks:          200,
 		UnbondingFeeSat:              1000,
 		DelegationCreationBaseGasFee: defaultDelegationCreationBaseGasFee,
 		// The default allow list expiration height is 0, which effectively disables the allow list.
 		// Allow list can only be enabled by upgrade
 		AllowListExpirationHeight: 0,
+		BtcActivationHeight:       0,
 	}
 }
 
@@ -112,14 +116,18 @@ func validateMinCommissionRate(rate sdkmath.LegacyDec) error {
 
 // validateCovenantPks checks whether the covenants list contains any duplicates
 func validateCovenantPks(covenantPks []bbn.BIP340PubKey) error {
-	if ExistsDup(covenantPks) {
+	duplicate, err := ExistsDup(covenantPks)
+	if err != nil {
+		return err
+	}
+	if duplicate {
 		return fmt.Errorf("duplicate covenant key")
 	}
 	return nil
 }
 
-func validateMinUnbondingTime(minUnbondingTimeBlocks uint32) error {
-	if minUnbondingTimeBlocks > math.MaxUint16 {
+func validateUnbondingTime(unbondingTimeBlocks uint32) error {
+	if unbondingTimeBlocks > math.MaxUint16 {
 		return fmt.Errorf("minimum unbonding time blocks cannot be greater than %d", math.MaxUint16)
 	}
 
@@ -166,6 +174,30 @@ func validateStakingTime(minStakingTime, maxStakingTime uint32) error {
 	return nil
 }
 
+func validateNoDustSlashingOutput(p *Params) error {
+	// OP_RETURN scripts are allowed to be dust by BTC standard rules
+	if len(p.SlashingPkScript) > 0 && p.SlashingPkScript[0] == txscript.OP_RETURN {
+		return nil
+	}
+
+	slashingRateFloat64, err := p.SlashingRate.Float64()
+	if err != nil {
+		return fmt.Errorf("error converting slashing rate to float64: %w", err)
+	}
+
+	minUnbondingOutputValue := p.MinStakingValueSat - p.UnbondingFeeSat
+
+	minSlashingAmount := btcutil.Amount(minUnbondingOutputValue).MulF64(slashingRateFloat64)
+
+	minSlashingOutput := wire.NewTxOut(int64(minSlashingAmount), p.SlashingPkScript)
+
+	if mempool.IsDust(minSlashingOutput, mempool.DefaultMinRelayTxFee) {
+		return fmt.Errorf("invalid parameters configuration. Minimum slashing output is dust")
+	}
+
+	return nil
+}
+
 // Validate validates the set of params
 func (p Params) Validate() error {
 	if p.CovenantQuorum == 0 {
@@ -194,11 +226,20 @@ func (p Params) Validate() error {
 		return err
 	}
 
-	if !btcstaking.IsRateValid(p.SlashingRate) {
+	if !btcstaking.IsSlashingRateValid(p.SlashingRate) {
 		return btcstaking.ErrInvalidSlashingRate
 	}
 
-	if err := validateMinUnbondingTime(p.MinUnbondingTimeBlocks); err != nil {
+	if p.UnbondingFeeSat <= 0 || p.UnbondingFeeSat >= p.MinStakingValueSat {
+		// Unbonding fee must be positive and cannot be greater than the minimum staking amount
+		return errors.Wrapf(btcstaking.ErrInvalidUnbondingFee, "(%d) is not a valid unbonding fee value", p.UnbondingFeeSat)
+	}
+
+	if err := validateNoDustSlashingOutput(&p); err != nil {
+		return err
+	}
+
+	if err := validateUnbondingTime(p.UnbondingTimeBlocks); err != nil {
 		return err
 	}
 
@@ -236,4 +277,137 @@ func (p Params) MustGetCovenantPks() []*btcec.PublicKey {
 	}
 
 	return covenantKeys
+}
+
+func NewHeightVersionPair(
+	startHeight uint64,
+	version uint32,
+) *HeightVersionPair {
+	return &HeightVersionPair{
+		StartHeight: startHeight,
+		Version:     version,
+	}
+}
+
+func NewHeightToVersionMap() *HeightToVersionMap {
+	return &HeightToVersionMap{
+		Pairs: []*HeightVersionPair{},
+	}
+}
+
+func (m *HeightToVersionMap) GetLastPair() *HeightVersionPair {
+	if m.IsEmpty() {
+		return nil
+	}
+	return m.Pairs[len(m.Pairs)-1]
+}
+
+// AddNewPair adds a new pair to the map it preserves the following invariants:
+// 1. pairs are sorted by start height in ascending order
+// 2. versions are strictly increasing by increments of 1
+// If newPair breaks any of the invariants, it returns an error
+func (m *HeightToVersionMap) AddNewPair(startHeight uint64, version uint32) error {
+	return m.AddPair(&HeightVersionPair{
+		StartHeight: startHeight,
+		Version:     version,
+	})
+}
+
+// AddPair adds a new pair to the map it preserves the following invariants:
+// 1. pairs are sorted by start height in ascending order
+// 2. versions are strictly increasing by increments of 1
+// If newPair breaks any of the invariants, it returns an error
+func (m *HeightToVersionMap) AddPair(newPair *HeightVersionPair) error {
+	if len(m.Pairs) == 0 && newPair.Version != 0 {
+		return fmt.Errorf("version must be 0 for the first pair")
+	}
+
+	if len(m.Pairs) == 0 && newPair.Version == 0 {
+		m.Pairs = append(m.Pairs, newPair)
+		return nil
+	}
+
+	// we already checked `m.Pairs` is not empty, so this won't be nil
+	lastPair := m.GetLastPair()
+
+	if newPair.StartHeight <= lastPair.StartHeight {
+		return fmt.Errorf("pairs must be sorted by start height in ascending order, got %d <= %d",
+			newPair.StartHeight, lastPair.StartHeight)
+	}
+
+	if newPair.Version != lastPair.Version+1 {
+		return fmt.Errorf("versions must be strictly increasing, got %d != %d + 1",
+			newPair.Version, lastPair.Version)
+	}
+
+	m.Pairs = append(m.Pairs, newPair)
+	return nil
+}
+
+func NewHeightToVersionMapFromPairs(pairs []*HeightVersionPair) (*HeightToVersionMap, error) {
+	if len(pairs) == 0 {
+		return nil, fmt.Errorf("can't construct HeightToVersionMap from empty list of HeightVersionPair")
+	}
+
+	heightToVersionMap := NewHeightToVersionMap()
+
+	for _, pair := range pairs {
+		if err := heightToVersionMap.AddPair(pair); err != nil {
+			return nil, err
+		}
+	}
+
+	return heightToVersionMap, nil
+}
+
+func (m *HeightToVersionMap) IsEmpty() bool {
+	return len(m.Pairs) == 0
+}
+
+func (m *HeightToVersionMap) GetVersionForHeight(height uint64) (uint32, error) {
+	if m.IsEmpty() {
+		return 0, fmt.Errorf("height to version map is empty")
+	}
+
+	// Binary search to find the applicable version of the parameters
+	idx := sort.Search(len(m.Pairs), func(i int) bool {
+		return m.Pairs[i].StartHeight > height
+	}) - 1
+
+	if idx < 0 {
+		return 0, fmt.Errorf("no parameters found for block height %d", height)
+	}
+
+	return m.Pairs[idx].Version, nil
+}
+
+func (m *HeightToVersionMap) Validate() error {
+	if len(m.Pairs) == 0 {
+		return fmt.Errorf("height to version map is empty")
+	}
+
+	if len(m.Pairs) == 1 {
+		if m.Pairs[0].Version != 0 {
+			return fmt.Errorf("version must be 0 for the first pair")
+		}
+		return nil
+	}
+
+	for i, pair := range m.Pairs {
+		if i == 0 {
+			continue
+		}
+
+		if pair.StartHeight <= m.Pairs[i-1].StartHeight {
+			return fmt.Errorf("pairs must be sorted by start height in ascending order, got %d <= %d",
+				pair.StartHeight, m.Pairs[i-1].StartHeight)
+		}
+
+		if pair.Version != m.Pairs[i-1].Version+1 {
+			return fmt.Errorf("versions must be strictly increasing, got %d != %d + 1",
+				pair.Version, m.Pairs[i-1].Version)
+		}
+	}
+
+	return nil
 }

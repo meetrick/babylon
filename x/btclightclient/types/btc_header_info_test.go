@@ -9,9 +9,9 @@ import (
 
 	sdkmath "cosmossdk.io/math"
 
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	"github.com/babylonlabs-io/babylon/x/btclightclient/types"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	"github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -57,7 +57,7 @@ func FuzzNewHeaderInfo(f *testing.F) {
 
 		gotWork := headerInfo.Work
 		if *gotWork != work {
-			t.Errorf("Expected work %d got work %d", work.Uint64(), (*gotWork).Uint64())
+			t.Errorf("Expected work %d got work %d", work.Uint64(), gotWork.Uint64())
 		}
 	})
 }

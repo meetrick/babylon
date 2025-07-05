@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/babylonlabs-io/babylon/x/epoching/types"
+	"github.com/babylonlabs-io/babylon/v3/x/epoching/types"
 	abci "github.com/cometbft/cometbft/abci/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -81,6 +81,7 @@ func (k Keeper) ApplyMatureUnbonding(ctx context.Context, epochNumber uint64) {
 			panic(err)
 		}
 
+		// TODO: emit typed event
 		currentSdkCtx.EventManager().EmitEvent(
 			sdk.NewEvent(
 				stakingtypes.EventTypeCompleteUnbonding,
@@ -135,6 +136,7 @@ func (k Keeper) ApplyMatureUnbonding(ctx context.Context, epochNumber uint64) {
 			panic(err)
 		}
 
+		// TODO: emit typed event
 		currentSdkCtx.EventManager().EmitEvent(
 			sdk.NewEvent(
 				stakingtypes.EventTypeCompleteRedelegation,

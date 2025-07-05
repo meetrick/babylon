@@ -1,15 +1,17 @@
 package keeper_test
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
-	keepertest "github.com/babylonlabs-io/babylon/testutil/keeper"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	"github.com/babylonlabs-io/babylon/x/finality/types"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
+	keepertest "github.com/babylonlabs-io/babylon/v3/testutil/keeper"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	"github.com/babylonlabs-io/babylon/v3/x/finality/types"
 )
 
 func FuzzTestExportGenesis(f *testing.F) {
@@ -24,12 +26,12 @@ func FuzzTestExportGenesis(f *testing.F) {
 		fpBTCPK := bbn.NewBIP340PubKeyFromBTCPK(btcPK)
 		blkHeight, startHeight, numPubRand := uint64(1), uint64(0), uint64(5)
 
-		randListInfo, _, err := datagen.GenRandomMsgCommitPubRandList(r, btcSK, startHeight, numPubRand)
+		randListInfo, _, err := datagen.GenRandomMsgCommitPubRandList(r, btcSK, "", startHeight, numPubRand)
 		require.NoError(t, err)
 
 		blockHash := datagen.GenRandomByteArray(r, 32)
 		signer := datagen.GenRandomAccount().Address
-		msgAddFinalitySig, err := datagen.NewMsgAddFinalitySig(signer, btcSK, startHeight, blkHeight, randListInfo, blockHash)
+		msgAddFinalitySig, err := datagen.NewMsgAddFinalitySig(signer, btcSK, "", startHeight, blkHeight, randListInfo, blockHash)
 		require.NoError(t, err)
 
 		allVotes := make([]*types.VoteSig, numPubRand)
@@ -88,7 +90,13 @@ func FuzzTestExportGenesis(f *testing.F) {
 			NumPubRand:  numPubRand,
 			Commitment:  randListInfo.Commitment,
 		}
-		k.SetPubRandCommit(ctx, fpBTCPK, prc)
+		require.NoError(t, k.SetPubRandCommit(ctx, fpBTCPK, prc))
+		pubRandCommitIdx := &types.PubRandCommitIdx{
+			FpBtcPk: fpBTCPK,
+			Index: &types.PubRandCommitIndexValue{
+				Heights: []uint64{startHeight},
+			},
+		}
 
 		numSigningInfo := datagen.RandomInt(r, 100) + 10
 		fpSigningInfos := map[string]*types.FinalityProviderSigningInfo{}
@@ -111,10 +119,10 @@ func FuzzTestExportGenesis(f *testing.F) {
 		}
 
 		numFps := datagen.RandomInt(r, 10) + 1
-		fps := datagen.CreateNFinalityProviders(r, t, int(numFps))
+		fps := datagen.CreateNFinalityProviders(r, t, "", int(numFps))
 		vpFps := make(map[string]*types.VotingPowerFP, 0)
 		for _, fp := range fps {
-			vp := uint64(datagen.RandomInt(r, 1000000))
+			vp := datagen.RandomInt(r, 1000000)
 			// sets voting power
 			k.SetVotingPower(ctx, *fp.BtcPk, blkHeight, vp)
 			vpFps[fp.BtcPk.MarshalHex()] = &types.VotingPowerFP{
@@ -138,6 +146,7 @@ func FuzzTestExportGenesis(f *testing.F) {
 		require.Equal(t, allEvidences, gs.Evidences)
 		require.Equal(t, allPublicRandomness, gs.PublicRandomness)
 		require.Equal(t, prc, gs.PubRandCommit[0].PubRandCommit)
+		require.Equal(t, pubRandCommitIdx, gs.PubRandCommitIndexes[0])
 		require.Equal(t, len(fpPks), len(gs.SigningInfos))
 		for _, info := range gs.SigningInfos {
 			require.Equal(t, fpSigningInfos[info.FpBtcPk.MarshalHex()].MissedBlocksCounter, info.FpSigningInfo.MissedBlocksCounter)
@@ -148,5 +157,28 @@ func FuzzTestExportGenesis(f *testing.F) {
 		for _, fpVp := range gs.VotingPowers {
 			require.Equal(t, vpFps[fpVp.FpBtcPk.MarshalHex()], fpVp)
 		}
+	})
+}
+
+func FuzzTestInitGenesis(f *testing.F) {
+	datagen.AddRandomSeedsToFuzzer(f, 10)
+	f.Fuzz(func(t *testing.T, seed int64) {
+		r := rand.New(rand.NewSource(seed))
+		k, ctx := keepertest.FinalityKeeper(t, nil, nil, nil)
+		gs, err := datagen.GenRandomFinalityGenesisState(r, "")
+		require.NoError(t, err)
+
+		// Run the InitGenesis
+		err = k.InitGenesis(ctx, *gs)
+		require.NoError(t, err)
+
+		// get the current state
+		exported, err := k.ExportGenesis(ctx)
+		require.NoError(t, err)
+
+		types.SortData(gs)
+		types.SortData(exported)
+
+		require.Equal(t, gs, exported, fmt.Sprintf("Found diff: %s | seed %d", cmp.Diff(gs, exported), seed))
 	})
 }

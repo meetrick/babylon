@@ -5,6 +5,7 @@ package types
 
 import (
 	fmt "fmt"
+	_ "github.com/cosmos/cosmos-proto"
 	_ "github.com/cosmos/gogoproto/gogoproto"
 	proto "github.com/cosmos/gogoproto/proto"
 	io "io"
@@ -23,9 +24,64 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
+// StakeholderType represents the different types of stakeholders.
+type StakeholderType int32
+
+const (
+	// Finality provider stakeholder type
+	FINALITY_PROVIDER StakeholderType = 0
+	// BTC staker stakeholder type
+	BTC_STAKER StakeholderType = 1
+)
+
+var StakeholderType_name = map[int32]string{
+	0: "FINALITY_PROVIDER",
+	1: "BTC_STAKER",
+}
+
+var StakeholderType_value = map[string]int32{
+	"FINALITY_PROVIDER": 0,
+	"BTC_STAKER":        1,
+}
+
+func (x StakeholderType) String() string {
+	return proto.EnumName(StakeholderType_name, int32(x))
+}
+
+func (StakeholderType) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_41d5400dc6b4b931, []int{0}
+}
+
 // GenesisState defines the incentive module's genesis state.
 type GenesisState struct {
+	// params the current params of the state.
 	Params Params `protobuf:"bytes,1,opt,name=params,proto3" json:"params"`
+	// BTC staking gauge on every height
+	BtcStakingGauges []BTCStakingGaugeEntry `protobuf:"bytes,2,rep,name=btc_staking_gauges,json=btcStakingGauges,proto3" json:"btc_staking_gauges"`
+	// RewardGauges the reward gauge for each BTC staker and finality provider
+	RewardGauges []RewardGaugeEntry `protobuf:"bytes,3,rep,name=reward_gauges,json=rewardGauges,proto3" json:"reward_gauges"`
+	// Withdraw addresses of the delegators
+	WithdrawAddresses []WithdrawAddressEntry `protobuf:"bytes,4,rep,name=withdraw_addresses,json=withdrawAddresses,proto3" json:"withdraw_addresses"`
+	// refundable_msg_hashes is the set of hashes of messages that can be refunded
+	RefundableMsgHashes []string `protobuf:"bytes,5,rep,name=refundable_msg_hashes,json=refundableMsgHashes,proto3" json:"refundable_msg_hashes,omitempty"`
+	// finality_providers_current_rewards are the current rewards of finality
+	// providers by addr
+	FinalityProvidersCurrentRewards []FinalityProviderCurrentRewardsEntry `protobuf:"bytes,6,rep,name=finality_providers_current_rewards,json=finalityProvidersCurrentRewards,proto3" json:"finality_providers_current_rewards"`
+	// finality_providers_historical_rewards are the historical rewards of
+	// finality providers by addr and period
+	FinalityProvidersHistoricalRewards []FinalityProviderHistoricalRewardsEntry `protobuf:"bytes,7,rep,name=finality_providers_historical_rewards,json=finalityProvidersHistoricalRewards,proto3" json:"finality_providers_historical_rewards"`
+	// btc_delegation_rewards_trackers are the btc delegation rewards trackers
+	// stored by finality provider and delegator addresses
+	BtcDelegationRewardsTrackers []BTCDelegationRewardsTrackerEntry `protobuf:"bytes,8,rep,name=btc_delegation_rewards_trackers,json=btcDelegationRewardsTrackers,proto3" json:"btc_delegation_rewards_trackers"`
+	// btc_delegators_to_fps are all the records of the delegators and the
+	// finality providers to which it delegated some BTC
+	BtcDelegatorsToFps []BTCDelegatorToFpEntry `protobuf:"bytes,9,rep,name=btc_delegators_to_fps,json=btcDelegatorsToFps,proto3" json:"btc_delegators_to_fps"`
+	// EventRewardTracker stores the events that will be processed at the babylon block height
+	// prior to the BTC reward distribution.
+	EventRewardTracker []EventsPowerUpdateAtHeightEntry `protobuf:"bytes,10,rep,name=event_reward_tracker,json=eventRewardTracker,proto3" json:"event_reward_tracker"`
+	// LastProcessedHeightEventRewardTracker is the latest block height in which
+	// the reward tracker was processed.
+	LastProcessedHeightEventRewardTracker uint64 `protobuf:"varint,11,opt,name=last_processed_height_event_reward_tracker,json=lastProcessedHeightEventRewardTracker,proto3" json:"last_processed_height_event_reward_tracker,omitempty"`
 }
 
 func (m *GenesisState) Reset()         { *m = GenesisState{} }
@@ -68,27 +124,633 @@ func (m *GenesisState) GetParams() Params {
 	return Params{}
 }
 
+func (m *GenesisState) GetBtcStakingGauges() []BTCStakingGaugeEntry {
+	if m != nil {
+		return m.BtcStakingGauges
+	}
+	return nil
+}
+
+func (m *GenesisState) GetRewardGauges() []RewardGaugeEntry {
+	if m != nil {
+		return m.RewardGauges
+	}
+	return nil
+}
+
+func (m *GenesisState) GetWithdrawAddresses() []WithdrawAddressEntry {
+	if m != nil {
+		return m.WithdrawAddresses
+	}
+	return nil
+}
+
+func (m *GenesisState) GetRefundableMsgHashes() []string {
+	if m != nil {
+		return m.RefundableMsgHashes
+	}
+	return nil
+}
+
+func (m *GenesisState) GetFinalityProvidersCurrentRewards() []FinalityProviderCurrentRewardsEntry {
+	if m != nil {
+		return m.FinalityProvidersCurrentRewards
+	}
+	return nil
+}
+
+func (m *GenesisState) GetFinalityProvidersHistoricalRewards() []FinalityProviderHistoricalRewardsEntry {
+	if m != nil {
+		return m.FinalityProvidersHistoricalRewards
+	}
+	return nil
+}
+
+func (m *GenesisState) GetBtcDelegationRewardsTrackers() []BTCDelegationRewardsTrackerEntry {
+	if m != nil {
+		return m.BtcDelegationRewardsTrackers
+	}
+	return nil
+}
+
+func (m *GenesisState) GetBtcDelegatorsToFps() []BTCDelegatorToFpEntry {
+	if m != nil {
+		return m.BtcDelegatorsToFps
+	}
+	return nil
+}
+
+func (m *GenesisState) GetEventRewardTracker() []EventsPowerUpdateAtHeightEntry {
+	if m != nil {
+		return m.EventRewardTracker
+	}
+	return nil
+}
+
+func (m *GenesisState) GetLastProcessedHeightEventRewardTracker() uint64 {
+	if m != nil {
+		return m.LastProcessedHeightEventRewardTracker
+	}
+	return 0
+}
+
+// BTCStakingGaugeEntry represents a gauge for BTC staking rewards at a specific
+// height.
+type BTCStakingGaugeEntry struct {
+	// Block height at which this gauge is set
+	Height uint64 `protobuf:"varint,1,opt,name=height,proto3" json:"height,omitempty"`
+	// The gauge object storing rewards info
+	Gauge *Gauge `protobuf:"bytes,2,opt,name=gauge,proto3" json:"gauge,omitempty"`
+}
+
+func (m *BTCStakingGaugeEntry) Reset()         { *m = BTCStakingGaugeEntry{} }
+func (m *BTCStakingGaugeEntry) String() string { return proto.CompactTextString(m) }
+func (*BTCStakingGaugeEntry) ProtoMessage()    {}
+func (*BTCStakingGaugeEntry) Descriptor() ([]byte, []int) {
+	return fileDescriptor_41d5400dc6b4b931, []int{1}
+}
+func (m *BTCStakingGaugeEntry) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *BTCStakingGaugeEntry) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_BTCStakingGaugeEntry.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *BTCStakingGaugeEntry) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BTCStakingGaugeEntry.Merge(m, src)
+}
+func (m *BTCStakingGaugeEntry) XXX_Size() int {
+	return m.Size()
+}
+func (m *BTCStakingGaugeEntry) XXX_DiscardUnknown() {
+	xxx_messageInfo_BTCStakingGaugeEntry.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_BTCStakingGaugeEntry proto.InternalMessageInfo
+
+func (m *BTCStakingGaugeEntry) GetHeight() uint64 {
+	if m != nil {
+		return m.Height
+	}
+	return 0
+}
+
+func (m *BTCStakingGaugeEntry) GetGauge() *Gauge {
+	if m != nil {
+		return m.Gauge
+	}
+	return nil
+}
+
+// RewardGaugeEntry represents a reward gauge for a specific stakeholder.
+type RewardGaugeEntry struct {
+	// Type of stakeholder
+	StakeholderType StakeholderType `protobuf:"varint,1,opt,name=stakeholder_type,json=stakeholderType,proto3,enum=babylon.incentive.StakeholderType" json:"stakeholder_type,omitempty"`
+	// Address of the stakeholder
+	Address string `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	// The reward gauge object
+	RewardGauge *RewardGauge `protobuf:"bytes,3,opt,name=reward_gauge,json=rewardGauge,proto3" json:"reward_gauge,omitempty"`
+}
+
+func (m *RewardGaugeEntry) Reset()         { *m = RewardGaugeEntry{} }
+func (m *RewardGaugeEntry) String() string { return proto.CompactTextString(m) }
+func (*RewardGaugeEntry) ProtoMessage()    {}
+func (*RewardGaugeEntry) Descriptor() ([]byte, []int) {
+	return fileDescriptor_41d5400dc6b4b931, []int{2}
+}
+func (m *RewardGaugeEntry) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RewardGaugeEntry) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_RewardGaugeEntry.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *RewardGaugeEntry) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RewardGaugeEntry.Merge(m, src)
+}
+func (m *RewardGaugeEntry) XXX_Size() int {
+	return m.Size()
+}
+func (m *RewardGaugeEntry) XXX_DiscardUnknown() {
+	xxx_messageInfo_RewardGaugeEntry.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RewardGaugeEntry proto.InternalMessageInfo
+
+func (m *RewardGaugeEntry) GetStakeholderType() StakeholderType {
+	if m != nil {
+		return m.StakeholderType
+	}
+	return FINALITY_PROVIDER
+}
+
+func (m *RewardGaugeEntry) GetAddress() string {
+	if m != nil {
+		return m.Address
+	}
+	return ""
+}
+
+func (m *RewardGaugeEntry) GetRewardGauge() *RewardGauge {
+	if m != nil {
+		return m.RewardGauge
+	}
+	return nil
+}
+
+// WithdrawAddressEntry holds the record of a withdraw address belonging to a
+// delegator address.
+type WithdrawAddressEntry struct {
+	// Address of the delegator
+	DelegatorAddress string `protobuf:"bytes,1,opt,name=delegator_address,json=delegatorAddress,proto3" json:"delegator_address,omitempty"`
+	// Withdraw address
+	WithdrawAddress string `protobuf:"bytes,2,opt,name=withdraw_address,json=withdrawAddress,proto3" json:"withdraw_address,omitempty"`
+}
+
+func (m *WithdrawAddressEntry) Reset()         { *m = WithdrawAddressEntry{} }
+func (m *WithdrawAddressEntry) String() string { return proto.CompactTextString(m) }
+func (*WithdrawAddressEntry) ProtoMessage()    {}
+func (*WithdrawAddressEntry) Descriptor() ([]byte, []int) {
+	return fileDescriptor_41d5400dc6b4b931, []int{3}
+}
+func (m *WithdrawAddressEntry) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *WithdrawAddressEntry) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_WithdrawAddressEntry.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *WithdrawAddressEntry) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_WithdrawAddressEntry.Merge(m, src)
+}
+func (m *WithdrawAddressEntry) XXX_Size() int {
+	return m.Size()
+}
+func (m *WithdrawAddressEntry) XXX_DiscardUnknown() {
+	xxx_messageInfo_WithdrawAddressEntry.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_WithdrawAddressEntry proto.InternalMessageInfo
+
+func (m *WithdrawAddressEntry) GetDelegatorAddress() string {
+	if m != nil {
+		return m.DelegatorAddress
+	}
+	return ""
+}
+
+func (m *WithdrawAddressEntry) GetWithdrawAddress() string {
+	if m != nil {
+		return m.WithdrawAddress
+	}
+	return ""
+}
+
+// FinalityProviderCurrentRewardsEntry represents a finality provider
+// current rewards.
+type FinalityProviderCurrentRewardsEntry struct {
+	// Address of the finality provider
+	Address string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	// The finality provider current rewards
+	Rewards *FinalityProviderCurrentRewards `protobuf:"bytes,2,opt,name=rewards,proto3" json:"rewards,omitempty"`
+}
+
+func (m *FinalityProviderCurrentRewardsEntry) Reset()         { *m = FinalityProviderCurrentRewardsEntry{} }
+func (m *FinalityProviderCurrentRewardsEntry) String() string { return proto.CompactTextString(m) }
+func (*FinalityProviderCurrentRewardsEntry) ProtoMessage()    {}
+func (*FinalityProviderCurrentRewardsEntry) Descriptor() ([]byte, []int) {
+	return fileDescriptor_41d5400dc6b4b931, []int{4}
+}
+func (m *FinalityProviderCurrentRewardsEntry) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *FinalityProviderCurrentRewardsEntry) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_FinalityProviderCurrentRewardsEntry.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *FinalityProviderCurrentRewardsEntry) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FinalityProviderCurrentRewardsEntry.Merge(m, src)
+}
+func (m *FinalityProviderCurrentRewardsEntry) XXX_Size() int {
+	return m.Size()
+}
+func (m *FinalityProviderCurrentRewardsEntry) XXX_DiscardUnknown() {
+	xxx_messageInfo_FinalityProviderCurrentRewardsEntry.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_FinalityProviderCurrentRewardsEntry proto.InternalMessageInfo
+
+func (m *FinalityProviderCurrentRewardsEntry) GetAddress() string {
+	if m != nil {
+		return m.Address
+	}
+	return ""
+}
+
+func (m *FinalityProviderCurrentRewardsEntry) GetRewards() *FinalityProviderCurrentRewards {
+	if m != nil {
+		return m.Rewards
+	}
+	return nil
+}
+
+// FinalityProviderHistoricalRewardsEntry represents a finality provider
+// historical rewards by address and period.
+type FinalityProviderHistoricalRewardsEntry struct {
+	// Address of the finality provider
+	Address string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	// Period of the historical reward
+	Period uint64 `protobuf:"varint,2,opt,name=period,proto3" json:"period,omitempty"`
+	// The finality provider historical rewards
+	Rewards *FinalityProviderHistoricalRewards `protobuf:"bytes,3,opt,name=rewards,proto3" json:"rewards,omitempty"`
+}
+
+func (m *FinalityProviderHistoricalRewardsEntry) Reset() {
+	*m = FinalityProviderHistoricalRewardsEntry{}
+}
+func (m *FinalityProviderHistoricalRewardsEntry) String() string { return proto.CompactTextString(m) }
+func (*FinalityProviderHistoricalRewardsEntry) ProtoMessage()    {}
+func (*FinalityProviderHistoricalRewardsEntry) Descriptor() ([]byte, []int) {
+	return fileDescriptor_41d5400dc6b4b931, []int{5}
+}
+func (m *FinalityProviderHistoricalRewardsEntry) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *FinalityProviderHistoricalRewardsEntry) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_FinalityProviderHistoricalRewardsEntry.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *FinalityProviderHistoricalRewardsEntry) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FinalityProviderHistoricalRewardsEntry.Merge(m, src)
+}
+func (m *FinalityProviderHistoricalRewardsEntry) XXX_Size() int {
+	return m.Size()
+}
+func (m *FinalityProviderHistoricalRewardsEntry) XXX_DiscardUnknown() {
+	xxx_messageInfo_FinalityProviderHistoricalRewardsEntry.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_FinalityProviderHistoricalRewardsEntry proto.InternalMessageInfo
+
+func (m *FinalityProviderHistoricalRewardsEntry) GetAddress() string {
+	if m != nil {
+		return m.Address
+	}
+	return ""
+}
+
+func (m *FinalityProviderHistoricalRewardsEntry) GetPeriod() uint64 {
+	if m != nil {
+		return m.Period
+	}
+	return 0
+}
+
+func (m *FinalityProviderHistoricalRewardsEntry) GetRewards() *FinalityProviderHistoricalRewards {
+	if m != nil {
+		return m.Rewards
+	}
+	return nil
+}
+
+// BTCDelegationRewardsTrackerEntry represents a BTC delegation
+// tracker entry based on the finality provider address, the delegator address
+// and a BTCDelegationTracker
+type BTCDelegationRewardsTrackerEntry struct {
+	// Address of the finality provider
+	FinalityProviderAddress string `protobuf:"bytes,1,opt,name=finality_provider_address,json=finalityProviderAddress,proto3" json:"finality_provider_address,omitempty"`
+	// Address of the delegator
+	DelegatorAddress string `protobuf:"bytes,2,opt,name=delegator_address,json=delegatorAddress,proto3" json:"delegator_address,omitempty"`
+	// BTC delegation tracking information
+	Tracker *BTCDelegationRewardsTracker `protobuf:"bytes,3,opt,name=tracker,proto3" json:"tracker,omitempty"`
+}
+
+func (m *BTCDelegationRewardsTrackerEntry) Reset()         { *m = BTCDelegationRewardsTrackerEntry{} }
+func (m *BTCDelegationRewardsTrackerEntry) String() string { return proto.CompactTextString(m) }
+func (*BTCDelegationRewardsTrackerEntry) ProtoMessage()    {}
+func (*BTCDelegationRewardsTrackerEntry) Descriptor() ([]byte, []int) {
+	return fileDescriptor_41d5400dc6b4b931, []int{6}
+}
+func (m *BTCDelegationRewardsTrackerEntry) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *BTCDelegationRewardsTrackerEntry) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_BTCDelegationRewardsTrackerEntry.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *BTCDelegationRewardsTrackerEntry) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BTCDelegationRewardsTrackerEntry.Merge(m, src)
+}
+func (m *BTCDelegationRewardsTrackerEntry) XXX_Size() int {
+	return m.Size()
+}
+func (m *BTCDelegationRewardsTrackerEntry) XXX_DiscardUnknown() {
+	xxx_messageInfo_BTCDelegationRewardsTrackerEntry.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_BTCDelegationRewardsTrackerEntry proto.InternalMessageInfo
+
+func (m *BTCDelegationRewardsTrackerEntry) GetFinalityProviderAddress() string {
+	if m != nil {
+		return m.FinalityProviderAddress
+	}
+	return ""
+}
+
+func (m *BTCDelegationRewardsTrackerEntry) GetDelegatorAddress() string {
+	if m != nil {
+		return m.DelegatorAddress
+	}
+	return ""
+}
+
+func (m *BTCDelegationRewardsTrackerEntry) GetTracker() *BTCDelegationRewardsTracker {
+	if m != nil {
+		return m.Tracker
+	}
+	return nil
+}
+
+// BTCDelegatorToFpEntry holds an entry of a delegator
+// and a finality provider to which it delegated
+type BTCDelegatorToFpEntry struct {
+	// Address of the delegator
+	DelegatorAddress string `protobuf:"bytes,1,opt,name=delegator_address,json=delegatorAddress,proto3" json:"delegator_address,omitempty"`
+	// Address of the finality provider
+	FinalityProviderAddress string `protobuf:"bytes,2,opt,name=finality_provider_address,json=finalityProviderAddress,proto3" json:"finality_provider_address,omitempty"`
+}
+
+func (m *BTCDelegatorToFpEntry) Reset()         { *m = BTCDelegatorToFpEntry{} }
+func (m *BTCDelegatorToFpEntry) String() string { return proto.CompactTextString(m) }
+func (*BTCDelegatorToFpEntry) ProtoMessage()    {}
+func (*BTCDelegatorToFpEntry) Descriptor() ([]byte, []int) {
+	return fileDescriptor_41d5400dc6b4b931, []int{7}
+}
+func (m *BTCDelegatorToFpEntry) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *BTCDelegatorToFpEntry) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_BTCDelegatorToFpEntry.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *BTCDelegatorToFpEntry) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BTCDelegatorToFpEntry.Merge(m, src)
+}
+func (m *BTCDelegatorToFpEntry) XXX_Size() int {
+	return m.Size()
+}
+func (m *BTCDelegatorToFpEntry) XXX_DiscardUnknown() {
+	xxx_messageInfo_BTCDelegatorToFpEntry.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_BTCDelegatorToFpEntry proto.InternalMessageInfo
+
+func (m *BTCDelegatorToFpEntry) GetDelegatorAddress() string {
+	if m != nil {
+		return m.DelegatorAddress
+	}
+	return ""
+}
+
+func (m *BTCDelegatorToFpEntry) GetFinalityProviderAddress() string {
+	if m != nil {
+		return m.FinalityProviderAddress
+	}
+	return ""
+}
+
+// EventsPowerUpdateAtHeightEntry holds an entry of an event
+// to be processed at the BTC reward distribution of some babylon block height
+type EventsPowerUpdateAtHeightEntry struct {
+	// Height the babylon block height which these events refer to.
+	Height uint64 `protobuf:"varint,1,opt,name=height,proto3" json:"height,omitempty"`
+	// Events holds the events to be processed.
+	Events *EventsPowerUpdateAtHeight `protobuf:"bytes,2,opt,name=events,proto3" json:"events,omitempty"`
+}
+
+func (m *EventsPowerUpdateAtHeightEntry) Reset()         { *m = EventsPowerUpdateAtHeightEntry{} }
+func (m *EventsPowerUpdateAtHeightEntry) String() string { return proto.CompactTextString(m) }
+func (*EventsPowerUpdateAtHeightEntry) ProtoMessage()    {}
+func (*EventsPowerUpdateAtHeightEntry) Descriptor() ([]byte, []int) {
+	return fileDescriptor_41d5400dc6b4b931, []int{8}
+}
+func (m *EventsPowerUpdateAtHeightEntry) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *EventsPowerUpdateAtHeightEntry) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_EventsPowerUpdateAtHeightEntry.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *EventsPowerUpdateAtHeightEntry) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EventsPowerUpdateAtHeightEntry.Merge(m, src)
+}
+func (m *EventsPowerUpdateAtHeightEntry) XXX_Size() int {
+	return m.Size()
+}
+func (m *EventsPowerUpdateAtHeightEntry) XXX_DiscardUnknown() {
+	xxx_messageInfo_EventsPowerUpdateAtHeightEntry.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_EventsPowerUpdateAtHeightEntry proto.InternalMessageInfo
+
+func (m *EventsPowerUpdateAtHeightEntry) GetHeight() uint64 {
+	if m != nil {
+		return m.Height
+	}
+	return 0
+}
+
+func (m *EventsPowerUpdateAtHeightEntry) GetEvents() *EventsPowerUpdateAtHeight {
+	if m != nil {
+		return m.Events
+	}
+	return nil
+}
+
 func init() {
+	proto.RegisterEnum("babylon.incentive.StakeholderType", StakeholderType_name, StakeholderType_value)
 	proto.RegisterType((*GenesisState)(nil), "babylon.incentive.GenesisState")
+	proto.RegisterType((*BTCStakingGaugeEntry)(nil), "babylon.incentive.BTCStakingGaugeEntry")
+	proto.RegisterType((*RewardGaugeEntry)(nil), "babylon.incentive.RewardGaugeEntry")
+	proto.RegisterType((*WithdrawAddressEntry)(nil), "babylon.incentive.WithdrawAddressEntry")
+	proto.RegisterType((*FinalityProviderCurrentRewardsEntry)(nil), "babylon.incentive.FinalityProviderCurrentRewardsEntry")
+	proto.RegisterType((*FinalityProviderHistoricalRewardsEntry)(nil), "babylon.incentive.FinalityProviderHistoricalRewardsEntry")
+	proto.RegisterType((*BTCDelegationRewardsTrackerEntry)(nil), "babylon.incentive.BTCDelegationRewardsTrackerEntry")
+	proto.RegisterType((*BTCDelegatorToFpEntry)(nil), "babylon.incentive.BTCDelegatorToFpEntry")
+	proto.RegisterType((*EventsPowerUpdateAtHeightEntry)(nil), "babylon.incentive.EventsPowerUpdateAtHeightEntry")
 }
 
 func init() { proto.RegisterFile("babylon/incentive/genesis.proto", fileDescriptor_41d5400dc6b4b931) }
 
 var fileDescriptor_41d5400dc6b4b931 = []byte{
-	// 197 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x92, 0x4f, 0x4a, 0x4c, 0xaa,
-	0xcc, 0xc9, 0xcf, 0xd3, 0xcf, 0xcc, 0x4b, 0x4e, 0xcd, 0x2b, 0xc9, 0x2c, 0x4b, 0xd5, 0x4f, 0x4f,
-	0xcd, 0x4b, 0x2d, 0xce, 0x2c, 0xd6, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x12, 0x84, 0x2a, 0xd0,
-	0x83, 0x2b, 0x90, 0x12, 0x49, 0xcf, 0x4f, 0xcf, 0x07, 0xcb, 0xea, 0x83, 0x58, 0x10, 0x85, 0x52,
-	0x72, 0x98, 0x26, 0x15, 0x24, 0x16, 0x25, 0xe6, 0x42, 0x0d, 0x52, 0x72, 0xe7, 0xe2, 0x71, 0x87,
-	0x98, 0x1c, 0x5c, 0x92, 0x58, 0x92, 0x2a, 0x64, 0xce, 0xc5, 0x06, 0x91, 0x97, 0x60, 0x54, 0x60,
-	0xd4, 0xe0, 0x36, 0x92, 0xd4, 0xc3, 0xb0, 0x49, 0x2f, 0x00, 0xac, 0xc0, 0x89, 0xe5, 0xc4, 0x3d,
-	0x79, 0x86, 0x20, 0xa8, 0x72, 0x27, 0xdf, 0x13, 0x8f, 0xe4, 0x18, 0x2f, 0x3c, 0x92, 0x63, 0x7c,
-	0xf0, 0x48, 0x8e, 0x71, 0xc2, 0x63, 0x39, 0x86, 0x0b, 0x8f, 0xe5, 0x18, 0x6e, 0x3c, 0x96, 0x63,
-	0x88, 0x32, 0x4e, 0xcf, 0x2c, 0xc9, 0x28, 0x4d, 0xd2, 0x4b, 0xce, 0xcf, 0xd5, 0x87, 0x1a, 0x96,
-	0x93, 0x98, 0x54, 0xac, 0x9b, 0x99, 0x0f, 0xe3, 0xea, 0x57, 0x20, 0x39, 0xaf, 0xa4, 0xb2, 0x20,
-	0xb5, 0x38, 0x89, 0x0d, 0xec, 0x3c, 0x63, 0x40, 0x00, 0x00, 0x00, 0xff, 0xff, 0x33, 0x58, 0xf9,
-	0x93, 0x0a, 0x01, 0x00, 0x00,
+	// 994 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x56, 0x4f, 0x6f, 0x1b, 0x45,
+	0x14, 0xf7, 0x26, 0xae, 0xd3, 0xbc, 0x84, 0xc6, 0x19, 0x9c, 0xb2, 0x89, 0xd0, 0xc6, 0x6c, 0x55,
+	0xb0, 0x2a, 0x6a, 0xab, 0x0e, 0x2a, 0xe2, 0x82, 0x64, 0x27, 0x4e, 0x13, 0x95, 0x06, 0x6b, 0x6d,
+	0x40, 0x05, 0xc4, 0x6a, 0xbd, 0x3b, 0x59, 0xaf, 0xea, 0xec, 0x58, 0x33, 0x93, 0x18, 0x5f, 0x10,
+	0x47, 0x7a, 0x43, 0x7c, 0x04, 0x90, 0xf8, 0x04, 0xfd, 0x08, 0x1c, 0x7a, 0xac, 0xe0, 0xd2, 0x13,
+	0x42, 0xc9, 0x17, 0x41, 0x3b, 0x33, 0xeb, 0xbf, 0x1b, 0xd7, 0x89, 0x7a, 0xf3, 0xec, 0xfb, 0xbd,
+	0xdf, 0xfb, 0xbd, 0xd9, 0xf7, 0x7e, 0x5e, 0xd8, 0x6e, 0x39, 0xad, 0x7e, 0x87, 0x84, 0xa5, 0x20,
+	0x74, 0x71, 0xc8, 0x83, 0x33, 0x5c, 0xf2, 0x71, 0x88, 0x59, 0xc0, 0x8a, 0x5d, 0x4a, 0x38, 0x41,
+	0xeb, 0x0a, 0x50, 0x1c, 0x00, 0xb6, 0x72, 0x3e, 0xf1, 0x89, 0x88, 0x96, 0xa2, 0x5f, 0x12, 0xb8,
+	0x65, 0x4c, 0x33, 0x75, 0x1d, 0xea, 0x9c, 0x28, 0xa2, 0xad, 0x0f, 0xa6, 0xe3, 0x83, 0x5f, 0x0a,
+	0x92, 0x20, 0x86, 0xe2, 0x9e, 0x43, 0x3d, 0x76, 0x79, 0x0d, 0x7c, 0x86, 0x43, 0x1e, 0xc7, 0x37,
+	0x5d, 0xc2, 0x4e, 0x08, 0xb3, 0xa5, 0x38, 0x79, 0x90, 0x21, 0xf3, 0x9f, 0x9b, 0xb0, 0xfa, 0x48,
+	0x76, 0xd6, 0xe0, 0x0e, 0xc7, 0xe8, 0x53, 0xc8, 0x48, 0x7d, 0xba, 0x96, 0xd7, 0x0a, 0x2b, 0xe5,
+	0xcd, 0xe2, 0x54, 0xa7, 0xc5, 0xba, 0x00, 0x54, 0xd3, 0x2f, 0xff, 0xdd, 0x4e, 0x59, 0x0a, 0x8e,
+	0xbe, 0x03, 0xd4, 0xe2, 0xae, 0xcd, 0xb8, 0xf3, 0x2c, 0x08, 0x7d, 0xdb, 0x77, 0x4e, 0x7d, 0xcc,
+	0xf4, 0x85, 0xfc, 0x62, 0x61, 0xa5, 0xfc, 0x51, 0x02, 0x49, 0xb5, 0xb9, 0xdb, 0x90, 0xd8, 0x47,
+	0x11, 0xb4, 0x16, 0x72, 0xda, 0x57, 0x94, 0xd9, 0x16, 0x77, 0x47, 0x63, 0x0c, 0x1d, 0xc1, 0x3b,
+	0xb2, 0xe5, 0x98, 0x77, 0x51, 0xf0, 0xde, 0x49, 0xe0, 0xb5, 0x04, 0x6e, 0x8a, 0x73, 0x95, 0x0e,
+	0x9f, 0x33, 0xf4, 0x3d, 0xa0, 0x5e, 0xc0, 0xdb, 0x1e, 0x75, 0x7a, 0xb6, 0xe3, 0x79, 0x14, 0x33,
+	0x86, 0x99, 0x9e, 0xbe, 0x54, 0xec, 0x37, 0x0a, 0x5c, 0x91, 0xd8, 0x51, 0xe2, 0xf5, 0xde, 0x78,
+	0x0c, 0x33, 0x54, 0x86, 0x0d, 0x8a, 0x8f, 0x4f, 0x43, 0xcf, 0x69, 0x75, 0xb0, 0x7d, 0xc2, 0x7c,
+	0xbb, 0xed, 0xb0, 0x36, 0x66, 0xfa, 0x8d, 0xfc, 0x62, 0x61, 0xd9, 0x7a, 0x77, 0x18, 0x7c, 0xc2,
+	0xfc, 0x03, 0x11, 0x42, 0xcf, 0x35, 0x30, 0x8f, 0x83, 0xd0, 0xe9, 0x04, 0xbc, 0x1f, 0xbd, 0xa8,
+	0xb3, 0xc0, 0xc3, 0x94, 0xd9, 0xee, 0x29, 0xa5, 0x38, 0xe4, 0xb6, 0x7a, 0xe1, 0x7a, 0x46, 0x48,
+	0x7c, 0x98, 0x20, 0x71, 0x5f, 0x25, 0xd7, 0x55, 0xee, 0xae, 0xcc, 0x94, 0xd7, 0x31, 0xa6, 0x78,
+	0xfb, 0x78, 0x02, 0xca, 0xc6, 0xb1, 0xe8, 0x37, 0x0d, 0xee, 0x26, 0x68, 0x69, 0x07, 0x8c, 0x13,
+	0x1a, 0xb8, 0x4e, 0x67, 0x20, 0x67, 0x49, 0xc8, 0xf9, 0x6c, 0x0e, 0x39, 0x07, 0x83, 0xe4, 0x04,
+	0x45, 0xe6, 0x94, 0xa2, 0x29, 0x38, 0xfa, 0x59, 0x83, 0xed, 0x68, 0xc0, 0x3c, 0xdc, 0xc1, 0xbe,
+	0xc3, 0x03, 0x12, 0xc6, 0x2a, 0x6c, 0x4e, 0x1d, 0xf7, 0x19, 0xa6, 0x4c, 0xbf, 0x29, 0xe4, 0xec,
+	0x24, 0x4f, 0xdb, 0xde, 0x20, 0x51, 0x51, 0x36, 0x65, 0xda, 0xa8, 0x90, 0xf7, 0x5b, 0xdc, 0xbd,
+	0x0c, 0xc7, 0x90, 0x03, 0x1b, 0x23, 0x0a, 0x08, 0x65, 0x36, 0x27, 0xf6, 0x71, 0x97, 0xe9, 0xcb,
+	0xa2, 0x6e, 0x61, 0x66, 0x5d, 0x42, 0x9b, 0x64, 0xbf, 0x3b, 0x5a, 0x0c, 0x0d, 0x8b, 0x11, 0xca,
+	0xa2, 0x28, 0x43, 0x01, 0xe4, 0xc4, 0xea, 0xaa, 0xde, 0xe2, 0xd6, 0x74, 0x10, 0x15, 0x1e, 0x24,
+	0x54, 0xa8, 0x89, 0x4d, 0xaf, 0x93, 0x1e, 0xa6, 0x5f, 0x75, 0x3d, 0x87, 0xe3, 0x0a, 0x3f, 0xc0,
+	0x81, 0xdf, 0xe6, 0x63, 0xa5, 0x04, 0xa9, 0xec, 0x47, 0xb5, 0x83, 0x9e, 0xc2, 0xbd, 0x8e, 0xc3,
+	0x78, 0xf4, 0x82, 0xdd, 0x68, 0x6e, 0x3d, 0xbb, 0x2d, 0xf2, 0xec, 0x44, 0x01, 0x2b, 0x79, 0xad,
+	0x90, 0xb6, 0xee, 0x46, 0x19, 0xf5, 0x38, 0x41, 0xd5, 0x99, 0xa2, 0x36, 0x7f, 0x80, 0x5c, 0xd2,
+	0x7a, 0xa3, 0xdb, 0x90, 0x91, 0x35, 0x84, 0xb9, 0xa4, 0x2d, 0x75, 0x42, 0x45, 0xb8, 0x21, 0xf6,
+	0x5a, 0x5f, 0x10, 0x9e, 0xa3, 0x27, 0xb4, 0x29, 0x58, 0x2c, 0x09, 0x33, 0x5f, 0x6b, 0x90, 0x9d,
+	0xdc, 0x73, 0xf4, 0x04, 0xb2, 0x91, 0xf9, 0xe0, 0x36, 0xe9, 0x78, 0x98, 0xda, 0xbc, 0xdf, 0xc5,
+	0xa2, 0xcc, 0xad, 0xb2, 0x99, 0xc0, 0xd7, 0x18, 0x42, 0x9b, 0xfd, 0x2e, 0xb6, 0xd6, 0xd8, 0xf8,
+	0x03, 0x54, 0x86, 0x25, 0xe5, 0x0c, 0x42, 0xd5, 0x72, 0x55, 0xff, 0xfb, 0xc5, 0xfd, 0x9c, 0x32,
+	0x4f, 0xb5, 0xeb, 0x0d, 0x4e, 0x83, 0xd0, 0xb7, 0x62, 0x20, 0xaa, 0xc0, 0xea, 0xa8, 0x4d, 0xe9,
+	0x8b, 0xa2, 0x1d, 0x63, 0xb6, 0x4b, 0x59, 0x2b, 0x23, 0xd6, 0x64, 0xfe, 0xae, 0x41, 0x2e, 0xc9,
+	0x6d, 0x50, 0x0d, 0xd6, 0x07, 0x83, 0x17, 0x7b, 0x96, 0xe8, 0x6f, 0x96, 0xb2, 0xec, 0x20, 0x45,
+	0x3d, 0x47, 0xbb, 0x90, 0x9d, 0x74, 0xbe, 0x37, 0xf6, 0xb7, 0x36, 0x61, 0x71, 0xe6, 0x9f, 0x1a,
+	0xdc, 0x99, 0xc3, 0x6f, 0x46, 0xef, 0x50, 0x9b, 0xf7, 0x0e, 0x1f, 0xc3, 0x52, 0xec, 0x2e, 0x72,
+	0x1a, 0x1e, 0x5c, 0xd9, 0xec, 0xac, 0x98, 0xc1, 0xfc, 0x4b, 0x83, 0x0f, 0xe7, 0x73, 0xa2, 0x6b,
+	0x69, 0xbd, 0x0d, 0x99, 0x2e, 0xa6, 0x01, 0xf1, 0x84, 0xd4, 0xb4, 0xa5, 0x4e, 0xe8, 0x68, 0xd8,
+	0x83, 0x1c, 0x81, 0x4f, 0xae, 0xe3, 0x90, 0xc3, 0x36, 0x9e, 0x2f, 0x40, 0xfe, 0x4d, 0x0e, 0x86,
+	0x9a, 0xb0, 0x39, 0x65, 0xda, 0x73, 0x0f, 0xca, 0x7b, 0x93, 0x0e, 0x1c, 0xcf, 0x4b, 0xe2, 0xd8,
+	0x2d, 0x5c, 0x79, 0xec, 0x0e, 0x60, 0x29, 0x76, 0x12, 0x79, 0x23, 0xc5, 0xab, 0x99, 0xb4, 0x15,
+	0xa7, 0x9b, 0x2f, 0x34, 0xd8, 0x48, 0x74, 0xd5, 0xb7, 0xb5, 0x21, 0x33, 0xef, 0x71, 0xe1, 0x9a,
+	0xf7, 0x68, 0xfe, 0x04, 0xc6, 0x6c, 0xa7, 0xbe, 0xd4, 0x1c, 0xf7, 0x20, 0x23, 0xbf, 0xe6, 0xd4,
+	0x3e, 0x7c, 0x7c, 0x95, 0x3f, 0x01, 0x4b, 0xe5, 0xde, 0xfb, 0x1c, 0xd6, 0x26, 0x2c, 0x0f, 0x6d,
+	0xc0, 0xfa, 0xfe, 0xe1, 0x51, 0xe5, 0x8b, 0xc3, 0xe6, 0x53, 0xbb, 0x6e, 0x7d, 0xf9, 0xf5, 0xe1,
+	0x5e, 0xcd, 0xca, 0xa6, 0xd0, 0x2d, 0x80, 0x6a, 0x73, 0xd7, 0x6e, 0x34, 0x2b, 0x8f, 0x6b, 0x56,
+	0x56, 0xdb, 0x4a, 0xff, 0xf2, 0x87, 0x91, 0xaa, 0xd6, 0x5f, 0x9e, 0x1b, 0xda, 0xab, 0x73, 0x43,
+	0xfb, 0xef, 0xdc, 0xd0, 0x7e, 0xbd, 0x30, 0x52, 0xaf, 0x2e, 0x8c, 0xd4, 0xeb, 0x0b, 0x23, 0xf5,
+	0xed, 0x43, 0x3f, 0xe0, 0xed, 0xd3, 0x56, 0xd1, 0x25, 0x27, 0x25, 0xa5, 0xac, 0xe3, 0xb4, 0xd8,
+	0xfd, 0x80, 0xc4, 0xc7, 0xd2, 0xd9, 0x4e, 0xe9, 0xc7, 0x91, 0x8f, 0xd3, 0xc8, 0x9a, 0x59, 0x2b,
+	0x23, 0xbe, 0x40, 0x77, 0xfe, 0x0f, 0x00, 0x00, 0xff, 0xff, 0x80, 0x32, 0x52, 0x64, 0x6c, 0x0b,
+	0x00, 0x00,
 }
 
 func (m *GenesisState) Marshal() (dAtA []byte, err error) {
@@ -111,6 +773,132 @@ func (m *GenesisState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.LastProcessedHeightEventRewardTracker != 0 {
+		i = encodeVarintGenesis(dAtA, i, uint64(m.LastProcessedHeightEventRewardTracker))
+		i--
+		dAtA[i] = 0x58
+	}
+	if len(m.EventRewardTracker) > 0 {
+		for iNdEx := len(m.EventRewardTracker) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.EventRewardTracker[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintGenesis(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x52
+		}
+	}
+	if len(m.BtcDelegatorsToFps) > 0 {
+		for iNdEx := len(m.BtcDelegatorsToFps) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.BtcDelegatorsToFps[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintGenesis(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x4a
+		}
+	}
+	if len(m.BtcDelegationRewardsTrackers) > 0 {
+		for iNdEx := len(m.BtcDelegationRewardsTrackers) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.BtcDelegationRewardsTrackers[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintGenesis(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x42
+		}
+	}
+	if len(m.FinalityProvidersHistoricalRewards) > 0 {
+		for iNdEx := len(m.FinalityProvidersHistoricalRewards) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.FinalityProvidersHistoricalRewards[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintGenesis(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x3a
+		}
+	}
+	if len(m.FinalityProvidersCurrentRewards) > 0 {
+		for iNdEx := len(m.FinalityProvidersCurrentRewards) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.FinalityProvidersCurrentRewards[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintGenesis(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x32
+		}
+	}
+	if len(m.RefundableMsgHashes) > 0 {
+		for iNdEx := len(m.RefundableMsgHashes) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.RefundableMsgHashes[iNdEx])
+			copy(dAtA[i:], m.RefundableMsgHashes[iNdEx])
+			i = encodeVarintGenesis(dAtA, i, uint64(len(m.RefundableMsgHashes[iNdEx])))
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
+	if len(m.WithdrawAddresses) > 0 {
+		for iNdEx := len(m.WithdrawAddresses) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.WithdrawAddresses[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintGenesis(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.RewardGauges) > 0 {
+		for iNdEx := len(m.RewardGauges) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.RewardGauges[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintGenesis(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.BtcStakingGauges) > 0 {
+		for iNdEx := len(m.BtcStakingGauges) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.BtcStakingGauges[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintGenesis(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x12
+		}
+	}
 	{
 		size, err := m.Params.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
@@ -121,6 +909,345 @@ func (m *GenesisState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	}
 	i--
 	dAtA[i] = 0xa
+	return len(dAtA) - i, nil
+}
+
+func (m *BTCStakingGaugeEntry) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BTCStakingGaugeEntry) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *BTCStakingGaugeEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Gauge != nil {
+		{
+			size, err := m.Gauge.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintGenesis(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Height != 0 {
+		i = encodeVarintGenesis(dAtA, i, uint64(m.Height))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RewardGaugeEntry) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RewardGaugeEntry) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RewardGaugeEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.RewardGauge != nil {
+		{
+			size, err := m.RewardGauge.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintGenesis(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Address) > 0 {
+		i -= len(m.Address)
+		copy(dAtA[i:], m.Address)
+		i = encodeVarintGenesis(dAtA, i, uint64(len(m.Address)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.StakeholderType != 0 {
+		i = encodeVarintGenesis(dAtA, i, uint64(m.StakeholderType))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WithdrawAddressEntry) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WithdrawAddressEntry) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *WithdrawAddressEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.WithdrawAddress) > 0 {
+		i -= len(m.WithdrawAddress)
+		copy(dAtA[i:], m.WithdrawAddress)
+		i = encodeVarintGenesis(dAtA, i, uint64(len(m.WithdrawAddress)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.DelegatorAddress) > 0 {
+		i -= len(m.DelegatorAddress)
+		copy(dAtA[i:], m.DelegatorAddress)
+		i = encodeVarintGenesis(dAtA, i, uint64(len(m.DelegatorAddress)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *FinalityProviderCurrentRewardsEntry) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FinalityProviderCurrentRewardsEntry) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *FinalityProviderCurrentRewardsEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Rewards != nil {
+		{
+			size, err := m.Rewards.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintGenesis(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Address) > 0 {
+		i -= len(m.Address)
+		copy(dAtA[i:], m.Address)
+		i = encodeVarintGenesis(dAtA, i, uint64(len(m.Address)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *FinalityProviderHistoricalRewardsEntry) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FinalityProviderHistoricalRewardsEntry) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *FinalityProviderHistoricalRewardsEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Rewards != nil {
+		{
+			size, err := m.Rewards.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintGenesis(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Period != 0 {
+		i = encodeVarintGenesis(dAtA, i, uint64(m.Period))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Address) > 0 {
+		i -= len(m.Address)
+		copy(dAtA[i:], m.Address)
+		i = encodeVarintGenesis(dAtA, i, uint64(len(m.Address)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BTCDelegationRewardsTrackerEntry) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BTCDelegationRewardsTrackerEntry) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *BTCDelegationRewardsTrackerEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Tracker != nil {
+		{
+			size, err := m.Tracker.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintGenesis(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.DelegatorAddress) > 0 {
+		i -= len(m.DelegatorAddress)
+		copy(dAtA[i:], m.DelegatorAddress)
+		i = encodeVarintGenesis(dAtA, i, uint64(len(m.DelegatorAddress)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.FinalityProviderAddress) > 0 {
+		i -= len(m.FinalityProviderAddress)
+		copy(dAtA[i:], m.FinalityProviderAddress)
+		i = encodeVarintGenesis(dAtA, i, uint64(len(m.FinalityProviderAddress)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BTCDelegatorToFpEntry) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BTCDelegatorToFpEntry) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *BTCDelegatorToFpEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.FinalityProviderAddress) > 0 {
+		i -= len(m.FinalityProviderAddress)
+		copy(dAtA[i:], m.FinalityProviderAddress)
+		i = encodeVarintGenesis(dAtA, i, uint64(len(m.FinalityProviderAddress)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.DelegatorAddress) > 0 {
+		i -= len(m.DelegatorAddress)
+		copy(dAtA[i:], m.DelegatorAddress)
+		i = encodeVarintGenesis(dAtA, i, uint64(len(m.DelegatorAddress)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *EventsPowerUpdateAtHeightEntry) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EventsPowerUpdateAtHeightEntry) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *EventsPowerUpdateAtHeightEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Events != nil {
+		{
+			size, err := m.Events.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintGenesis(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Height != 0 {
+		i = encodeVarintGenesis(dAtA, i, uint64(m.Height))
+		i--
+		dAtA[i] = 0x8
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -143,6 +1270,207 @@ func (m *GenesisState) Size() (n int) {
 	_ = l
 	l = m.Params.Size()
 	n += 1 + l + sovGenesis(uint64(l))
+	if len(m.BtcStakingGauges) > 0 {
+		for _, e := range m.BtcStakingGauges {
+			l = e.Size()
+			n += 1 + l + sovGenesis(uint64(l))
+		}
+	}
+	if len(m.RewardGauges) > 0 {
+		for _, e := range m.RewardGauges {
+			l = e.Size()
+			n += 1 + l + sovGenesis(uint64(l))
+		}
+	}
+	if len(m.WithdrawAddresses) > 0 {
+		for _, e := range m.WithdrawAddresses {
+			l = e.Size()
+			n += 1 + l + sovGenesis(uint64(l))
+		}
+	}
+	if len(m.RefundableMsgHashes) > 0 {
+		for _, s := range m.RefundableMsgHashes {
+			l = len(s)
+			n += 1 + l + sovGenesis(uint64(l))
+		}
+	}
+	if len(m.FinalityProvidersCurrentRewards) > 0 {
+		for _, e := range m.FinalityProvidersCurrentRewards {
+			l = e.Size()
+			n += 1 + l + sovGenesis(uint64(l))
+		}
+	}
+	if len(m.FinalityProvidersHistoricalRewards) > 0 {
+		for _, e := range m.FinalityProvidersHistoricalRewards {
+			l = e.Size()
+			n += 1 + l + sovGenesis(uint64(l))
+		}
+	}
+	if len(m.BtcDelegationRewardsTrackers) > 0 {
+		for _, e := range m.BtcDelegationRewardsTrackers {
+			l = e.Size()
+			n += 1 + l + sovGenesis(uint64(l))
+		}
+	}
+	if len(m.BtcDelegatorsToFps) > 0 {
+		for _, e := range m.BtcDelegatorsToFps {
+			l = e.Size()
+			n += 1 + l + sovGenesis(uint64(l))
+		}
+	}
+	if len(m.EventRewardTracker) > 0 {
+		for _, e := range m.EventRewardTracker {
+			l = e.Size()
+			n += 1 + l + sovGenesis(uint64(l))
+		}
+	}
+	if m.LastProcessedHeightEventRewardTracker != 0 {
+		n += 1 + sovGenesis(uint64(m.LastProcessedHeightEventRewardTracker))
+	}
+	return n
+}
+
+func (m *BTCStakingGaugeEntry) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Height != 0 {
+		n += 1 + sovGenesis(uint64(m.Height))
+	}
+	if m.Gauge != nil {
+		l = m.Gauge.Size()
+		n += 1 + l + sovGenesis(uint64(l))
+	}
+	return n
+}
+
+func (m *RewardGaugeEntry) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.StakeholderType != 0 {
+		n += 1 + sovGenesis(uint64(m.StakeholderType))
+	}
+	l = len(m.Address)
+	if l > 0 {
+		n += 1 + l + sovGenesis(uint64(l))
+	}
+	if m.RewardGauge != nil {
+		l = m.RewardGauge.Size()
+		n += 1 + l + sovGenesis(uint64(l))
+	}
+	return n
+}
+
+func (m *WithdrawAddressEntry) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.DelegatorAddress)
+	if l > 0 {
+		n += 1 + l + sovGenesis(uint64(l))
+	}
+	l = len(m.WithdrawAddress)
+	if l > 0 {
+		n += 1 + l + sovGenesis(uint64(l))
+	}
+	return n
+}
+
+func (m *FinalityProviderCurrentRewardsEntry) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Address)
+	if l > 0 {
+		n += 1 + l + sovGenesis(uint64(l))
+	}
+	if m.Rewards != nil {
+		l = m.Rewards.Size()
+		n += 1 + l + sovGenesis(uint64(l))
+	}
+	return n
+}
+
+func (m *FinalityProviderHistoricalRewardsEntry) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Address)
+	if l > 0 {
+		n += 1 + l + sovGenesis(uint64(l))
+	}
+	if m.Period != 0 {
+		n += 1 + sovGenesis(uint64(m.Period))
+	}
+	if m.Rewards != nil {
+		l = m.Rewards.Size()
+		n += 1 + l + sovGenesis(uint64(l))
+	}
+	return n
+}
+
+func (m *BTCDelegationRewardsTrackerEntry) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.FinalityProviderAddress)
+	if l > 0 {
+		n += 1 + l + sovGenesis(uint64(l))
+	}
+	l = len(m.DelegatorAddress)
+	if l > 0 {
+		n += 1 + l + sovGenesis(uint64(l))
+	}
+	if m.Tracker != nil {
+		l = m.Tracker.Size()
+		n += 1 + l + sovGenesis(uint64(l))
+	}
+	return n
+}
+
+func (m *BTCDelegatorToFpEntry) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.DelegatorAddress)
+	if l > 0 {
+		n += 1 + l + sovGenesis(uint64(l))
+	}
+	l = len(m.FinalityProviderAddress)
+	if l > 0 {
+		n += 1 + l + sovGenesis(uint64(l))
+	}
+	return n
+}
+
+func (m *EventsPowerUpdateAtHeightEntry) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Height != 0 {
+		n += 1 + sovGenesis(uint64(m.Height))
+	}
+	if m.Events != nil {
+		l = m.Events.Size()
+		n += 1 + l + sovGenesis(uint64(l))
+	}
 	return n
 }
 
@@ -211,6 +1539,1309 @@ func (m *GenesisState) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if err := m.Params.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BtcStakingGauges", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BtcStakingGauges = append(m.BtcStakingGauges, BTCStakingGaugeEntry{})
+			if err := m.BtcStakingGauges[len(m.BtcStakingGauges)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RewardGauges", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RewardGauges = append(m.RewardGauges, RewardGaugeEntry{})
+			if err := m.RewardGauges[len(m.RewardGauges)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WithdrawAddresses", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WithdrawAddresses = append(m.WithdrawAddresses, WithdrawAddressEntry{})
+			if err := m.WithdrawAddresses[len(m.WithdrawAddresses)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RefundableMsgHashes", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RefundableMsgHashes = append(m.RefundableMsgHashes, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FinalityProvidersCurrentRewards", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FinalityProvidersCurrentRewards = append(m.FinalityProvidersCurrentRewards, FinalityProviderCurrentRewardsEntry{})
+			if err := m.FinalityProvidersCurrentRewards[len(m.FinalityProvidersCurrentRewards)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FinalityProvidersHistoricalRewards", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FinalityProvidersHistoricalRewards = append(m.FinalityProvidersHistoricalRewards, FinalityProviderHistoricalRewardsEntry{})
+			if err := m.FinalityProvidersHistoricalRewards[len(m.FinalityProvidersHistoricalRewards)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BtcDelegationRewardsTrackers", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BtcDelegationRewardsTrackers = append(m.BtcDelegationRewardsTrackers, BTCDelegationRewardsTrackerEntry{})
+			if err := m.BtcDelegationRewardsTrackers[len(m.BtcDelegationRewardsTrackers)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BtcDelegatorsToFps", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BtcDelegatorsToFps = append(m.BtcDelegatorsToFps, BTCDelegatorToFpEntry{})
+			if err := m.BtcDelegatorsToFps[len(m.BtcDelegatorsToFps)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EventRewardTracker", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EventRewardTracker = append(m.EventRewardTracker, EventsPowerUpdateAtHeightEntry{})
+			if err := m.EventRewardTracker[len(m.EventRewardTracker)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastProcessedHeightEventRewardTracker", wireType)
+			}
+			m.LastProcessedHeightEventRewardTracker = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.LastProcessedHeightEventRewardTracker |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenesis(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *BTCStakingGaugeEntry) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenesis
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BTCStakingGaugeEntry: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BTCStakingGaugeEntry: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Height", wireType)
+			}
+			m.Height = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Height |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Gauge", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Gauge == nil {
+				m.Gauge = &Gauge{}
+			}
+			if err := m.Gauge.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenesis(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *RewardGaugeEntry) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenesis
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RewardGaugeEntry: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RewardGaugeEntry: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StakeholderType", wireType)
+			}
+			m.StakeholderType = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.StakeholderType |= StakeholderType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Address = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RewardGauge", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.RewardGauge == nil {
+				m.RewardGauge = &RewardGauge{}
+			}
+			if err := m.RewardGauge.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenesis(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *WithdrawAddressEntry) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenesis
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WithdrawAddressEntry: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WithdrawAddressEntry: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DelegatorAddress", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DelegatorAddress = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WithdrawAddress", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WithdrawAddress = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenesis(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *FinalityProviderCurrentRewardsEntry) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenesis
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FinalityProviderCurrentRewardsEntry: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FinalityProviderCurrentRewardsEntry: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Address = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Rewards", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Rewards == nil {
+				m.Rewards = &FinalityProviderCurrentRewards{}
+			}
+			if err := m.Rewards.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenesis(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *FinalityProviderHistoricalRewardsEntry) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenesis
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FinalityProviderHistoricalRewardsEntry: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FinalityProviderHistoricalRewardsEntry: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Address = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Period", wireType)
+			}
+			m.Period = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Period |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Rewards", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Rewards == nil {
+				m.Rewards = &FinalityProviderHistoricalRewards{}
+			}
+			if err := m.Rewards.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenesis(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *BTCDelegationRewardsTrackerEntry) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenesis
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BTCDelegationRewardsTrackerEntry: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BTCDelegationRewardsTrackerEntry: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FinalityProviderAddress", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FinalityProviderAddress = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DelegatorAddress", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DelegatorAddress = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Tracker", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Tracker == nil {
+				m.Tracker = &BTCDelegationRewardsTracker{}
+			}
+			if err := m.Tracker.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenesis(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *BTCDelegatorToFpEntry) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenesis
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BTCDelegatorToFpEntry: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BTCDelegatorToFpEntry: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DelegatorAddress", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DelegatorAddress = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FinalityProviderAddress", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FinalityProviderAddress = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenesis(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *EventsPowerUpdateAtHeightEntry) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenesis
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EventsPowerUpdateAtHeightEntry: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EventsPowerUpdateAtHeightEntry: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Height", wireType)
+			}
+			m.Height = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Height |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Events", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Events == nil {
+				m.Events = &EventsPowerUpdateAtHeight{}
+			}
+			if err := m.Events.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

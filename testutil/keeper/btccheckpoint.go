@@ -15,12 +15,11 @@ import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/x/btccheckpoint/keeper"
-	btcctypes "github.com/babylonlabs-io/babylon/x/btccheckpoint/types"
+	appparams "github.com/babylonlabs-io/babylon/v3/app/params"
+	"github.com/babylonlabs-io/babylon/v3/x/btccheckpoint/keeper"
+	btcctypes "github.com/babylonlabs-io/babylon/v3/x/btccheckpoint/types"
 )
 
 func NewBTCCheckpointKeeper(
@@ -28,12 +27,35 @@ func NewBTCCheckpointKeeper(
 	lk btcctypes.BTCLightClientKeeper,
 	ek btcctypes.CheckpointingKeeper,
 	ik btcctypes.IncentiveKeeper,
-	powLimit *big.Int) (*keeper.Keeper, sdk.Context) {
-	storeKey := storetypes.NewKVStoreKey(btcctypes.StoreKey)
-	tstoreKey := storetypes.NewTransientStoreKey(btcctypes.TStoreKey)
+	powLimit *big.Int,
+) (*keeper.Keeper, sdk.Context) {
+	return NewBTCChkptKeeperWithStoreKeys(t, nil, nil, nil, nil, lk, ek, ik, powLimit)
+}
 
-	db := dbm.NewMemDB()
-	stateStore := store.NewCommitMultiStore(db, log.NewTestLogger(t), storemetrics.NewNoOpMetrics())
+func NewBTCChkptKeeperWithStoreKeys(
+	t testing.TB,
+	db dbm.DB,
+	storeKey *storetypes.KVStoreKey,
+	tstoreKey *storetypes.TransientStoreKey,
+	stateStore store.CommitMultiStore,
+	lk btcctypes.BTCLightClientKeeper,
+	ek btcctypes.CheckpointingKeeper,
+	ik btcctypes.IncentiveKeeper,
+	powLimit *big.Int,
+) (*keeper.Keeper, sdk.Context) {
+	if storeKey == nil {
+		storeKey = storetypes.NewKVStoreKey(btcctypes.StoreKey)
+	}
+	if tstoreKey == nil {
+		tstoreKey = storetypes.NewTransientStoreKey(btcctypes.TStoreKey)
+	}
+	if db == nil {
+		db = dbm.NewMemDB()
+	}
+	if stateStore == nil {
+		stateStore = store.NewCommitMultiStore(db, log.NewTestLogger(t), storemetrics.NewNoOpMetrics())
+	}
+
 	stateStore.MountStoreWithDB(storeKey, storetypes.StoreTypeIAVL, db)
 	require.NoError(t, stateStore.LoadLatestVersion())
 
@@ -48,7 +70,7 @@ func NewBTCCheckpointKeeper(
 		ek,
 		ik,
 		powLimit,
-		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		appparams.AccGov.String(),
 	)
 
 	ctx := sdk.NewContext(stateStore, cmtproto.Header{}, false, log.NewNopLogger())

@@ -3,9 +3,10 @@ package query
 import (
 	"context"
 
-	epochingtypes "github.com/babylonlabs-io/babylon/x/epoching/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	sdkquerytypes "github.com/cosmos/cosmos-sdk/types/query"
+
+	epochingtypes "github.com/babylonlabs-io/babylon/v3/x/epoching/types"
 )
 
 // QueryEpoching queries the Epoching module of the Babylon node

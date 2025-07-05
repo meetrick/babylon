@@ -3,20 +3,37 @@
 package app
 
 import (
-	"github.com/babylonlabs-io/babylon/app/upgrades"
-	v1 "github.com/babylonlabs-io/babylon/app/upgrades/v1"
-	"github.com/babylonlabs-io/babylon/app/upgrades/v1/mainnet"
+	"github.com/babylonlabs-io/babylon/v3/app/upgrades"
+	v1 "github.com/babylonlabs-io/babylon/v3/app/upgrades/v1"
+	"github.com/babylonlabs-io/babylon/v3/app/upgrades/v1/mainnet"
+	v1_1 "github.com/babylonlabs-io/babylon/v3/app/upgrades/v1_1"
+	v2 "github.com/babylonlabs-io/babylon/v3/app/upgrades/v2"
+	v22 "github.com/babylonlabs-io/babylon/v3/app/upgrades/v2_2"
 )
 
-// init is used to include v1 upgrade for mainnet data
+var WhitelistedChannelsID = map[string]struct{}{
+	"channel-0": struct{}{},
+	"channel-1": struct{}{},
+	"channel-2": struct{}{},
+	"channel-3": struct{}{},
+	"channel-4": struct{}{},
+	"channel-5": struct{}{},
+	"channel-6": struct{}{},
+}
+
+// init is used to include v2.2 upgrade for mainnet data
 func init() {
-	Upgrades = []upgrades.Upgrade{v1.CreateUpgrade(v1.UpgradeDataString{
-		BtcStakingParamStr:        mainnet.BtcStakingParamStr,
-		FinalityParamStr:          mainnet.FinalityParamStr,
-		IncentiveParamStr:         mainnet.IncentiveParamStr,
-		CosmWasmParamStr:          mainnet.CosmWasmParamStr,
-		NewBtcHeadersStr:          mainnet.NewBtcHeadersStr,
-		TokensDistributionStr:     mainnet.TokensDistributionStr,
-		AllowedStakingTxHashesStr: mainnet.AllowedStakingTxHashesStr,
-	})}
+	Upgrades = []upgrades.Upgrade{
+		v22.Upgrade,
+		v2.CreateUpgrade(false, WhitelistedChannelsID),
+		v1_1.Upgrade,
+		v1.CreateUpgrade(v1.UpgradeDataString{
+			BtcStakingParamsStr:       mainnet.BtcStakingParamsStr,
+			FinalityParamStr:          mainnet.FinalityParamStr,
+			IncentiveParamStr:         mainnet.IncentiveParamStr,
+			CosmWasmParamStr:          mainnet.CosmWasmParamStr,
+			NewBtcHeadersStr:          mainnet.NewBtcHeadersStr,
+			TokensDistributionStr:     mainnet.TokensDistributionStr,
+			AllowedStakingTxHashesStr: mainnet.AllowedStakingTxHashesStr,
+		}, mainnet.ParamUpgrade)}
 }

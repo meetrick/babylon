@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/babylonlabs-io/babylon/x/checkpointing/types"
+	"github.com/babylonlabs-io/babylon/v3/x/checkpointing/types"
 
-	"github.com/babylonlabs-io/babylon/x/checkpointing/keeper"
+	"github.com/babylonlabs-io/babylon/v3/x/checkpointing/keeper"
 
 	"github.com/cosmos/cosmos-sdk/telemetry"
 )
@@ -25,4 +25,11 @@ func BeginBlocker(ctx context.Context, k keeper.Keeper) error {
 		}
 	}
 	return nil
+}
+
+func EndBlocker(ctx context.Context, k keeper.Keeper) {
+	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), telemetry.MetricKeyEndBlocker)
+	if conflict := k.GetConflictingCheckpointReceived(ctx); conflict {
+		panic(types.ErrConflictingCheckpoint)
+	}
 }

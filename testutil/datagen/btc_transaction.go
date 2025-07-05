@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"math"
 	"math/rand"
 	"runtime"
@@ -17,9 +18,9 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	txformat "github.com/babylonlabs-io/babylon/btctxformatter"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	btcctypes "github.com/babylonlabs-io/babylon/x/btccheckpoint/types"
+	txformat "github.com/babylonlabs-io/babylon/v3/btctxformatter"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	btcctypes "github.com/babylonlabs-io/babylon/v3/x/btccheckpoint/types"
 )
 
 var (
@@ -94,7 +95,6 @@ func SolveBlock(header *wire.BlockHeader) bool {
 				hash := hdr.BlockHash()
 				if blockchain.HashToBig(&hash).Cmp(
 					targetDifficulty) <= 0 {
-
 					results <- sbResult{true, i}
 					return
 				}
@@ -244,7 +244,6 @@ func CreateBlock(
 	babylonOpReturnIdx uint32,
 	babylonData []byte,
 ) *BlockCreationResult {
-
 	if babylonOpReturnIdx > numTx {
 		panic("babylon tx index should be less than number of transasactions and greater than 0")
 	}
@@ -252,14 +251,15 @@ func CreateBlock(
 	var transactions []*wire.MsgTx
 
 	for i := uint32(0); i <= numTx; i++ {
-		if i == 0 {
+		switch {
+		case i == 0:
 			tx := createCoinbaseTx(int32(height), &chaincfg.SimNetParams)
 			transactions = append(transactions, tx)
-		} else if i == babylonOpReturnIdx {
+		case i == babylonOpReturnIdx:
 			out := makeSpendableOutWithRandOutPoint(r, 1000)
 			tx := createSpendOpReturnTx(&out, lowFee, babylonData)
 			transactions = append(transactions, tx)
-		} else {
+		default:
 			out := makeSpendableOutWithRandOutPoint(r, 1000)
 			tx := createSpendTx(r, &out, lowFee)
 			transactions = append(transactions, tx)
@@ -304,7 +304,15 @@ func CreateBlockWithTransaction(
 	ph *wire.BlockHeader,
 	tx *wire.MsgTx,
 ) *BtcHeaderWithProof {
+	proof, _ := CreateWireBlockWithTransaction(r, ph, tx)
+	return proof
+}
 
+func CreateWireBlockWithTransaction(
+	r *rand.Rand,
+	ph *wire.BlockHeader,
+	tx *wire.MsgTx,
+) (*BtcHeaderWithProof, *wire.BlockHeader) {
 	var transactions []*wire.MsgTx
 	// height does not matter here, as it is used only for calculation of reward
 	transactions = append(transactions, createCoinbaseTx(int32(889), &chaincfg.SimNetParams))
@@ -331,13 +339,39 @@ func CreateBlockWithTransaction(
 	proof, err := btcctypes.SpvProofFromHeaderAndTransactions(&headerBytes, txBytes, 1)
 
 	if err != nil {
-		panic("could not calculate proof")
+		panic(fmt.Errorf("could not calculate proof: %w", err))
 	}
 
 	return &BtcHeaderWithProof{
 		HeaderBytes: headerBytes,
 		SpvProof:    proof,
+	}, randHeader
+}
+
+func CreateDummyTx() *wire.MsgTx {
+	// Create a witness transaction instead of empty transaction
+	msgTx := wire.NewMsgTx(wire.TxVersion)
+
+	// Add a dummy input
+	prevOut := wire.NewOutPoint(&chainhash.Hash{}, 0)
+	txIn := wire.NewTxIn(prevOut, nil, [][]byte{
+		{0x01}, // Simple witness script
+	})
+	msgTx.AddTxIn(txIn)
+
+	// Add a dummy output
+	pkScript := []byte{
+		0x00,                         // Version 0 witness program
+		0x14,                         // Push 20 bytes
+		0x01, 0x02, 0x03, 0x04, 0x05, // Dummy public key hash (20 bytes)
+		0x06, 0x07, 0x08, 0x09, 0x0a,
+		0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+		0x10, 0x11, 0x12, 0x13, 0x14,
 	}
+	txOut := wire.NewTxOut(100000, pkScript)
+	msgTx.AddTxOut(txOut)
+
+	return msgTx
 }
 
 func GenRandomTx(r *rand.Rand) *wire.MsgTx {
@@ -361,6 +395,30 @@ func GenRandomTx(r *rand.Rand) *wire.MsgTx {
 			},
 		},
 		LockTime: 0,
+	}
+
+	return tx
+}
+
+func GenRandomTxWithOutputs(r *rand.Rand, numOutputs int) *wire.MsgTx {
+	// structure of the below tx is from https://github.com/btcsuite/btcd/blob/master/wire/msgtx_test.go
+	tx := &wire.MsgTx{
+		Version: 1,
+		TxIn: []*wire.TxIn{
+			{
+				PreviousOutPoint: wire.OutPoint{
+					Hash:  GenRandomBtcdHash(r),
+					Index: r.Uint32(),
+				},
+				SignatureScript: GenRandomByteArray(r, 10),
+				Sequence:        r.Uint32(),
+			},
+		},
+		LockTime: 0,
+	}
+
+	for i := 0; i < numOutputs; i++ {
+		tx.AddTxOut(wire.NewTxOut(r.Int63(), GenRandomByteArray(r, 80)))
 	}
 
 	return tx

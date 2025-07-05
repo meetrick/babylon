@@ -1,12 +1,13 @@
 package cli
 
 import (
+	"context"
 	"fmt"
+	"strconv"
 
-	"github.com/cosmos/cosmos-sdk/client/flags"
-
-	"github.com/babylonlabs-io/babylon/x/btcstaking/types"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/cobra"
 )
 
@@ -22,11 +23,14 @@ func GetQueryCmd(queryRoute string) *cobra.Command {
 	}
 
 	cmd.AddCommand(CmdQueryParams())
+	cmd.AddCommand(CmdQueryParamsVersions())
 	cmd.AddCommand(CmdFinalityProvider())
 	cmd.AddCommand(CmdFinalityProviders())
 	cmd.AddCommand(CmdBTCDelegations())
 	cmd.AddCommand(CmdFinalityProviderDelegations())
 	cmd.AddCommand(CmdDelegation())
+	cmd.AddCommand(CmdQueryParamsByVersion())
+	cmd.AddCommand(CmdQueryLargestBtcReOrg())
 
 	return cmd
 }
@@ -186,5 +190,68 @@ func CmdFinalityProviderDelegations() *cobra.Command {
 	flags.AddQueryFlagsToCmd(cmd)
 	flags.AddPaginationFlagsToCmd(cmd, "finality-provider-delegations")
 
+	return cmd
+}
+
+// CmdQueryParamsByVersion implements the query params by version command.
+func CmdQueryParamsByVersion() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "params-by-version [version]",
+		Short: "Query BTC staking parameters by version number",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			version, err := strconv.ParseUint(args[0], 10, 32)
+			if err != nil {
+				return fmt.Errorf("version must be a positive 32-bit integer: %w", err)
+			}
+
+			queryClient := types.NewQueryClient(clientCtx)
+			res, err := queryClient.ParamsByVersion(
+				context.Background(),
+				&types.QueryParamsByVersionRequest{Version: uint32(version)},
+			)
+			if err != nil {
+				return err
+			}
+
+			return clientCtx.PrintProto(res)
+		},
+	}
+
+	flags.AddQueryFlagsToCmd(cmd)
+	return cmd
+}
+
+// CmdQueryLargestBtcReOrg implements the query of the largest BTC reorganization recorded command.
+func CmdQueryLargestBtcReOrg() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "largest-btc-reorg",
+		Short: "Query the larges BTC reorganization recorded",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			queryClient := types.NewQueryClient(clientCtx)
+			res, err := queryClient.LargestBtcReOrg(
+				context.Background(),
+				&types.QueryLargestBtcReOrgRequest{},
+			)
+			if err != nil {
+				return err
+			}
+
+			return clientCtx.PrintProto(res)
+		},
+	}
+
+	flags.AddQueryFlagsToCmd(cmd)
 	return cmd
 }

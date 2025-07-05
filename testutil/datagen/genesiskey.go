@@ -1,15 +1,15 @@
 package datagen
 
 import (
-	"github.com/babylonlabs-io/babylon/app"
-	appkeepers "github.com/babylonlabs-io/babylon/app/keepers"
-	"github.com/babylonlabs-io/babylon/crypto/bls12381"
-	"github.com/babylonlabs-io/babylon/privval"
-	checkpointingtypes "github.com/babylonlabs-io/babylon/x/checkpointing/types"
+	"fmt"
+
+	appsigner "github.com/babylonlabs-io/babylon/v3/app/signer"
+	"github.com/babylonlabs-io/babylon/v3/crypto/bls12381"
+	"github.com/babylonlabs-io/babylon/v3/testutil/signer"
+	checkpointingtypes "github.com/babylonlabs-io/babylon/v3/x/checkpointing/types"
 	cmtcrypto "github.com/cometbft/cometbft/crypto"
 	cmted25519 "github.com/cometbft/cometbft/crypto/ed25519"
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
-	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	cosmosed "github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -59,11 +59,11 @@ func GenesisValidatorSet(numVals int) (*GenesisValidators, error) {
 		blsPrivKey := bls12381.GenPrivKey()
 		// create validator set with single validator
 		valPrivKey := cmted25519.GenPrivKey()
-		valKeys, err := privval.NewValidatorKeys(valPrivKey, blsPrivKey)
+		valKeys, err := appsigner.NewValidatorKeys(valPrivKey, blsPrivKey)
 		if err != nil {
 			return nil, err
 		}
-		valPubkey, err := cryptocodec.FromCmtPubKeyInterface(valKeys.ValPubkey)
+		valPubkey, err := codec.FromCmtPubKeyInterface(valKeys.ValPubkey)
 		if err != nil {
 			return nil, err
 		}
@@ -88,27 +88,32 @@ func GenesisValidatorSet(numVals int) (*GenesisValidators, error) {
 
 // GenesisValidatorSetWithPrivSigner generates a set with `numVals` genesis validators
 // along with the privSigner, which will be in the 0th position of the return validator set
-func GenesisValidatorSetWithPrivSigner(numVals int) (*GenesisValidators, *appkeepers.PrivSigner, error) {
-	ps, err := app.SetupTestPrivSigner()
+func GenesisValidatorSetWithPrivSigner(numVals int) (*GenesisValidators, checkpointingtypes.BlsSigner, error) {
+	tbs, err := signer.SetupTestBlsSigner()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to setup test bls signer: %w", err)
 	}
-	signerGenesisKey, err := app.GenesisKeyFromPrivSigner(ps)
+	blsSigner := checkpointingtypes.BlsSigner(tbs)
+
+	cmtPrivKey := cmted25519.GenPrivKey()
+	validatorAddress := sdk.AccAddress(cmtPrivKey.PubKey().Address())
+
+	signerGenesisKey, err := signer.GenesisKeyFromPrivSigner(cmtPrivKey, tbs.PrivKey, sdk.ValAddress(validatorAddress))
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to get genesis key from priv signer: %w", err)
 	}
 	signerVal := &GenesisKeyWithBLS{
 		GenesisKey: *signerGenesisKey,
-		PrivateKey: ps.WrappedPV.Key.BlsPrivKey,
-		PrivKey:    ps.WrappedPV.Key.PrivKey,
+		PrivateKey: tbs.PrivKey,
+		PrivKey:    cmtPrivKey,
 	}
 	genesisVals, err := GenesisValidatorSet(numVals)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to get genesis validators: %w", err)
 	}
 	genesisVals.Keys[0] = signerVal
 
-	return genesisVals, ps, nil
+	return genesisVals, blsSigner, nil
 }
 
 func GenerateGenesisKey() *checkpointingtypes.GenesisKey {
@@ -123,7 +128,7 @@ func GenerateGenesisKey() *checkpointingtypes.GenesisKey {
 
 	blsPubKey := blsPrivKey.PubKey()
 	address := sdk.ValAddress(accPrivKey.PubKey().Address())
-	pop, err := privval.BuildPoP(tmValPrivKey, blsPrivKey)
+	pop, err := appsigner.BuildPoP(tmValPrivKey, blsPrivKey)
 	if err != nil {
 		panic(err)
 	}

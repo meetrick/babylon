@@ -2,8 +2,9 @@ package keeper
 
 import (
 	"context"
-	ltypes "github.com/babylonlabs-io/babylon/x/btclightclient/types"
-	etypes "github.com/babylonlabs-io/babylon/x/epoching/types"
+
+	ltypes "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
+	etypes "github.com/babylonlabs-io/babylon/v3/x/epoching/types"
 )
 
 // HandledHooks Helper interface to ensure Hooks implements
@@ -21,7 +22,7 @@ var _ HandledHooks = Hooks{}
 
 func (k Keeper) Hooks() Hooks { return Hooks{k} }
 
-func (h Hooks) AfterBTCRollBack(ctx context.Context, _ *ltypes.BTCHeaderInfo) {
+func (h Hooks) AfterBTCRollBack(ctx context.Context, _, _ *ltypes.BTCHeaderInfo) {
 	h.k.setBtcLightClientUpdated(ctx)
 }
 

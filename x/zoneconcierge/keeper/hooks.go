@@ -5,9 +5,9 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	checkpointingtypes "github.com/babylonlabs-io/babylon/x/checkpointing/types"
-	epochingtypes "github.com/babylonlabs-io/babylon/x/epoching/types"
-	"github.com/babylonlabs-io/babylon/x/zoneconcierge/types"
+	checkpointingtypes "github.com/babylonlabs-io/babylon/v3/x/checkpointing/types"
+	epochingtypes "github.com/babylonlabs-io/babylon/v3/x/epoching/types"
+	"github.com/babylonlabs-io/babylon/v3/x/zoneconcierge/types"
 )
 
 type Hooks struct {
@@ -21,7 +21,7 @@ var _ epochingtypes.EpochingHooks = Hooks{}
 func (k Keeper) Hooks() Hooks { return Hooks{k} }
 
 func (h Hooks) AfterEpochEnds(ctx context.Context, epoch uint64) {
-	// upon an epoch has ended, index the current chain info for each CZ
+	// upon an epoch has ended, index the current chain info for each Consumer
 	// TODO: do this together when epoch is sealed?
 	for _, consumerID := range h.k.GetAllConsumerIDs(ctx) {
 		h.k.recordEpochChainInfo(ctx, consumerID, epoch)
@@ -41,12 +41,16 @@ func (h Hooks) AfterRawCheckpointFinalized(ctx context.Context, epoch uint64) er
 	headersToBroadcast := h.k.getHeadersToBroadcast(ctx)
 
 	// send BTC timestamp to all open channels with ZoneConcierge
-	h.k.BroadcastBTCTimestamps(ctx, epoch, headersToBroadcast)
+	if err := h.k.BroadcastBTCTimestamps(ctx, epoch, headersToBroadcast); err != nil {
+		panic(err)
+	}
 
-	// Update the last broadcasted segment
-	h.k.setLastSentSegment(ctx, &types.BTCChainSegment{
-		BtcHeaders: headersToBroadcast,
-	})
+	// only update the segment if we have broadcasted some headers
+	if len(headersToBroadcast) > 0 {
+		h.k.setLastSentSegment(ctx, &types.BTCChainSegment{
+			BtcHeaders: headersToBroadcast,
+		})
+	}
 	return nil
 }
 

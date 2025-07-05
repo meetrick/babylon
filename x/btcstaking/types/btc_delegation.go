@@ -14,9 +14,9 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
 
-	"github.com/babylonlabs-io/babylon/btcstaking"
-	asig "github.com/babylonlabs-io/babylon/crypto/schnorr-adaptor-signature"
-	bbn "github.com/babylonlabs-io/babylon/types"
+	"github.com/babylonlabs-io/babylon/v3/btcstaking"
+	asig "github.com/babylonlabs-io/babylon/v3/crypto/schnorr-adaptor-signature"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
 )
 
 func NewBTCDelegationStatusFromString(statusStr string) (BTCDelegationStatus, error) {
@@ -29,6 +29,8 @@ func NewBTCDelegationStatusFromString(statusStr string) (BTCDelegationStatus, er
 		return BTCDelegationStatus_ACTIVE, nil
 	case "unbonded":
 		return BTCDelegationStatus_UNBONDED, nil
+	case "expired":
+		return BTCDelegationStatus_EXPIRED, nil
 	case "any":
 		return BTCDelegationStatus_ANY, nil
 	default:
@@ -57,6 +59,11 @@ func (d *BTCDelegation) GetFpIdx(fpBTCPK *bbn.BIP340PubKey) int {
 		}
 	}
 	return -1
+}
+
+// Address returns the bech32 BTC staker address
+func (d *BTCDelegation) Address() sdk.AccAddress {
+	return sdk.MustAccAddressFromBech32(d.StakerAddr)
 }
 
 func (d *BTCDelegation) GetCovSlashingAdaptorSig(
@@ -97,11 +104,19 @@ func (d *BTCDelegation) FinalityProviderKeys() []string {
 	return fpPks
 }
 
-// GetStatus returns the status of the BTC Delegation based on BTC height, w value, and covenant quorum
-// Pending: the BTC height is in the range of d's [startHeight, endHeight-w] and the delegation does not have covenant signatures
-// Active: the BTC height is in the range of d's [startHeight, endHeight-w] and the delegation has quorum number of signatures over slashing tx, unbonding tx, and slashing unbonding tx from covenant committee
-// Unbonded: the BTC height is larger than `endHeight-w` or the BTC delegation has received a signature on unbonding tx from the delegator
-func (d *BTCDelegation) GetStatus(btcHeight uint32, w uint32, covenantQuorum uint32) BTCDelegationStatus {
+// GetStatus returns the status of the BTC Delegation based on BTC height,
+// unbonding time, and covenant quorum
+// Pending: the BTC height is in the range of d's [startHeight, endHeight-unbondingTime]
+// and the delegation does not have covenant signatures
+// Active: the BTC height is in the range of d's [startHeight, endHeight-unbondingTime]
+// and the delegation has quorum number of signatures over slashing tx,
+// unbonding tx, and slashing unbonding tx from covenant committee
+// Unbonded: the BTC height is larger than `endHeight-unbondingTime` or the
+// BTC delegation has received a signature on unbonding tx from the delegator
+func (d *BTCDelegation) GetStatus(
+	btcHeight uint32,
+	covenantQuorum uint32,
+) BTCDelegationStatus {
 	if d.IsUnbondedEarly() {
 		return BTCDelegationStatus_UNBONDED
 	}
@@ -119,10 +134,21 @@ func (d *BTCDelegation) GetStatus(btcHeight uint32, w uint32, covenantQuorum uin
 
 	// At this point we already have covenant quorum and inclusion proof,
 	// we can check the status based on the BTC height
-	if btcHeight < d.StartHeight || btcHeight+w > d.EndHeight {
-		// staking tx's timelock has not begun, or is less than w BTC
-		// blocks left, or is expired
+	if btcHeight < d.StartHeight {
+		// staking tx's timelock has not begun, or is less than unbonding time BTC
+		// blocks left
 		return BTCDelegationStatus_UNBONDED
+	}
+
+	// if the endheight is not higher than the btc height + unbonding time
+	// the btc delegation should be considered expired
+	if btcHeight+d.UnbondingTime >= d.EndHeight {
+		// It is needed to use ">=" instead of just ">"
+		// to avoid processing both events at the same time
+		// Unbonding + Expired. If the unbonding request
+		// was about to be processed in the same block
+		// as the expired event.
+		return BTCDelegationStatus_EXPIRED
 	}
 
 	// - we have covenant quorum
@@ -133,10 +159,9 @@ func (d *BTCDelegation) GetStatus(btcHeight uint32, w uint32, covenantQuorum uin
 }
 
 // VotingPower returns the voting power of the BTC delegation at a given BTC height
-// and a given w value.
 // The BTC delegation d has voting power iff it is active.
-func (d *BTCDelegation) VotingPower(btcHeight uint32, w uint32, covenantQuorum uint32) uint64 {
-	if d.GetStatus(btcHeight, w, covenantQuorum) != BTCDelegationStatus_ACTIVE {
+func (d *BTCDelegation) VotingPower(btcHeight uint32, covenantQuorum uint32) uint64 {
+	if d.GetStatus(btcHeight, covenantQuorum) != BTCDelegationStatus_ACTIVE {
 		return 0
 	}
 	return d.GetTotalSat()
@@ -172,6 +197,16 @@ func (d *BTCDelegation) MustGetStakingTx() *wire.MsgTx {
 	return stakingTx
 }
 
+func (d *BTCDelegation) MustGetUnbondingTx() *wire.MsgTx {
+	unbondingTx, err := bbn.NewBTCTxFromBytes(d.BtcUndelegation.UnbondingTx)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return unbondingTx
+}
+
 func (d *BTCDelegation) ValidateBasic() error {
 	if _, err := sdk.AccAddressFromBech32(d.StakerAddr); err != nil {
 		return fmt.Errorf("invalid staker address: %s - %w", d.StakerAddr, err)
@@ -179,13 +214,23 @@ func (d *BTCDelegation) ValidateBasic() error {
 	if d.BtcPk == nil {
 		return fmt.Errorf("empty BTC public key")
 	}
+	if _, err := d.BtcPk.ToBTCPK(); err != nil {
+		return fmt.Errorf("BtcPk is not correctly formatted: %w", err)
+	}
 	if d.Pop == nil {
 		return fmt.Errorf("empty proof of possession")
+	}
+	if err := d.Pop.ValidateBasic(); err != nil {
+		return err
 	}
 	if len(d.FpBtcPkList) == 0 {
 		return fmt.Errorf("empty list of finality provider PKs")
 	}
-	if ExistsDup(d.FpBtcPkList) {
+	duplicate, err := ExistsDup(d.FpBtcPkList)
+	if err != nil {
+		return fmt.Errorf("list of finality provider PKs has an error: %w", err)
+	}
+	if duplicate {
 		return fmt.Errorf("list of finality provider PKs has duplication")
 	}
 	if d.StakingTx == nil {
@@ -200,7 +245,21 @@ func (d *BTCDelegation) ValidateBasic() error {
 
 	// ensure staking tx is correctly formatted
 	if _, err := bbn.NewBTCTxFromBytes(d.StakingTx); err != nil {
-		return err
+		return fmt.Errorf("failed to deserialize staking tx: %v", err)
+	}
+
+	// ensure slashing tx is correctly formatted
+	if _, err := bbn.NewBTCTxFromBytes(d.SlashingTx.MustMarshal()); err != nil {
+		return fmt.Errorf("failed to deserialize slashing tx: %v", err)
+	}
+
+	// Check all timelocks
+	if d.UnbondingTime > math.MaxUint16 {
+		return fmt.Errorf("unbonding time %d must be lower than %d", d.UnbondingTime, math.MaxUint16)
+	}
+
+	if d.StakingTime > math.MaxUint16 {
+		return fmt.Errorf("staking time %d must be lower than %d", d.StakingTime, math.MaxUint16)
 	}
 
 	return nil
@@ -340,7 +399,6 @@ func (d *BTCDelegation) GetUnbondingInfo(bsParams *Params, btcNet *chaincfg.Para
 	return unbondingInfo, nil
 }
 
-// TODO: verify to remove, not used in babylon, only for tests
 // findFPIdx returns the index of the given finality provider
 // among all restaked finality providers
 func (d *BTCDelegation) findFPIdx(fpBTCPK *bbn.BIP340PubKey) (int, error) {
@@ -356,7 +414,6 @@ func (d *BTCDelegation) findFPIdx(fpBTCPK *bbn.BIP340PubKey) (int, error) {
 // the signatures on the slashing tx, such that the slashing tx obtains full
 // witness and can be submitted to Bitcoin.
 // This happens after the finality provider is slashed and its SK is extracted.
-// TODO: verify not used
 func (d *BTCDelegation) BuildSlashingTxWithWitness(bsParams *Params, btcNet *chaincfg.Params, fpSK *btcec.PrivateKey) (*wire.MsgTx, error) {
 	stakingMsgTx, err := bbn.NewBTCTxFromBytes(d.StakingTx)
 	if err != nil {
@@ -407,7 +464,6 @@ func (d *BTCDelegation) BuildSlashingTxWithWitness(bsParams *Params, btcNet *cha
 	return slashingMsgTxWithWitness, nil
 }
 
-// TODO: verify to remove, func not used by babylon, used in side car processes.
 func (d *BTCDelegation) BuildUnbondingSlashingTxWithWitness(bsParams *Params, btcNet *chaincfg.Params, fpSK *btcec.PrivateKey) (*wire.MsgTx, error) {
 	unbondingMsgTx, err := bbn.NewBTCTxFromBytes(d.BtcUndelegation.UnbondingTx)
 	if err != nil {
@@ -465,6 +521,16 @@ func NewBTCDelegatorDelegationIndex() *BTCDelegatorDelegationIndex {
 	}
 }
 
+func (i *BTCDelegatorDelegationIndex) Validate() error {
+	for _, bz := range i.StakingTxHashList {
+		// NewHash validates hash size
+		if _, err := chainhash.NewHash(bz); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (i *BTCDelegatorDelegationIndex) Has(stakingTxHash chainhash.Hash) bool {
 	for _, hash := range i.StakingTxHashList {
 		if bytes.Equal(stakingTxHash[:], hash) {
@@ -485,13 +551,4 @@ func (i *BTCDelegatorDelegationIndex) Add(stakingTxHash chainhash.Hash) error {
 	i.StakingTxHashList = append(i.StakingTxHashList, stakingTxHash[:])
 
 	return nil
-}
-
-// VotingPower calculates the total voting power of all BTC delegations
-func (dels *BTCDelegatorDelegations) VotingPower(btcHeight uint32, w uint32, covenantQuorum uint32) uint64 {
-	power := uint64(0)
-	for _, del := range dels.Dels {
-		power += del.VotingPower(btcHeight, w, covenantQuorum)
-	}
-	return power
 }

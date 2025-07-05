@@ -3,12 +3,15 @@ package keeper
 import (
 	"context"
 
-	errorsmod "cosmossdk.io/errors"
-	"github.com/babylonlabs-io/babylon/x/incentive/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	errorsmod "cosmossdk.io/errors"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+
+	"github.com/babylonlabs-io/babylon/v3/x/incentive/types"
 )
 
 type msgServer struct {
@@ -54,6 +57,10 @@ func (ms msgServer) WithdrawReward(goCtx context.Context, req *types.MsgWithdraw
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
+	if err := ms.sendAllBtcDelegationTypeToRewardsGauge(ctx, sType, addr); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
 	// withdraw reward, i.e., send withdrawable reward to the stakeholder address and clear the reward gauge
 	withdrawnCoins, err := ms.withdrawReward(ctx, sType, addr)
 	if err != nil {
@@ -64,4 +71,28 @@ func (ms msgServer) WithdrawReward(goCtx context.Context, req *types.MsgWithdraw
 	return &types.MsgWithdrawRewardResponse{
 		Coins: withdrawnCoins,
 	}, nil
+}
+
+func (ms msgServer) SetWithdrawAddress(ctx context.Context, msg *types.MsgSetWithdrawAddress) (*types.MsgSetWithdrawAddressResponse, error) {
+	delegatorAddress, err := sdk.AccAddressFromBech32(msg.DelegatorAddress)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	withdrawAddress, err := sdk.AccAddressFromBech32(msg.WithdrawAddress)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	// make sure withdrawAddress it is not blocked address
+	if ms.bankKeeper.BlockedAddr(withdrawAddress) {
+		return nil, errorsmod.Wrapf(sdkerrors.ErrUnauthorized, "%s is not allowed to receive external funds", withdrawAddress)
+	}
+
+	err = ms.SetWithdrawAddr(ctx, delegatorAddress, withdrawAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.MsgSetWithdrawAddressResponse{}, nil
 }

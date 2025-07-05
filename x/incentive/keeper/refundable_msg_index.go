@@ -3,9 +3,18 @@ package keeper
 import (
 	"context"
 
-	"github.com/babylonlabs-io/babylon/x/incentive/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	"github.com/babylonlabs-io/babylon/v3/x/incentive/types"
 )
+
+// getRecipient returns the address that should receive the refund.
+func getRecipient(feeTx sdk.FeeTx) sdk.AccAddress {
+	if feeGranter := feeTx.FeeGranter(); feeGranter != nil {
+		return feeGranter
+	}
+	return feeTx.FeePayer()
+}
 
 // RefundTx refunds the given tx by sending the fee back to the fee payer.
 func (k Keeper) RefundTx(ctx context.Context, tx sdk.FeeTx) error {
@@ -15,7 +24,7 @@ func (k Keeper) RefundTx(ctx context.Context, tx sdk.FeeTx) error {
 		// but having this check for compatibility in the future
 		return nil
 	}
-	txFeePayer := tx.FeePayer()
+	txFeePayer := getRecipient(tx)
 
 	return k.bankKeeper.SendCoinsFromModuleToAccount(ctx, k.feeCollectorName, txFeePayer, txFee)
 }

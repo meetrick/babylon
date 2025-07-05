@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	testutil "github.com/babylonlabs-io/babylon/testutil/btcstaking-helper"
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
-	btclctypes "github.com/babylonlabs-io/babylon/x/btclightclient/types"
-	bsmodule "github.com/babylonlabs-io/babylon/x/btcstaking"
-	"github.com/babylonlabs-io/babylon/x/btcstaking/types"
+	testutil "github.com/babylonlabs-io/babylon/v3/testutil/btcstaking-helper"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
+	btclctypes "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
+	bsmodule "github.com/babylonlabs-io/babylon/v3/x/btcstaking"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/golang/mock/gomock"
 )
@@ -28,20 +28,22 @@ func benchBeginBlock(b *testing.B, numFPs int, numDelsUnderFP int) {
 	h := testutil.NewHelper(b, btclcKeeper, btccKeeper)
 	// set all parameters
 	covenantSKs, _ := h.GenAndApplyParams(r)
-	changeAddress, err := datagen.GenRandomBTCAddress(r, h.Net)
-	h.NoError(err)
 
 	// generate new finality providers
 	fps := []*types.FinalityProvider{}
 	for i := 0; i < numFPs; i++ {
-		fp, err := datagen.GenRandomFinalityProvider(r)
+		fp, err := datagen.GenRandomFinalityProvider(r, h.FpPopContext())
 		h.NoError(err)
 		msg := &types.MsgCreateFinalityProvider{
 			Addr:        fp.Addr,
 			Description: fp.Description,
-			Commission:  fp.Commission,
-			BtcPk:       fp.BtcPk,
-			Pop:         fp.Pop,
+			Commission: types.NewCommissionRates(
+				*fp.Commission,
+				fp.CommissionInfo.MaxRate,
+				fp.CommissionInfo.MaxChangeRate,
+			),
+			BtcPk: fp.BtcPk,
+			Pop:   fp.Pop,
 		}
 		_, err = h.MsgServer.CreateFinalityProvider(h.Ctx, msg)
 		h.NoError(err)
@@ -56,26 +58,27 @@ func benchBeginBlock(b *testing.B, numFPs int, numDelsUnderFP int) {
 			stakingValue := int64(2 * 10e8)
 			delSK, _, err := datagen.GenRandomBTCKeyPair(r)
 			h.NoError(err)
-			stakingTxHash, msgCreateBTCDel, actualDel, btcHeaderInfo, inclusionProof, _, err := h.CreateDelegation(
+			stakingTxHash, msgCreateBTCDel, actualDel, btcHeaderInfo, inclusionProof, _, err := h.CreateDelegationWithBtcBlockHeight(
 				r,
 				delSK,
 				[]*btcec.PublicKey{fp.BtcPk.MustToBTCPK()},
-				changeAddress.EncodeAddress(),
 				stakingValue,
 				1000,
 				0,
 				0,
 				true,
 				false,
+				10,
+				10,
 			)
 			h.NoError(err)
 			// retrieve BTC delegation in DB
 			btcDelMap[stakingTxHash] = append(btcDelMap[stakingTxHash], actualDel)
 			// generate and insert new covenant signatures
-			h.CreateCovenantSigs(r, covenantSKs, msgCreateBTCDel, actualDel)
+			h.CreateCovenantSigs(r, covenantSKs, msgCreateBTCDel, actualDel, 10)
 			// activate BTC delegation
 			// after that, all BTC delegations will have voting power
-			h.AddInclusionProof(stakingTxHash, btcHeaderInfo, inclusionProof)
+			h.AddInclusionProof(stakingTxHash, btcHeaderInfo, inclusionProof, 30)
 		}
 	}
 

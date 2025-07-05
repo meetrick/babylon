@@ -9,12 +9,15 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	simsutils "github.com/cosmos/cosmos-sdk/testutil/sims"
 
-	appparams "github.com/babylonlabs-io/babylon/app/params"
-	bbn "github.com/babylonlabs-io/babylon/types"
+	appparams "github.com/babylonlabs-io/babylon/v3/app/params"
+	"github.com/babylonlabs-io/babylon/v3/testutil/signer"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	checkpointingtypes "github.com/babylonlabs-io/babylon/v3/x/checkpointing/types"
 )
 
-// TmpAppOptions returns an app option with tmp dir and btc network
-func TmpAppOptions() simsutils.AppOptionsMap {
+// TmpAppOptions returns an app option with tmp dir and btc network. It is up to
+// the caller to clean up the temp dir.
+func TmpAppOptions() (simsutils.AppOptionsMap, func()) {
 	dir, err := os.MkdirTemp("", "babylon-tmp-app")
 	if err != nil {
 		panic(err)
@@ -23,11 +26,22 @@ func TmpAppOptions() simsutils.AppOptionsMap {
 		flags.FlagHome:       dir,
 		"btc-config.network": string(bbn.BtcSimnet),
 	}
-	return appOpts
+
+	cleanup := func() {
+		os.RemoveAll(dir)
+	}
+
+	return appOpts, cleanup
 }
 
+// NewTmpBabylonApp returns a new BabylonApp
 func NewTmpBabylonApp() *BabylonApp {
-	signer, _ := SetupTestPrivSigner()
+	tbs, _ := signer.SetupTestBlsSigner()
+	blsSigner := checkpointingtypes.BlsSigner(tbs)
+
+	appOpts, cleanup := TmpAppOptions()
+	defer cleanup()
+
 	return NewBabylonApp(
 		log.NewNopLogger(),
 		dbm.NewMemDB(),
@@ -35,8 +49,10 @@ func NewTmpBabylonApp() *BabylonApp {
 		true,
 		map[int64]bool{},
 		0,
-		signer,
-		TmpAppOptions(),
+		&blsSigner,
+		appOpts,
+		appparams.EVMChainID,
+		NoOpEVMOptions,
 		[]wasmkeeper.Option{})
 }
 

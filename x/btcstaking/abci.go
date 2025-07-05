@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/babylonlabs-io/babylon/x/btcstaking/keeper"
-	"github.com/babylonlabs-io/babylon/x/btcstaking/types"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstaking/keeper"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 )
@@ -18,6 +18,8 @@ func BeginBlocker(ctx context.Context, k keeper.Keeper) error {
 
 func EndBlocker(ctx context.Context, k keeper.Keeper) ([]abci.ValidatorUpdate, error) {
 	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), telemetry.MetricKeyEndBlocker)
+
+	k.HaltIfBtcReorgLargerThanConfirmationDepth(ctx)
 
 	return []abci.ValidatorUpdate{}, nil
 }

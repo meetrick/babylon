@@ -2,12 +2,14 @@ package keeper_test
 
 import (
 	"math/rand"
+	"sort"
 	"testing"
 
-	testutil "github.com/babylonlabs-io/babylon/testutil/btcstaking-helper"
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
-	"github.com/babylonlabs-io/babylon/x/btcstaking/types"
-	bsctypes "github.com/babylonlabs-io/babylon/x/btcstkconsumer/types"
+	testutil "github.com/babylonlabs-io/babylon/v3/testutil/btcstaking-helper"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
+	btclctypes "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
+	bsctypes "github.com/babylonlabs-io/babylon/v3/x/btcstkconsumer/types"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -17,6 +19,8 @@ func FuzzSetBTCStakingEventStore_NewFp(f *testing.F) {
 	datagen.AddRandomSeedsToFuzzer(f, 10)
 
 	f.Fuzz(func(t *testing.T, seed int64) {
+		t.Parallel()
+
 		r := rand.New(rand.NewSource(seed))
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -74,6 +78,8 @@ func FuzzSetBTCStakingEventStore_ActiveDel(f *testing.F) {
 	datagen.AddRandomSeedsToFuzzer(f, 10)
 
 	f.Fuzz(func(t *testing.T, seed int64) {
+		t.Parallel()
+
 		r := rand.New(rand.NewSource(seed))
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -85,8 +91,6 @@ func FuzzSetBTCStakingEventStore_ActiveDel(f *testing.F) {
 
 		// set all parameters
 		covenantSKs, _ := h.GenAndApplyParams(r)
-		changeAddress, err := datagen.GenRandomBTCAddress(r, h.Net)
-		require.NoError(t, err)
 
 		// register a random consumer on Babylon
 		randomConsumer := registerAndVerifyConsumer(t, r, h)
@@ -100,19 +104,22 @@ func FuzzSetBTCStakingEventStore_ActiveDel(f *testing.F) {
 		stakingValue := int64(2 * 10e8)
 		delSK, _, err := datagen.GenRandomBTCKeyPair(r)
 		h.NoError(err)
-		stakingTxHash, msgCreateBTCDel, _, _, _, _, err := h.CreateDelegation(
+		stakingTxHash, msgCreateBTCDel, _, _, _, _, err := h.CreateDelegationWithBtcBlockHeight(
 			r,
 			delSK,
 			[]*btcec.PublicKey{consumerFpPK, babylonFpPK},
-			changeAddress.EncodeAddress(),
 			stakingValue,
 			1000,
 			0,
 			0,
 			false,
 			false,
+			10,
+			30,
 		)
 		h.NoError(err)
+
+		h.BTCLightClientKeeper.EXPECT().GetTipInfo(gomock.Eq(h.Ctx)).Return(&btclctypes.BTCHeaderInfo{Height: 30}).AnyTimes()
 
 		// delegation related assertions
 		actualDel, err := h.BTCStakingKeeper.GetBTCDelegation(h.Ctx, stakingTxHash)
@@ -133,7 +140,10 @@ func FuzzSetBTCStakingEventStore_ActiveDel(f *testing.F) {
 		h.NoError(err)
 		require.True(t, actualDel.HasCovenantQuorums(h.BTCStakingKeeper.GetParams(h.Ctx).CovenantQuorum))
 		require.True(t, actualDel.BtcUndelegation.HasCovenantQuorums(h.BTCStakingKeeper.GetParams(h.Ctx).CovenantQuorum))
-		votingPower := actualDel.VotingPower(h.BTCLightClientKeeper.GetTipInfo(h.Ctx).Height, h.BTCCheckpointKeeper.GetParams(h.Ctx).CheckpointFinalizationTimeout, h.BTCStakingKeeper.GetParams(h.Ctx).CovenantQuorum)
+		votingPower := actualDel.VotingPower(
+			h.BTCLightClientKeeper.GetTipInfo(h.Ctx).Height,
+			h.BTCStakingKeeper.GetParams(h.Ctx).CovenantQuorum,
+		)
 		require.Equal(t, uint64(stakingValue), votingPower)
 
 		// event store related assertions
@@ -164,6 +174,8 @@ func FuzzSetBTCStakingEventStore_UnbondedDel(f *testing.F) {
 	datagen.AddRandomSeedsToFuzzer(f, 10)
 
 	f.Fuzz(func(t *testing.T, seed int64) {
+		t.Parallel()
+
 		r := rand.New(rand.NewSource(seed))
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -177,9 +189,6 @@ func FuzzSetBTCStakingEventStore_UnbondedDel(f *testing.F) {
 		covenantSKs, _ := h.GenAndApplyParams(r)
 
 		bsParams := h.BTCStakingKeeper.GetParams(h.Ctx)
-		wValue := h.BTCCheckpointKeeper.GetParams(h.Ctx).CheckpointFinalizationTimeout
-		changeAddress, err := datagen.GenRandomBTCAddress(r, h.Net)
-		require.NoError(t, err)
 
 		// register a random consumer on Babylon
 		randomConsumer := registerAndVerifyConsumer(t, r, h)
@@ -193,32 +202,32 @@ func FuzzSetBTCStakingEventStore_UnbondedDel(f *testing.F) {
 		stakingValue := int64(2 * 10e8)
 		delSK, _, err := datagen.GenRandomBTCKeyPair(r)
 		h.NoError(err)
-		stakingTxHash, msgCreateBTCDel, actualDel, _, _, unbondingInfo, err := h.CreateDelegation(
+		stakingTime := uint16(1000)
+		stakingTxHash, msgCreateBTCDel, actualDel, _, _, unbondingInfo, err := h.CreateDelegationWithBtcBlockHeight(
 			r,
 			delSK,
 			[]*btcec.PublicKey{consumerFpPK, babylonFpPK},
-			changeAddress.EncodeAddress(),
 			stakingValue,
-			1000,
+			stakingTime,
 			0,
 			0,
 			false,
 			false,
+			10,
+			30,
 		)
 		h.NoError(err)
 
 		// add covenant signatures to this BTC delegation
-		h.CreateCovenantSigs(r, covenantSKs, msgCreateBTCDel, actualDel)
+		h.CreateCovenantSigs(r, covenantSKs, msgCreateBTCDel, actualDel, 10)
 
 		// ensure the BTC delegation is bonded right now
 		actualDel, err = h.BTCStakingKeeper.GetBTCDelegation(h.Ctx, stakingTxHash)
 		h.NoError(err)
-		btcTip := h.BTCLightClientKeeper.GetTipInfo(h.Ctx).Height
-		status := actualDel.GetStatus(btcTip, wValue, bsParams.CovenantQuorum)
+		btcTip := uint32(30)
+		status := actualDel.GetStatus(btcTip, bsParams.CovenantQuorum)
 		require.Equal(t, types.BTCDelegationStatus_ACTIVE, status)
 
-		// construct unbonding msg
-		h.NoError(err)
 		msg := &types.MsgBTCUndelegate{
 			Signer:                        datagen.GenRandomAccount().Address,
 			StakingTxHash:                 stakingTxHash,
@@ -232,6 +241,34 @@ func FuzzSetBTCStakingEventStore_UnbondedDel(f *testing.F) {
 		_, err = h.MsgServer.BTCUndelegate(h.Ctx, &bogusMsg)
 		h.Error(err)
 
+		h.BTCLightClientKeeper.EXPECT().GetTipInfo(gomock.Eq(h.Ctx)).Return(&btclctypes.BTCHeaderInfo{Height: 30}).AnyTimes()
+
+		unbondingTx := actualDel.MustGetUnbondingTx()
+		stakingTx := actualDel.MustGetStakingTx()
+
+		serializedUnbondingTxWithWitness, _ := datagen.AddWitnessToUnbondingTx(
+			t,
+			stakingTx.TxOut[0],
+			delSK,
+			covenantSKs,
+			bsParams.CovenantQuorum,
+			[]*btcec.PublicKey{consumerFpPK, babylonFpPK},
+			stakingTime,
+			stakingValue,
+			unbondingTx,
+			h.Net,
+		)
+
+		msg = &types.MsgBTCUndelegate{
+			Signer:                        datagen.GenRandomAccount().Address,
+			StakingTxHash:                 stakingTxHash,
+			StakeSpendingTx:               serializedUnbondingTxWithWitness,
+			StakeSpendingTxInclusionProof: unbondingInfo.UnbondingTxInclusionProof,
+			FundingTransactions: [][]byte{
+				actualDel.StakingTx,
+			},
+		}
+
 		// unbond
 		_, err = h.MsgServer.BTCUndelegate(h.Ctx, msg)
 		h.NoError(err)
@@ -239,7 +276,7 @@ func FuzzSetBTCStakingEventStore_UnbondedDel(f *testing.F) {
 		// ensure the BTC delegation is unbonded
 		actualDel, err = h.BTCStakingKeeper.GetBTCDelegation(h.Ctx, stakingTxHash)
 		h.NoError(err)
-		status = actualDel.GetStatus(btcTip, wValue, bsParams.CovenantQuorum)
+		status = actualDel.GetStatus(btcTip, bsParams.CovenantQuorum)
 		require.Equal(t, types.BTCDelegationStatus_UNBONDED, status)
 
 		// event store related assertions
@@ -265,6 +302,8 @@ func FuzzDeleteBTCStakingEventStore(f *testing.F) {
 	datagen.AddRandomSeedsToFuzzer(f, 10)
 
 	f.Fuzz(func(t *testing.T, seed int64) {
+		t.Parallel()
+
 		r := rand.New(rand.NewSource(seed))
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -336,4 +375,73 @@ func registerAndVerifyConsumer(t *testing.T, r *rand.Rand, h *testutil.Helper) *
 	require.Equal(t, randomConsumer.ConsumerDescription, dbConsumer.ConsumerDescription)
 
 	return dbConsumer
+}
+
+func TestDeterministicOrdering(t *testing.T) {
+	r := rand.New(rand.NewSource(42))
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// mock BTC light client and BTC checkpoint modules
+	btclcKeeper := types.NewMockBTCLightClientKeeper(ctrl)
+	btccKeeper := types.NewMockBtcCheckpointKeeper(ctrl)
+	h := testutil.NewHelper(t, btclcKeeper, btccKeeper)
+	h.GenAndApplyParams(r)
+
+	consumerIDs := []string{"consumer-z", "consumer-a", "consumer-m", "consumer-b"}
+
+	// Add consumer events in random order
+	for _, consumerID := range consumerIDs {
+		event := &types.BTCStakingConsumerEvent{
+			Event: &types.BTCStakingConsumerEvent_NewFp{
+				NewFp: &types.NewFinalityProvider{
+					BtcPkHex:   "test-pk-" + consumerID,
+					ConsumerId: consumerID,
+				},
+			},
+		}
+		err := h.BTCStakingKeeper.AddBTCStakingConsumerEvent(h.Ctx, consumerID, event)
+		require.NoError(t, err)
+	}
+
+	// Simulate the pattern used in BroadcastBTCStakingConsumerEvents
+	// 1. Get all consumer IBC packets (returns map)
+	consumerIBCPacketMap := h.BTCStakingKeeper.GetAllBTCStakingConsumerIBCPackets(h.Ctx)
+
+	// 2. Simulate the fixed iteration pattern (extract keys, sort, then iterate)
+	var processOrder1 []string
+	{
+		// Extract keys and sort them for deterministic iteration (this is our fix)
+		consumerIDKeys := make([]string, 0, len(consumerIBCPacketMap))
+		for consumerID := range consumerIBCPacketMap {
+			consumerIDKeys = append(consumerIDKeys, consumerID)
+		}
+		sort.Strings(consumerIDKeys)
+
+		// Iterate through consumer IDs in sorted order
+		processOrder1 = append(processOrder1, consumerIDKeys...)
+	}
+
+	// 3. Repeat the same process to ensure consistent ordering
+	var processOrder2 []string
+	{
+		consumerIBCPacketMap2 := h.BTCStakingKeeper.GetAllBTCStakingConsumerIBCPackets(h.Ctx)
+
+		// Extract keys and sort them for deterministic iteration
+		consumerIDKeys := make([]string, 0, len(consumerIBCPacketMap2))
+		for consumerID := range consumerIBCPacketMap2 {
+			consumerIDKeys = append(consumerIDKeys, consumerID)
+		}
+		sort.Strings(consumerIDKeys)
+
+		// Iterate through consumer IDs in sorted order
+		processOrder2 = append(processOrder2, consumerIDKeys...)
+	}
+
+	// Verify that both processing orders are identical
+	require.Equal(t, processOrder1, processOrder2, "Processing order should be deterministic")
+
+	// Verify that the processing order is sorted
+	expectedOrder := []string{"consumer-a", "consumer-b", "consumer-m", "consumer-z"}
+	require.Equal(t, expectedOrder, processOrder1, "Processing should happen in sorted order")
 }

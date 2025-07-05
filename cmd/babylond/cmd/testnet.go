@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
+	servercfg "github.com/cosmos/evm/server/config"
+
 	"cosmossdk.io/math"
 	cmtconfig "github.com/cometbft/cometbft/config"
 	cmtos "github.com/cometbft/cometbft/libs/os"
@@ -32,15 +34,17 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	evmtypes "github.com/cosmos/evm/crypto/hd"
 	"github.com/spf13/cobra"
 
-	appkeepers "github.com/babylonlabs-io/babylon/app/keepers"
+	appkeepers "github.com/babylonlabs-io/babylon/v3/app/keepers"
+	"github.com/babylonlabs-io/babylon/v3/cmd/babylond/cmd/genhelpers"
 
-	appparams "github.com/babylonlabs-io/babylon/app/params"
-	"github.com/babylonlabs-io/babylon/privval"
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	checkpointingtypes "github.com/babylonlabs-io/babylon/x/checkpointing/types"
+	appparams "github.com/babylonlabs-io/babylon/v3/app/params"
+	appsigner "github.com/babylonlabs-io/babylon/v3/app/signer"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	checkpointingtypes "github.com/babylonlabs-io/babylon/v3/x/checkpointing/types"
 )
 
 var (
@@ -53,6 +57,8 @@ var (
 	flagAdditionalSenderAccount = "additional-sender-account"
 	flagTimeBetweenBlocks       = "time-between-blocks-seconds"
 )
+
+const DEV0_MNEMONIC = "doll midnight silk carpet brush boring pluck office gown inquiry duck chief aim exit gain never tennis crime fragile ship cloud surface exotic patch"
 
 // TestnetCmd initializes all files for tendermint testnet and application
 func TestnetCmd(mbm module.BasicManager, genBalIterator banktypes.GenesisBalancesIterator) *cobra.Command {
@@ -69,6 +75,8 @@ Example:
 	`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			clientCtx, err := client.GetClientQueryContext(cmd)
+			clientCtx = clientCtx.WithKeyringOptions(evmtypes.EthSecp256k1Option())
+
 			if err != nil {
 				return err
 			}
@@ -112,7 +120,7 @@ Example:
 				genesisCliArgs.MinCommissionRate,
 				genesisCliArgs.SlashingRate,
 				genesisCliArgs.MaxActiveFinalityProviders,
-				genesisCliArgs.MinUnbondingTime,
+				genesisCliArgs.UnbondingTime,
 				genesisCliArgs.UnbondingFeeSat,
 				genesisCliArgs.InflationRateChange,
 				genesisCliArgs.InflationMin,
@@ -178,9 +186,8 @@ func InitTestnet(
 	valAddrCodec runtime.ValidatorAddressCodec,
 	genesisParams GenesisParams,
 ) error {
-
 	nodeIDs := make([]string, numValidators)
-	valKeys := make([]*privval.ValidatorKeys, numValidators)
+	valKeys := make([]*appsigner.ValidatorKeys, numValidators)
 
 	babylonConfig := DefaultBabylonAppConfig()
 	babylonConfig.MinGasPrices = minGasPrices
@@ -196,6 +203,14 @@ func InitTestnet(
 	babylonConfig.API.EnableUnsafeCORS = true
 	babylonConfig.GRPC.Enable = true
 	babylonConfig.GRPC.Address = "0.0.0.0:9090"
+
+	// Update babylonConfig to include Ethereum JSON-RPC settings and other settings
+	babylonConfig.Mempool.MaxTxs = -1 // NOTE: No-op mempool required
+	babylonConfig.EVM = *servercfg.DefaultEVMConfig()
+	babylonConfig.JSONRPC = *servercfg.DefaultJSONRPCConfig()
+	babylonConfig.JSONRPC.API = []string{"eth", "net", "web3", "debug"} // debug enabled
+	babylonConfig.JSONRPC.Enable = true
+	babylonConfig.EVM.EVMChainID = appparams.EVMChainID
 
 	// Disable IAVL cache by default as Babylon leaf nodes can be large, and in case
 	// of big cache values, Babylon node can run out of memory.
@@ -243,7 +258,7 @@ func InitTestnet(
 		}
 
 		// generate account key
-		kb, err := keyring.New(sdk.KeyringServiceName(), keyringBackend, nodeDir, inBuf, clientCtx.Codec)
+		kb, err := keyring.New(sdk.KeyringServiceName(), keyringBackend, nodeDir, inBuf, clientCtx.Codec, evmtypes.EthSecp256k1Option())
 
 		if err != nil {
 			return err
@@ -322,8 +337,13 @@ func InitTestnet(
 			return err
 		}
 
+		wrappedCreateVal, err := checkpointingtypes.NewMsgWrappedCreateValidator(createValMsg, genKey.BlsKey.Pubkey, genKey.BlsKey.Pop)
+		if err != nil {
+			return err
+		}
+
 		txBuilder := clientCtx.TxConfig.NewTxBuilder()
-		if err = txBuilder.SetMsgs(createValMsg); err != nil {
+		if err = txBuilder.SetMsgs(wrappedCreateVal); err != nil {
 			return err
 		}
 
@@ -398,16 +418,61 @@ func InitTestnet(
 
 			genBalances = append(genBalances, banktypes.Balance{Address: addr.String(), Coins: coins.Sort()})
 			genAccounts = append(genAccounts, authtypes.NewBaseAccount(addr, nil, 0, 0))
-
 		}
 	}
 
-	if err := initGenFiles(clientCtx, mbm, chainID, genAccounts, genBalances, genFiles,
-		genKeys, numValidators, genesisParams); err != nil {
+	// EVM Dev0 account creation
+	nodeDirName := fmt.Sprintf("%s%d", nodeDirPrefix, 0)
+	nodeDir := filepath.Join(outputDir, nodeDirName, nodeDaemonHome)
+	// Create keyring for the custom account
+	kb, err := keyring.New(sdk.KeyringServiceName(), keyringBackend, nodeDir, inBuf, clientCtx.Codec, evmtypes.EthSecp256k1Option())
+	if err != nil {
 		return err
 	}
 
-	err := collectGenFiles(
+	keyringAlgos, _ := kb.SupportedAlgorithms()
+	algo, err := keyring.NewSigningAlgoFromString("eth_secp256k1", keyringAlgos)
+	if err != nil {
+		return err
+	}
+
+	addr, _, err := testutil.GenerateSaveCoinKey(
+		kb,
+		"dev0",
+		DEV0_MNEMONIC,
+		true,
+		algo,
+	)
+
+	if err != nil {
+		_ = os.RemoveAll(outputDir)
+		return err
+	}
+
+	// Get the public key for the ETH_SECP account
+	keyInfo, err := kb.Key("dev0")
+	if err != nil {
+		_ = os.RemoveAll(outputDir)
+		return err
+	}
+	pubKey, err := keyInfo.GetPubKey()
+	if err != nil {
+		_ = os.RemoveAll(outputDir)
+		return err
+	}
+
+	coins := sdk.Coins{
+		sdk.NewCoin("ubbn", math.NewInt(10e6)),
+	}
+
+	genBalances = append(genBalances, banktypes.Balance{Address: addr.String(), Coins: coins.Sort()})
+	genAccounts = append(genAccounts, authtypes.NewBaseAccount(addr, pubKey, 0, 0))
+
+	if err := initGenFiles(clientCtx, mbm, chainID, genAccounts, genBalances, genFiles, numValidators, genesisParams); err != nil {
+		return err
+	}
+
+	err = collectGenFiles(
 		clientCtx, nodeConfig, chainID, nodeIDs, genKeys, numValidators,
 		outputDir, nodeDirPrefix, nodeDaemonHome, genBalIterator,
 	)
@@ -422,9 +487,8 @@ func InitTestnet(
 func initGenFiles(
 	clientCtx client.Context, mbm module.BasicManager, chainID string,
 	genAccounts []authtypes.GenesisAccount, genBalances []banktypes.Balance,
-	genFiles []string, genKeys []*checkpointingtypes.GenesisKey, numValidators int, genesisParams GenesisParams,
+	genFiles []string, numValidators int, genesisParams GenesisParams,
 ) error {
-
 	appGenState := mbm.DefaultGenesis(clientCtx.Codec)
 
 	// set the accounts in the genesis state
@@ -436,9 +500,6 @@ func initGenFiles(
 
 	// set the balances in the genesis state
 	genesisParams.BankGenBalances = banktypes.SanitizeGenesisBalances(genBalances)
-
-	// set the bls keys for the checkpointing module
-	genesisParams.CheckpointingGenKeys = genKeys
 
 	genesis := &genutiltypes.AppGenesis{}
 
@@ -465,7 +526,6 @@ func collectGenFiles(
 	nodeIDs []string, genKeys []*checkpointingtypes.GenesisKey, numValidators int,
 	outputDir, nodeDirPrefix, nodeDaemonHome string, genBalIterator banktypes.GenesisBalancesIterator,
 ) error {
-
 	var appState json.RawMessage
 	genTime := cmttime.Now()
 
@@ -485,14 +545,14 @@ func collectGenFiles(
 			return err
 		}
 
-		nodeAppState, err := genutil.GenAppStateFromConfig(
+		nodeAppState, err := genhelpers.GenAppStateFromConfig(
 			clientCtx.Codec,
 			clientCtx.TxConfig,
 			nodeConfig,
 			initCfg,
 			genesis,
 			genBalIterator,
-			genutiltypes.DefaultMessageValidator,
+			checkpointingtypes.GenTxMessageValidatorWrappedCreateValidator,
 			authcodec.NewBech32Codec(appparams.Bech32PrefixValAddr),
 		)
 		if err != nil {
@@ -551,10 +611,9 @@ func calculateIP(ip string, i int) (string, error) {
 }
 
 func writeFile(name string, dir string, contents []byte) error {
-	writePath := filepath.Join(dir)
-	file := filepath.Join(writePath, name)
+	file := filepath.Join(dir, name)
 
-	err := cmtos.EnsureDir(writePath, 0755)
+	err := cmtos.EnsureDir(dir, 0755)
 	if err != nil {
 		return err
 	}

@@ -6,7 +6,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/runtime"
 
 	"cosmossdk.io/store/prefix"
-	"github.com/babylonlabs-io/babylon/x/btcstkconsumer/types"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstkconsumer/types"
 )
 
 // RegisterConsumer registers a new consumer
@@ -65,7 +65,7 @@ func (k Keeper) GetAllRegisteredConsumerIDs(ctx context.Context) []string {
 	return consumerIDs
 }
 
-// consumerRegistryStore stores the information of registered CZ consumers
+// consumerRegistryStore stores the information of registered Consumers
 // prefix: ConsumerRegisterKey
 // key: consumerID
 // value: ConsumerRegister

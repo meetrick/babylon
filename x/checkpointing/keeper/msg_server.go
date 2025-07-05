@@ -5,9 +5,9 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	epochingtypes "github.com/babylonlabs-io/babylon/x/epoching/types"
+	epochingtypes "github.com/babylonlabs-io/babylon/v3/x/epoching/types"
 
-	"github.com/babylonlabs-io/babylon/x/checkpointing/types"
+	"github.com/babylonlabs-io/babylon/v3/x/checkpointing/types"
 )
 
 type msgServer struct {
@@ -44,6 +44,15 @@ func (m msgServer) WrappedCreateValidator(goCtx context.Context, msg *types.MsgW
 		return nil, err
 	}
 
+	if ctx.HeaderInfo().Height == 0 {
+		// no need to put in a queue if it is a genesis transactions
+		err = m.k.epochingKeeper.StkMsgCreateValidator(ctx, msg.MsgCreateValidator)
+		if err != nil {
+			return nil, err
+		}
+		return &types.MsgWrappedCreateValidatorResponse{}, nil
+	}
+
 	// enqueue the msg into the epoching module
 	queueMsg := epochingtypes.QueuedMessage{
 		Msg: &epochingtypes.QueuedMessage_MsgCreateValidator{MsgCreateValidator: msg.MsgCreateValidator},
@@ -51,5 +60,5 @@ func (m msgServer) WrappedCreateValidator(goCtx context.Context, msg *types.MsgW
 
 	m.k.epochingKeeper.EnqueueMsg(ctx, queueMsg)
 
-	return &types.MsgWrappedCreateValidatorResponse{}, err
+	return &types.MsgWrappedCreateValidatorResponse{}, nil
 }

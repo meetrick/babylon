@@ -6,31 +6,28 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/babylonlabs-io/babylon/types"
-	finalitytypes "github.com/babylonlabs-io/babylon/x/finality/types"
+	"github.com/babylonlabs-io/babylon/v3/types"
+	finalitytypes "github.com/babylonlabs-io/babylon/v3/x/finality/types"
 )
 
 // HandleLiveness handles liveness of each active finality provider for a given height
 // including jailing sluggish finality providers and applying punishment (TBD)
 func (k Keeper) HandleLiveness(ctx context.Context, height int64) {
 	// get all the active finality providers for the height
-	fpSet := k.GetVotingPowerTable(ctx, uint64(height))
+	vpTableOrdered := k.GetVotingPowerTableOrdered(ctx, uint64(height))
 	// get all the voters for the height
 	voterBTCPKs := k.GetVoters(ctx, uint64(height))
 
 	// Iterate over all the finality providers which *should* have signed this block
 	// store whether or not they have actually signed it, identify sluggish
 	// ones, and apply punishment (TBD)
-	for fpPkHex := range fpSet {
-		fpPk, err := types.NewBIP340PubKeyFromHex(fpPkHex)
-		if err != nil {
-			panic(fmt.Errorf("invalid finality provider public key %s: %w", fpPkHex, err))
-		}
-
+	// Iterate over all the finality providers in sorted order by the voting power
+	for _, fpWithVp := range vpTableOrdered {
+		fpPkHex := fpWithVp.FpPk.MarshalHex()
 		_, ok := voterBTCPKs[fpPkHex]
 		missed := !ok
 
-		err = k.HandleFinalityProviderLiveness(ctx, fpPk, missed, height)
+		err := k.HandleFinalityProviderLiveness(ctx, fpWithVp.FpPk, missed, height)
 		if err != nil {
 			panic(fmt.Errorf("failed to handle liveness of finality provider %s: %w", fpPkHex, err))
 		}
@@ -61,7 +58,7 @@ func (k Keeper) HandleFinalityProviderLiveness(ctx context.Context, fpPk *types.
 		return nil
 	}
 
-	updated, signInfo, err := k.updateSigningInfo(ctx, fpPk, missed, height)
+	updated, signInfo, err := k.UpdateSigningInfo(ctx, fpPk, missed, height)
 	if err != nil {
 		return err
 	}
@@ -114,7 +111,7 @@ func (k Keeper) HandleFinalityProviderLiveness(ctx context.Context, fpPk *types.
 	return nil
 }
 
-func (k Keeper) updateSigningInfo(
+func (k Keeper) UpdateSigningInfo(
 	ctx context.Context,
 	fpPk *types.BIP340PubKey,
 	missed bool,
@@ -142,9 +139,15 @@ func (k Keeper) updateSigningInfo(
 	// A genesis finality provider will start at index 0, whereas a non-genesis finality provider's
 	// startHeight will be the block they become active for, but the first block they vote on will be
 	// one later. (And thus their first vote is at index 1)
+	//
+	// NOTE: due to the introduction of the parameter `FinalitySigTimeout`, if there are `x`
+	// consecutive blocks for which a fp is non-active in the middle of the fp being active
+	// where `x` < FinalitySigTimeout, it is possible that `signInfo.StartHeight > height`
+	// in this case, it should return directly because it indicates that the fp does not
+	// need to vote for the height we are examining. This ensures the index calculated
+	// below will not be negative
 	if signInfo.StartHeight > height {
-		return false, nil, fmt.Errorf("invalid state, the finality provider signing info has start height %d, which is greater than the current height %d",
-			signInfo.StartHeight, height)
+		return false, &signInfo, nil
 	}
 	index := (height - signInfo.StartHeight) % signedBlocksWindow
 

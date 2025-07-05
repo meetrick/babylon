@@ -4,11 +4,11 @@ import (
 	"context"
 
 	errorsmod "cosmossdk.io/errors"
-	btcstaking "github.com/babylonlabs-io/babylon/x/btcstaking/types"
+	btcstaking "github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
-	bbn "github.com/babylonlabs-io/babylon/types"
-	"github.com/babylonlabs-io/babylon/x/btcstkconsumer/types"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstkconsumer/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	"google.golang.org/grpc/codes"
@@ -26,11 +26,15 @@ func (k Keeper) ConsumerRegistryList(c context.Context, req *types.QueryConsumer
 
 	ctx := sdk.UnwrapSDKContext(c)
 
-	consumerIDs := []string{}
+	consumerRegisters := []*types.ConsumerRegisterResponse{}
 	store := k.consumerRegistryStore(ctx)
 	pageRes, err := query.Paginate(store, req.Pagination, func(key, value []byte) error {
 		consumerID := string(key)
-		consumerIDs = append(consumerIDs, consumerID)
+		consumerRegister, err := k.GetConsumerRegister(ctx, consumerID)
+		if err != nil {
+			return err
+		}
+		consumerRegisters = append(consumerRegisters, consumerRegister.ToResponse())
 		return nil
 	})
 	if err != nil {
@@ -38,8 +42,8 @@ func (k Keeper) ConsumerRegistryList(c context.Context, req *types.QueryConsumer
 	}
 
 	resp := &types.QueryConsumerRegistryListResponse{
-		ConsumerIds: consumerIDs,
-		Pagination:  pageRes,
+		ConsumerRegisters: consumerRegisters,
+		Pagination:        pageRes,
 	}
 	return resp, nil
 }
@@ -66,17 +70,17 @@ func (k Keeper) ConsumersRegistry(c context.Context, req *types.QueryConsumersRe
 	}
 
 	ctx := sdk.UnwrapSDKContext(c)
-	var consumersRegister []*types.ConsumerRegister
+	consumersRegisters := []*types.ConsumerRegisterResponse{}
 	for _, consumerID := range req.ConsumerIds {
 		consumerRegister, err := k.GetConsumerRegister(ctx, consumerID)
 		if err != nil {
 			return nil, err
 		}
 
-		consumersRegister = append(consumersRegister, consumerRegister)
+		consumersRegisters = append(consumersRegisters, consumerRegister.ToResponse())
 	}
 
-	resp := &types.QueryConsumersRegistryResponse{ConsumersRegister: consumersRegister}
+	resp := &types.QueryConsumersRegistryResponse{ConsumerRegisters: consumersRegisters}
 	return resp, nil
 }
 

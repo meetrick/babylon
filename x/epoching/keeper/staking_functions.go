@@ -10,7 +10,7 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	"github.com/babylonlabs-io/babylon/x/epoching/types"
+	"github.com/babylonlabs-io/babylon/v3/x/epoching/types"
 )
 
 // CheckMsgCreateValidator performs checks on a given `MsgCreateValidator` message
@@ -112,6 +112,16 @@ func (k Keeper) CheckMsgCreateValidator(ctx context.Context, msg *stakingtypes.M
 	return nil
 }
 
+// StkMsgCreateValidator calls the staking msg server
+func (k Keeper) StkMsgCreateValidator(ctx context.Context, msg *stakingtypes.MsgCreateValidator) error {
+	_, err := k.stkMsgServer.CreateValidator(ctx, msg)
+	return err
+}
+
 func (k Keeper) GetPubKeyByConsAddr(ctx context.Context, consAddr sdk.ConsAddress) (cmtprotocrypto.PublicKey, error) {
 	return k.stk.GetPubKeyByConsAddr(ctx, consAddr)
+}
+
+func (k Keeper) GetValidator(ctx context.Context, addr sdk.ValAddress) (stakingtypes.Validator, error) {
+	return k.stk.GetValidator(ctx, addr)
 }

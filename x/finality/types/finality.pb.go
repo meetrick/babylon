@@ -6,7 +6,7 @@ package types
 import (
 	cosmossdk_io_math "cosmossdk.io/math"
 	fmt "fmt"
-	github_com_babylonlabs_io_babylon_types "github.com/babylonlabs-io/babylon/types"
+	github_com_babylonlabs_io_babylon_v3_types "github.com/babylonlabs-io/babylon/v3/types"
 	_ "github.com/cosmos/cosmos-proto"
 	_ "github.com/cosmos/cosmos-sdk/types/tx/amino"
 	_ "github.com/cosmos/gogoproto/gogoproto"
@@ -31,13 +31,14 @@ var _ = time.Kitchen
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
-// VotingPowerDistCache is the cache for voting power distribution of finality providers
-// and their BTC delegations at a height
+// VotingPowerDistCache is the cache for voting power distribution of finality
+// providers and their BTC delegations at a height
 type VotingPowerDistCache struct {
-	// total_voting_power is the total voting power of all (active) finality providers
-	// in the cache
+	// total_voting_power is the total voting power of all (active) finality
+	// providers in the cache
 	TotalVotingPower uint64 `protobuf:"varint,1,opt,name=total_voting_power,json=totalVotingPower,proto3" json:"total_voting_power,omitempty"`
-	// finality_providers is a list of finality providers' voting power information
+	// finality_providers is a list of finality providers' voting power
+	// information
 	FinalityProviders []*FinalityProviderDistInfo `protobuf:"bytes,2,rep,name=finality_providers,json=finalityProviders,proto3" json:"finality_providers,omitempty"`
 	// num_active_fps is the number of finality providers that have active BTC
 	// delegations as well as timestamped public randomness
@@ -77,29 +78,29 @@ func (m *VotingPowerDistCache) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_VotingPowerDistCache proto.InternalMessageInfo
 
-// FinalityProviderDistInfo is the reward distribution of a finality provider and its BTC delegations
+// FinalityProviderDistInfo is the reward distribution of a finality provider
+// and its BTC delegations
 type FinalityProviderDistInfo struct {
 	// btc_pk is the Bitcoin secp256k1 PK of this finality provider
 	// the PK follows encoding in BIP-340 spec
-	BtcPk *github_com_babylonlabs_io_babylon_types.BIP340PubKey `protobuf:"bytes,1,opt,name=btc_pk,json=btcPk,proto3,customtype=github.com/babylonlabs-io/babylon/types.BIP340PubKey" json:"btc_pk,omitempty"`
+	BtcPk *github_com_babylonlabs_io_babylon_v3_types.BIP340PubKey `protobuf:"bytes,1,opt,name=btc_pk,json=btcPk,proto3,customtype=github.com/babylonlabs-io/babylon/v3/types.BIP340PubKey" json:"btc_pk,omitempty"`
 	// addr is the bytes of the address to receive commission from delegations.
 	Addr []byte `protobuf:"bytes,2,opt,name=addr,proto3" json:"addr,omitempty"`
 	// commission defines the commission rate of finality provider
 	Commission *cosmossdk_io_math.LegacyDec `protobuf:"bytes,3,opt,name=commission,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"commission,omitempty"`
-	// total_bonded_sat is the total amount of bonded BTC stake (in Satoshi) of the finality provider
+	// total_bonded_sat is the total amount of bonded BTC stake (in Satoshi) of
+	// the finality provider
 	TotalBondedSat uint64 `protobuf:"varint,4,opt,name=total_bonded_sat,json=totalBondedSat,proto3" json:"total_bonded_sat,omitempty"`
-	// btc_dels is a list of BTC delegations' voting power information under this finality provider
-	BtcDels []*BTCDelDistInfo `protobuf:"bytes,5,rep,name=btc_dels,json=btcDels,proto3" json:"btc_dels,omitempty"`
 	// is_timestamped indicates whether the finality provider
 	// has timestamped public randomness committed
 	// if no, it should not be assigned voting power
-	IsTimestamped bool `protobuf:"varint,6,opt,name=is_timestamped,json=isTimestamped,proto3" json:"is_timestamped,omitempty"`
+	IsTimestamped bool `protobuf:"varint,5,opt,name=is_timestamped,json=isTimestamped,proto3" json:"is_timestamped,omitempty"`
 	// is_jailed indicates whether the finality provider
 	// is jailed, if so, it should not be assigned voting power
-	IsJailed bool `protobuf:"varint,7,opt,name=is_jailed,json=isJailed,proto3" json:"is_jailed,omitempty"`
+	IsJailed bool `protobuf:"varint,6,opt,name=is_jailed,json=isJailed,proto3" json:"is_jailed,omitempty"`
 	// is_slashed indicates whether the finality provider
 	// is slashed, if so, it should not be assigned voting power
-	IsSlashed bool `protobuf:"varint,8,opt,name=is_slashed,json=isSlashed,proto3" json:"is_slashed,omitempty"`
+	IsSlashed bool `protobuf:"varint,7,opt,name=is_slashed,json=isSlashed,proto3" json:"is_slashed,omitempty"`
 }
 
 func (m *FinalityProviderDistInfo) Reset()         { *m = FinalityProviderDistInfo{} }
@@ -149,13 +150,6 @@ func (m *FinalityProviderDistInfo) GetTotalBondedSat() uint64 {
 	return 0
 }
 
-func (m *FinalityProviderDistInfo) GetBtcDels() []*BTCDelDistInfo {
-	if m != nil {
-		return m.BtcDels
-	}
-	return nil
-}
-
 func (m *FinalityProviderDistInfo) GetIsTimestamped() bool {
 	if m != nil {
 		return m.IsTimestamped
@@ -177,73 +171,6 @@ func (m *FinalityProviderDistInfo) GetIsSlashed() bool {
 	return false
 }
 
-// BTCDelDistInfo contains the information related to voting power distribution for a BTC delegation
-type BTCDelDistInfo struct {
-	// btc_pk is the Bitcoin secp256k1 PK of this BTC delegation
-	// the PK follows encoding in BIP-340 spec
-	BtcPk *github_com_babylonlabs_io_babylon_types.BIP340PubKey `protobuf:"bytes,1,opt,name=btc_pk,json=btcPk,proto3,customtype=github.com/babylonlabs-io/babylon/types.BIP340PubKey" json:"btc_pk,omitempty"`
-	// staker_addr is the address to receive rewards from BTC delegation.
-	StakerAddr string `protobuf:"bytes,2,opt,name=staker_addr,json=stakerAddr,proto3" json:"staker_addr,omitempty"`
-	// staking_tx_hash is the staking tx hash of the BTC delegation
-	StakingTxHash string `protobuf:"bytes,3,opt,name=staking_tx_hash,json=stakingTxHash,proto3" json:"staking_tx_hash,omitempty"`
-	// total_sat is the amount of BTC stake (in Satoshi) of the BTC delegation
-	TotalSat uint64 `protobuf:"varint,4,opt,name=total_sat,json=totalSat,proto3" json:"total_sat,omitempty"`
-}
-
-func (m *BTCDelDistInfo) Reset()         { *m = BTCDelDistInfo{} }
-func (m *BTCDelDistInfo) String() string { return proto.CompactTextString(m) }
-func (*BTCDelDistInfo) ProtoMessage()    {}
-func (*BTCDelDistInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ca5b87e52e3e6d02, []int{2}
-}
-func (m *BTCDelDistInfo) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *BTCDelDistInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_BTCDelDistInfo.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *BTCDelDistInfo) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BTCDelDistInfo.Merge(m, src)
-}
-func (m *BTCDelDistInfo) XXX_Size() int {
-	return m.Size()
-}
-func (m *BTCDelDistInfo) XXX_DiscardUnknown() {
-	xxx_messageInfo_BTCDelDistInfo.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_BTCDelDistInfo proto.InternalMessageInfo
-
-func (m *BTCDelDistInfo) GetStakerAddr() string {
-	if m != nil {
-		return m.StakerAddr
-	}
-	return ""
-}
-
-func (m *BTCDelDistInfo) GetStakingTxHash() string {
-	if m != nil {
-		return m.StakingTxHash
-	}
-	return ""
-}
-
-func (m *BTCDelDistInfo) GetTotalSat() uint64 {
-	if m != nil {
-		return m.TotalSat
-	}
-	return 0
-}
-
 // IndexedBlock is the necessary metadata and finalization status of a block
 type IndexedBlock struct {
 	// height is the height of the block
@@ -259,7 +186,7 @@ func (m *IndexedBlock) Reset()         { *m = IndexedBlock{} }
 func (m *IndexedBlock) String() string { return proto.CompactTextString(m) }
 func (*IndexedBlock) ProtoMessage()    {}
 func (*IndexedBlock) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ca5b87e52e3e6d02, []int{3}
+	return fileDescriptor_ca5b87e52e3e6d02, []int{2}
 }
 func (m *IndexedBlock) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -318,7 +245,8 @@ type PubRandCommit struct {
 	// num_pub_rand is the number of committed public randomness
 	NumPubRand uint64 `protobuf:"varint,2,opt,name=num_pub_rand,json=numPubRand,proto3" json:"num_pub_rand,omitempty"`
 	// commitment is the value of the commitment
-	// currently, it is the root of the merkle tree constructed by the public randomness
+	// currently, it is the root of the merkle tree constructed by the public
+	// randomness
 	Commitment []byte `protobuf:"bytes,3,opt,name=commitment,proto3" json:"commitment,omitempty"`
 	// epoch_num defines the epoch number that the commit falls into
 	EpochNum uint64 `protobuf:"varint,4,opt,name=epoch_num,json=epochNum,proto3" json:"epoch_num,omitempty"`
@@ -328,7 +256,7 @@ func (m *PubRandCommit) Reset()         { *m = PubRandCommit{} }
 func (m *PubRandCommit) String() string { return proto.CompactTextString(m) }
 func (*PubRandCommit) ProtoMessage()    {}
 func (*PubRandCommit) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ca5b87e52e3e6d02, []int{4}
+	return fileDescriptor_ca5b87e52e3e6d02, []int{3}
 }
 func (m *PubRandCommit) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -385,15 +313,56 @@ func (m *PubRandCommit) GetEpochNum() uint64 {
 	return 0
 }
 
+// PubRandCommitIndexValue represents a list of sorted start heights for public
+// randomness commitments.
+type PubRandCommitIndexValue struct {
+	// A list of start heights corresponding to committed public randomness
+	// ranges.
+	Heights []uint64 `protobuf:"varint,1,rep,packed,name=heights,proto3" json:"heights,omitempty"`
+}
+
+func (m *PubRandCommitIndexValue) Reset()         { *m = PubRandCommitIndexValue{} }
+func (m *PubRandCommitIndexValue) String() string { return proto.CompactTextString(m) }
+func (*PubRandCommitIndexValue) ProtoMessage()    {}
+func (*PubRandCommitIndexValue) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ca5b87e52e3e6d02, []int{4}
+}
+func (m *PubRandCommitIndexValue) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *PubRandCommitIndexValue) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_PubRandCommitIndexValue.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *PubRandCommitIndexValue) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PubRandCommitIndexValue.Merge(m, src)
+}
+func (m *PubRandCommitIndexValue) XXX_Size() int {
+	return m.Size()
+}
+func (m *PubRandCommitIndexValue) XXX_DiscardUnknown() {
+	xxx_messageInfo_PubRandCommitIndexValue.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PubRandCommitIndexValue proto.InternalMessageInfo
+
 // Evidence is the evidence that a finality provider has signed finality
 // signatures with correct public randomness on two conflicting Babylon headers
 type Evidence struct {
 	// fp_btc_pk is the BTC PK of the finality provider that casts this vote
-	FpBtcPk *github_com_babylonlabs_io_babylon_types.BIP340PubKey `protobuf:"bytes,1,opt,name=fp_btc_pk,json=fpBtcPk,proto3,customtype=github.com/babylonlabs-io/babylon/types.BIP340PubKey" json:"fp_btc_pk,omitempty"`
+	FpBtcPk *github_com_babylonlabs_io_babylon_v3_types.BIP340PubKey `protobuf:"bytes,1,opt,name=fp_btc_pk,json=fpBtcPk,proto3,customtype=github.com/babylonlabs-io/babylon/v3/types.BIP340PubKey" json:"fp_btc_pk,omitempty"`
 	// block_height is the height of the conflicting blocks
 	BlockHeight uint64 `protobuf:"varint,2,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
 	// pub_rand is the public randomness the finality provider has committed to
-	PubRand *github_com_babylonlabs_io_babylon_types.SchnorrPubRand `protobuf:"bytes,3,opt,name=pub_rand,json=pubRand,proto3,customtype=github.com/babylonlabs-io/babylon/types.SchnorrPubRand" json:"pub_rand,omitempty"`
+	PubRand *github_com_babylonlabs_io_babylon_v3_types.SchnorrPubRand `protobuf:"bytes,3,opt,name=pub_rand,json=pubRand,proto3,customtype=github.com/babylonlabs-io/babylon/v3/types.SchnorrPubRand" json:"pub_rand,omitempty"`
 	// canonical_app_hash is the AppHash of the canonical block
 	CanonicalAppHash []byte `protobuf:"bytes,4,opt,name=canonical_app_hash,json=canonicalAppHash,proto3" json:"canonical_app_hash,omitempty"`
 	// fork_app_hash is the AppHash of the fork block
@@ -401,11 +370,15 @@ type Evidence struct {
 	// canonical_finality_sig is the finality signature to the canonical block
 	// where finality signature is an EOTS signature, i.e.,
 	// the `s` in a Schnorr signature `(r, s)`
-	// `r` is the public randomness that is already committed by the finality provider
-	CanonicalFinalitySig *github_com_babylonlabs_io_babylon_types.SchnorrEOTSSig `protobuf:"bytes,6,opt,name=canonical_finality_sig,json=canonicalFinalitySig,proto3,customtype=github.com/babylonlabs-io/babylon/types.SchnorrEOTSSig" json:"canonical_finality_sig,omitempty"`
+	// `r` is the public randomness that is already committed by the finality
+	// provider
+	CanonicalFinalitySig *github_com_babylonlabs_io_babylon_v3_types.SchnorrEOTSSig `protobuf:"bytes,6,opt,name=canonical_finality_sig,json=canonicalFinalitySig,proto3,customtype=github.com/babylonlabs-io/babylon/v3/types.SchnorrEOTSSig" json:"canonical_finality_sig,omitempty"`
 	// fork_finality_sig is the finality signature to the fork block
 	// where finality signature is an EOTS signature
-	ForkFinalitySig *github_com_babylonlabs_io_babylon_types.SchnorrEOTSSig `protobuf:"bytes,7,opt,name=fork_finality_sig,json=forkFinalitySig,proto3,customtype=github.com/babylonlabs-io/babylon/types.SchnorrEOTSSig" json:"fork_finality_sig,omitempty"`
+	ForkFinalitySig *github_com_babylonlabs_io_babylon_v3_types.SchnorrEOTSSig `protobuf:"bytes,7,opt,name=fork_finality_sig,json=forkFinalitySig,proto3,customtype=github.com/babylonlabs-io/babylon/v3/types.SchnorrEOTSSig" json:"fork_finality_sig,omitempty"`
+	// signing_context is the context in which the finality signatures were used.
+	// It must be hex encoded 32 bytes, of the sha256 hash of the context string
+	SigningContext string `protobuf:"bytes,8,opt,name=signing_context,json=signingContext,proto3" json:"signing_context,omitempty"`
 }
 
 func (m *Evidence) Reset()         { *m = Evidence{} }
@@ -462,11 +435,18 @@ func (m *Evidence) GetForkAppHash() []byte {
 	return nil
 }
 
-// FinalityProviderSigningInfo defines a finality provider's signing info for monitoring their
-// liveness activity.
+func (m *Evidence) GetSigningContext() string {
+	if m != nil {
+		return m.SigningContext
+	}
+	return ""
+}
+
+// FinalityProviderSigningInfo defines a finality provider's signing info for
+// monitoring their liveness activity.
 type FinalityProviderSigningInfo struct {
 	// fp_btc_pk is the BTC PK of the finality provider that casts this vote
-	FpBtcPk *github_com_babylonlabs_io_babylon_types.BIP340PubKey `protobuf:"bytes,1,opt,name=fp_btc_pk,json=fpBtcPk,proto3,customtype=github.com/babylonlabs-io/babylon/types.BIP340PubKey" json:"fp_btc_pk,omitempty"`
+	FpBtcPk *github_com_babylonlabs_io_babylon_v3_types.BIP340PubKey `protobuf:"bytes,1,opt,name=fp_btc_pk,json=fpBtcPk,proto3,customtype=github.com/babylonlabs-io/babylon/v3/types.BIP340PubKey" json:"fp_btc_pk,omitempty"`
 	// start_height is the block height at which finality provider become active
 	StartHeight int64 `protobuf:"varint,2,opt,name=start_height,json=startHeight,proto3" json:"start_height,omitempty"`
 	// missed_blocks_counter defines a counter to avoid unnecessary array reads.
@@ -533,9 +513,9 @@ func (m *FinalityProviderSigningInfo) GetJailedUntil() time.Time {
 func init() {
 	proto.RegisterType((*VotingPowerDistCache)(nil), "babylon.finality.v1.VotingPowerDistCache")
 	proto.RegisterType((*FinalityProviderDistInfo)(nil), "babylon.finality.v1.FinalityProviderDistInfo")
-	proto.RegisterType((*BTCDelDistInfo)(nil), "babylon.finality.v1.BTCDelDistInfo")
 	proto.RegisterType((*IndexedBlock)(nil), "babylon.finality.v1.IndexedBlock")
 	proto.RegisterType((*PubRandCommit)(nil), "babylon.finality.v1.PubRandCommit")
+	proto.RegisterType((*PubRandCommitIndexValue)(nil), "babylon.finality.v1.PubRandCommitIndexValue")
 	proto.RegisterType((*Evidence)(nil), "babylon.finality.v1.Evidence")
 	proto.RegisterType((*FinalityProviderSigningInfo)(nil), "babylon.finality.v1.FinalityProviderSigningInfo")
 }
@@ -545,71 +525,68 @@ func init() {
 }
 
 var fileDescriptor_ca5b87e52e3e6d02 = []byte{
-	// 1019 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x56, 0x4f, 0x6f, 0x1b, 0x45,
-	0x14, 0xcf, 0x26, 0x4e, 0x6c, 0x8f, 0xed, 0xb4, 0x99, 0x86, 0x6a, 0x9b, 0x80, 0x9d, 0x9a, 0x3f,
-	0x8a, 0x50, 0xb3, 0xa6, 0x69, 0x85, 0xa0, 0x07, 0xa4, 0x6c, 0xd2, 0xaa, 0x81, 0x40, 0xad, 0x75,
-	0xca, 0x01, 0x21, 0x8d, 0x66, 0x77, 0xc7, 0xbb, 0x83, 0x77, 0x67, 0x56, 0x3b, 0xb3, 0x21, 0xe6,
-	0x03, 0x20, 0x8e, 0xe5, 0x86, 0xc4, 0x85, 0x23, 0x47, 0x0e, 0xfd, 0x10, 0x3d, 0xa1, 0xaa, 0x27,
-	0x94, 0x43, 0x80, 0xe4, 0xc0, 0xd7, 0x40, 0x3b, 0xb3, 0x5e, 0xc7, 0x55, 0x11, 0x08, 0xca, 0xc5,
-	0x9a, 0xf9, 0xbd, 0x37, 0xef, 0xdf, 0xef, 0xbd, 0xb7, 0x06, 0x5d, 0x17, 0xbb, 0xe3, 0x88, 0xb3,
-	0xde, 0x90, 0x32, 0x1c, 0x51, 0x39, 0xee, 0x1d, 0xdd, 0x2c, 0xcf, 0x56, 0x92, 0x72, 0xc9, 0xe1,
-	0x95, 0x42, 0xc7, 0x2a, 0xf1, 0xa3, 0x9b, 0x6b, 0xd7, 0x3c, 0x2e, 0x62, 0x2e, 0x90, 0x52, 0xe9,
-	0xe9, 0x8b, 0xd6, 0x5f, 0x5b, 0x0d, 0x78, 0xc0, 0x35, 0x9e, 0x9f, 0x0a, 0x74, 0x05, 0xc7, 0x94,
-	0xf1, 0x9e, 0xfa, 0x2d, 0xa0, 0x4e, 0xc0, 0x79, 0x10, 0x91, 0x9e, 0xba, 0xb9, 0xd9, 0xb0, 0x27,
-	0x69, 0x4c, 0x84, 0xc4, 0x71, 0xa2, 0x15, 0xba, 0x3f, 0x1b, 0x60, 0xf5, 0x53, 0x2e, 0x29, 0x0b,
-	0xfa, 0xfc, 0x4b, 0x92, 0xee, 0x51, 0x21, 0x77, 0xb1, 0x17, 0x12, 0x78, 0x03, 0x40, 0xc9, 0x25,
-	0x8e, 0xd0, 0x91, 0x92, 0xa2, 0x24, 0x17, 0x9b, 0xc6, 0x86, 0xb1, 0x59, 0x71, 0x2e, 0x2b, 0xc9,
-	0x85, 0x67, 0xf0, 0x73, 0x00, 0x27, 0xa1, 0xe7, 0xf1, 0x1e, 0x51, 0x9f, 0xa4, 0xc2, 0x9c, 0xdf,
-	0x58, 0xd8, 0x6c, 0x6c, 0x6f, 0x59, 0x2f, 0xc8, 0xce, 0xba, 0x57, 0x9c, 0xfb, 0x85, 0x76, 0xee,
-	0x79, 0x9f, 0x0d, 0xb9, 0xb3, 0x32, 0x7c, 0x4e, 0x22, 0xe0, 0x1b, 0x60, 0x99, 0x65, 0x31, 0xc2,
-	0x9e, 0xa4, 0x47, 0x04, 0x0d, 0x13, 0x61, 0x2e, 0x6c, 0x18, 0x9b, 0x2d, 0xa7, 0xc9, 0xb2, 0x78,
-	0x47, 0x81, 0xf7, 0x12, 0x71, 0xa7, 0xf2, 0xcd, 0x0f, 0x9d, 0xb9, 0xee, 0xf7, 0x0b, 0xc0, 0xfc,
-	0x2b, 0xdb, 0xf0, 0x01, 0x58, 0x72, 0xa5, 0x87, 0x92, 0x91, 0x4a, 0xa4, 0x69, 0xbf, 0x77, 0x72,
-	0xda, 0xb9, 0x1d, 0x50, 0x19, 0x66, 0xae, 0xe5, 0xf1, 0xb8, 0x57, 0x04, 0x1a, 0x61, 0x57, 0x6c,
-	0x51, 0x3e, 0xb9, 0xf6, 0xe4, 0x38, 0x21, 0xc2, 0xb2, 0xf7, 0xfb, 0xb7, 0x6e, 0xbf, 0xd3, 0xcf,
-	0xdc, 0x8f, 0xc8, 0xd8, 0x59, 0x74, 0xa5, 0xd7, 0x1f, 0x41, 0x08, 0x2a, 0xd8, 0xf7, 0x53, 0x73,
-	0x3e, 0x37, 0xe7, 0xa8, 0x33, 0xfc, 0x18, 0x00, 0x8f, 0xc7, 0x31, 0x15, 0x82, 0x72, 0xa6, 0x22,
-	0xad, 0xdb, 0x5b, 0x27, 0xa7, 0x9d, 0x75, 0x4d, 0xa1, 0xf0, 0x47, 0x16, 0xe5, 0xbd, 0x18, 0xcb,
-	0xd0, 0x3a, 0x20, 0x01, 0xf6, 0xc6, 0x7b, 0xc4, 0x7b, 0xf6, 0x78, 0x0b, 0x14, 0x0c, 0xef, 0x11,
-	0xcf, 0xb9, 0x60, 0x00, 0x6e, 0x02, 0x5d, 0x6e, 0xe4, 0x72, 0xe6, 0x13, 0x1f, 0x09, 0x2c, 0xcd,
-	0x8a, 0xa2, 0x61, 0x59, 0xe1, 0xb6, 0x82, 0x07, 0x58, 0xc2, 0x0f, 0x40, 0x2d, 0xcf, 0xce, 0x27,
-	0x91, 0x30, 0x17, 0x55, 0xe9, 0x5f, 0x7f, 0x61, 0xe9, 0xed, 0xc3, 0xdd, 0x3d, 0x12, 0x95, 0x05,
-	0xaf, 0xba, 0xd2, 0xdb, 0x23, 0x91, 0x80, 0x6f, 0x82, 0x65, 0x2a, 0x50, 0xd9, 0x21, 0xc4, 0x37,
-	0x97, 0x36, 0x8c, 0xcd, 0x9a, 0xd3, 0xa2, 0xe2, 0x70, 0x0a, 0xc2, 0x75, 0x50, 0xa7, 0x02, 0x7d,
-	0x81, 0x69, 0x44, 0x7c, 0xb3, 0xaa, 0x34, 0x6a, 0x54, 0x7c, 0xa8, 0xee, 0xf0, 0x35, 0x00, 0xa8,
-	0x40, 0x22, 0xc2, 0x22, 0x24, 0xbe, 0x59, 0x53, 0xd2, 0x3a, 0x15, 0x03, 0x0d, 0x74, 0x7f, 0x37,
-	0xc0, 0xf2, 0xac, 0xfb, 0x97, 0xcf, 0xc9, 0xfb, 0xa0, 0x21, 0x24, 0x1e, 0x91, 0x14, 0x95, 0xd4,
-	0xd4, 0x6d, 0xf3, 0xd9, 0xe3, 0xad, 0xd5, 0xa2, 0xc2, 0x3b, 0xbe, 0x9f, 0x12, 0x21, 0x06, 0x32,
-	0xa5, 0x2c, 0x70, 0x80, 0x56, 0xce, 0x41, 0xf8, 0x16, 0xb8, 0x94, 0xdf, 0xf2, 0x7e, 0x97, 0xc7,
-	0x28, 0xc4, 0x22, 0xd4, 0xfc, 0x39, 0xad, 0x02, 0x3e, 0x3c, 0xbe, 0x8f, 0x45, 0x98, 0x97, 0x40,
-	0x73, 0x32, 0x25, 0xa3, 0xa6, 0x80, 0x01, 0x96, 0x5d, 0x04, 0x9a, 0xfb, 0xcc, 0x27, 0xc7, 0xc4,
-	0xb7, 0x23, 0xee, 0x8d, 0xe0, 0x55, 0xb0, 0x14, 0x12, 0x1a, 0x84, 0xb2, 0x98, 0x9e, 0xe2, 0x06,
-	0xaf, 0x81, 0x1a, 0x4e, 0x12, 0xed, 0x45, 0xf7, 0x4f, 0x15, 0x27, 0x89, 0xb2, 0xff, 0x2a, 0xa8,
-	0x6b, 0xc2, 0xbe, 0x22, 0xbe, 0x8a, 0xa0, 0xe6, 0x4c, 0x81, 0xee, 0xb7, 0x06, 0x68, 0xf5, 0x33,
-	0xd7, 0xc1, 0xcc, 0xdf, 0xcd, 0xfb, 0x44, 0xc2, 0xeb, 0xa0, 0x29, 0x24, 0x4e, 0x25, 0x9a, 0x71,
-	0xd4, 0x50, 0xd8, 0x7d, 0xed, 0x6d, 0x03, 0xe4, 0xd3, 0x82, 0x92, 0xcc, 0x45, 0x29, 0x66, 0xbe,
-	0xf2, 0x58, 0x71, 0x00, 0xcb, 0xe2, 0xc2, 0x14, 0x6c, 0x17, 0x7d, 0x2b, 0x63, 0xc2, 0xa4, 0xf2,
-	0xda, 0x74, 0x2e, 0x20, 0x79, 0xd2, 0x24, 0xe1, 0x5e, 0x88, 0x58, 0x16, 0x4f, 0x92, 0x56, 0xc0,
-	0x27, 0x59, 0xdc, 0xfd, 0xba, 0x02, 0x6a, 0x77, 0xf3, 0x61, 0x63, 0x1e, 0x81, 0x87, 0xa0, 0x3e,
-	0x4c, 0xd0, 0x4b, 0x62, 0xb5, 0x3a, 0x4c, 0x6c, 0xc5, 0xeb, 0x75, 0xd0, 0x74, 0xf3, 0x82, 0x4e,
-	0x92, 0xd4, 0x19, 0x34, 0x14, 0x56, 0x24, 0xf9, 0x10, 0xd4, 0xca, 0x04, 0x55, 0x02, 0xf6, 0x9d,
-	0x93, 0xd3, 0xce, 0xbb, 0xff, 0xd4, 0xef, 0xc0, 0x0b, 0x19, 0x4f, 0xd3, 0xa2, 0x20, 0x4e, 0x35,
-	0x29, 0x2a, 0x73, 0x03, 0x40, 0x0f, 0x33, 0xce, 0xa8, 0x87, 0x23, 0x54, 0x72, 0x56, 0x51, 0x15,
-	0xba, 0x5c, 0x4a, 0x76, 0x0a, 0xf2, 0xba, 0xa0, 0x35, 0xe4, 0xe9, 0x68, 0xaa, 0xb8, 0xa8, 0x14,
-	0x1b, 0x39, 0x38, 0xd1, 0x49, 0xc0, 0xd5, 0xa9, 0xc5, 0x72, 0x73, 0x0a, 0x1a, 0xa8, 0x91, 0xfb,
-	0x77, 0x61, 0xdf, 0x7d, 0x70, 0x38, 0x18, 0xd0, 0xc0, 0x59, 0x2d, 0x2d, 0x4f, 0xf6, 0xe0, 0x80,
-	0x06, 0x70, 0x08, 0x56, 0x54, 0x54, 0x33, 0xce, 0xaa, 0xff, 0xd9, 0xd9, 0xa5, 0xdc, 0xe8, 0x05,
-	0x3f, 0xdd, 0xef, 0xe6, 0xc1, 0xfa, 0xf3, 0xfb, 0x77, 0x40, 0x03, 0x46, 0x59, 0xa0, 0xc6, 0xfd,
-	0x7f, 0xeb, 0x8d, 0x99, 0x01, 0xc8, 0x7b, 0x63, 0x61, 0x76, 0x00, 0xb6, 0xc1, 0x2b, 0xf9, 0x4a,
-	0x25, 0x3e, 0x52, 0x1d, 0x23, 0x90, 0xc7, 0x33, 0x26, 0x49, 0xaa, 0x1a, 0x65, 0xc1, 0xb9, 0xa2,
-	0x85, 0x6a, 0x64, 0xc5, 0xae, 0x16, 0xc1, 0x03, 0xd0, 0xd4, 0x7b, 0x0e, 0x65, 0x4c, 0xd2, 0x48,
-	0x51, 0xde, 0xd8, 0x5e, 0xb3, 0xf4, 0x57, 0xd5, 0x9a, 0x7c, 0x55, 0xad, 0x72, 0x3d, 0xda, 0xad,
-	0x27, 0xa7, 0x9d, 0xb9, 0x47, 0xbf, 0x76, 0x8c, 0x1f, 0xff, 0xf8, 0xe9, 0x6d, 0xc3, 0x69, 0xe8,
-	0xe7, 0x0f, 0xf3, 0xd7, 0xf6, 0xc1, 0x93, 0xb3, 0xb6, 0xf1, 0xf4, 0xac, 0x6d, 0xfc, 0x76, 0xd6,
-	0x36, 0x1e, 0x9d, 0xb7, 0xe7, 0x9e, 0x9e, 0xb7, 0xe7, 0x7e, 0x39, 0x6f, 0xcf, 0x7d, 0xb6, 0xfd,
-	0xf7, 0xd9, 0x1f, 0x4f, 0xff, 0x3f, 0xa8, 0x42, 0xb8, 0x4b, 0xca, 0xfb, 0xad, 0x3f, 0x03, 0x00,
-	0x00, 0xff, 0xff, 0xe6, 0xb7, 0x70, 0x5d, 0x60, 0x08, 0x00, 0x00,
+	// 967 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x55, 0x41, 0x6f, 0x1b, 0x45,
+	0x14, 0xce, 0x26, 0x4e, 0x6c, 0x8f, 0xed, 0xb4, 0x99, 0x86, 0xb2, 0x4d, 0xc0, 0x76, 0x2d, 0x10,
+	0x16, 0x6a, 0x76, 0x69, 0x02, 0x42, 0x05, 0x71, 0xa8, 0x93, 0x56, 0x0d, 0x14, 0x6a, 0xad, 0x4b,
+	0x41, 0x08, 0x69, 0x34, 0xbb, 0x3b, 0xde, 0x1d, 0xbc, 0x3b, 0xb3, 0xda, 0x99, 0x35, 0x31, 0xbf,
+	0x80, 0x63, 0x39, 0x73, 0xe1, 0xc8, 0x91, 0x03, 0x37, 0xfe, 0x40, 0x4f, 0xa8, 0xe2, 0x84, 0x72,
+	0x30, 0x28, 0x39, 0xf0, 0x37, 0xd0, 0xce, 0x8e, 0xed, 0xb8, 0x02, 0x09, 0x50, 0xb9, 0x58, 0xf3,
+	0xbe, 0xf7, 0xf6, 0xbd, 0x37, 0xdf, 0xfb, 0xfc, 0x06, 0x74, 0x5c, 0xec, 0x4e, 0x22, 0xce, 0xec,
+	0x21, 0x65, 0x38, 0xa2, 0x72, 0x62, 0x8f, 0x6f, 0xce, 0xcf, 0x56, 0x92, 0x72, 0xc9, 0xe1, 0x15,
+	0x1d, 0x63, 0xcd, 0xf1, 0xf1, 0xcd, 0x9d, 0x6b, 0x1e, 0x17, 0x31, 0x17, 0x48, 0x85, 0xd8, 0x85,
+	0x51, 0xc4, 0xef, 0x6c, 0x07, 0x3c, 0xe0, 0x05, 0x9e, 0x9f, 0x34, 0xba, 0x85, 0x63, 0xca, 0xb8,
+	0xad, 0x7e, 0x35, 0xd4, 0x0a, 0x38, 0x0f, 0x22, 0x62, 0x2b, 0xcb, 0xcd, 0x86, 0xb6, 0xa4, 0x31,
+	0x11, 0x12, 0xc7, 0x49, 0x11, 0xd0, 0xf9, 0xd9, 0x00, 0xdb, 0x8f, 0xb8, 0xa4, 0x2c, 0xe8, 0xf3,
+	0x2f, 0x49, 0x7a, 0x44, 0x85, 0x3c, 0xc4, 0x5e, 0x48, 0xe0, 0x0d, 0x00, 0x25, 0x97, 0x38, 0x42,
+	0x63, 0xe5, 0x45, 0x49, 0xee, 0x36, 0x8d, 0xb6, 0xd1, 0x2d, 0x39, 0x97, 0x95, 0xe7, 0xc2, 0x67,
+	0xf0, 0x73, 0x00, 0x67, 0xad, 0xe7, 0xfd, 0x8e, 0xa9, 0x4f, 0x52, 0x61, 0xae, 0xb6, 0xd7, 0xba,
+	0xb5, 0xfd, 0x3d, 0xeb, 0x2f, 0x6e, 0x67, 0xdd, 0xd5, 0xe7, 0xbe, 0x8e, 0xce, 0x2b, 0x1f, 0xb3,
+	0x21, 0x77, 0xb6, 0x86, 0xcf, 0x78, 0x04, 0x7c, 0x05, 0x6c, 0xb2, 0x2c, 0x46, 0xd8, 0x93, 0x74,
+	0x4c, 0xd0, 0x30, 0x11, 0xe6, 0x5a, 0xdb, 0xe8, 0x36, 0x9c, 0x3a, 0xcb, 0xe2, 0xdb, 0x0a, 0xbc,
+	0x9b, 0x88, 0x77, 0x4a, 0x5f, 0x7f, 0xd7, 0x5a, 0xe9, 0x4c, 0x57, 0x81, 0xf9, 0x77, 0xb9, 0xa1,
+	0x03, 0x36, 0x5c, 0xe9, 0xa1, 0x64, 0xa4, 0x2e, 0x52, 0xef, 0xbd, 0x7b, 0x3a, 0x6d, 0xbd, 0x1d,
+	0x50, 0x19, 0x66, 0xae, 0xe5, 0xf1, 0xd8, 0xd6, 0x8d, 0x46, 0xd8, 0x15, 0x7b, 0x94, 0xcf, 0x4c,
+	0x7b, 0x7c, 0x60, 0xcb, 0x49, 0x42, 0x84, 0xd5, 0x3b, 0xee, 0x1f, 0xbc, 0xf9, 0x46, 0x3f, 0x73,
+	0x3f, 0x20, 0x13, 0x67, 0xdd, 0x95, 0x5e, 0x7f, 0x04, 0x21, 0x28, 0x61, 0xdf, 0x4f, 0xcd, 0xd5,
+	0x3c, 0xa3, 0xa3, 0xce, 0xf0, 0x43, 0x00, 0x3c, 0x1e, 0xc7, 0x54, 0x08, 0xca, 0x99, 0x6a, 0xb6,
+	0xda, 0xdb, 0x3b, 0x9d, 0xb6, 0x76, 0x8b, 0x29, 0x0a, 0x7f, 0x64, 0x51, 0x6e, 0xc7, 0x58, 0x86,
+	0xd6, 0x7d, 0x12, 0x60, 0x6f, 0x72, 0x44, 0xbc, 0x5f, 0x7e, 0xdc, 0x03, 0x7a, 0xc8, 0x47, 0xc4,
+	0x73, 0x2e, 0x24, 0x80, 0x5d, 0x50, 0x30, 0x8e, 0x5c, 0xce, 0x7c, 0xe2, 0x23, 0x81, 0xa5, 0x59,
+	0x52, 0x93, 0xd8, 0x54, 0x78, 0x4f, 0xc1, 0x03, 0x2c, 0xe1, 0xab, 0x60, 0x93, 0x0a, 0x34, 0x1f,
+	0x32, 0xf1, 0xcd, 0xf5, 0xb6, 0xd1, 0xad, 0x38, 0x0d, 0x2a, 0x1e, 0x2e, 0x40, 0xb8, 0x0b, 0xaa,
+	0x54, 0xa0, 0x2f, 0x30, 0x8d, 0x88, 0x6f, 0x6e, 0xa8, 0x88, 0x0a, 0x15, 0xef, 0x2b, 0x1b, 0xbe,
+	0x0c, 0x00, 0x15, 0x48, 0x44, 0x58, 0x84, 0xc4, 0x37, 0xcb, 0xca, 0x5b, 0xa5, 0x62, 0x50, 0x00,
+	0x1d, 0x04, 0xea, 0xc7, 0xcc, 0x27, 0x27, 0xc4, 0xef, 0x45, 0xdc, 0x1b, 0xc1, 0xab, 0x60, 0x23,
+	0x24, 0x34, 0x08, 0xa5, 0x16, 0x87, 0xb6, 0xe0, 0x35, 0x50, 0xc1, 0x49, 0x82, 0x42, 0x2c, 0x42,
+	0xcd, 0x4d, 0x19, 0x27, 0xc9, 0x3d, 0x2c, 0x42, 0xf8, 0x12, 0xa8, 0x16, 0x43, 0xfe, 0x8a, 0xf8,
+	0x8a, 0x9d, 0x8a, 0xb3, 0x00, 0x3a, 0xdf, 0x18, 0xa0, 0xd1, 0xcf, 0x5c, 0x07, 0x33, 0xff, 0x30,
+	0xe7, 0x40, 0xc2, 0xeb, 0xa0, 0x2e, 0x24, 0x4e, 0x25, 0x5a, 0x2a, 0x54, 0x53, 0xd8, 0xbd, 0xa2,
+	0x5a, 0x1b, 0xe4, 0x62, 0x40, 0x49, 0xe6, 0xa2, 0x14, 0x33, 0x5f, 0x55, 0x2c, 0x39, 0x80, 0x65,
+	0xb1, 0x4e, 0x05, 0x9b, 0x7a, 0x26, 0x32, 0x26, 0x4c, 0xaa, 0xaa, 0x75, 0xe7, 0x02, 0x92, 0x73,
+	0x42, 0x12, 0xee, 0x85, 0x88, 0x65, 0xb1, 0x66, 0xb7, 0xa2, 0x80, 0x8f, 0xb2, 0xb8, 0x73, 0x0b,
+	0xbc, 0xb8, 0xd4, 0x92, 0x62, 0xe0, 0x11, 0x8e, 0x32, 0x02, 0x4d, 0x50, 0x2e, 0xda, 0x12, 0xa6,
+	0xd1, 0x5e, 0xeb, 0x96, 0x9c, 0x99, 0xa9, 0x05, 0xf9, 0x53, 0x09, 0x54, 0xee, 0xe4, 0x32, 0x64,
+	0x1e, 0x81, 0x9f, 0x80, 0xea, 0x30, 0x41, 0xcf, 0x4f, 0x83, 0xe5, 0x61, 0xd2, 0x53, 0x2a, 0xbc,
+	0x0e, 0xea, 0x6e, 0x3e, 0x8e, 0x19, 0x45, 0xc5, 0xfd, 0x6b, 0x0a, 0xd3, 0x14, 0x7d, 0x0a, 0x2a,
+	0x73, 0x7a, 0xd4, 0xf5, 0x7b, 0xef, 0x9d, 0x4e, 0x5b, 0xb7, 0xfe, 0x45, 0xe9, 0x81, 0x17, 0x32,
+	0x9e, 0xa6, 0x9a, 0x09, 0xa7, 0x9c, 0x68, 0x6a, 0x6f, 0x00, 0xe8, 0x61, 0xc6, 0x19, 0xf5, 0x70,
+	0x84, 0xe6, 0x43, 0x2f, 0x29, 0x8a, 0x2f, 0xcf, 0x3d, 0xb7, 0xf5, 0xf4, 0x3b, 0xa0, 0x31, 0xe4,
+	0xe9, 0x68, 0x11, 0xb8, 0xae, 0x02, 0x6b, 0x39, 0x38, 0x8b, 0x11, 0xe0, 0xea, 0x22, 0xe3, 0x7c,
+	0xb3, 0x08, 0x1a, 0x28, 0xb5, 0xfe, 0xe7, 0xce, 0xef, 0x3c, 0x78, 0x38, 0x18, 0xd0, 0xc0, 0xd9,
+	0x9e, 0x27, 0x9f, 0xad, 0x8a, 0x01, 0x0d, 0x20, 0x05, 0x5b, 0xaa, 0xb1, 0xa5, 0x7a, 0xe5, 0xe7,
+	0x51, 0xef, 0x52, 0x9e, 0xf7, 0x62, 0xa9, 0xd7, 0xc0, 0x25, 0x41, 0x03, 0x96, 0x2f, 0x56, 0x8f,
+	0x33, 0x49, 0x4e, 0xa4, 0x59, 0xc9, 0xb7, 0x84, 0xb3, 0xa9, 0xe1, 0xc3, 0x02, 0xed, 0x7c, 0xbb,
+	0x0a, 0x76, 0x9f, 0x5d, 0x67, 0x83, 0x22, 0x44, 0x6d, 0xb4, 0xff, 0x53, 0x50, 0x4b, 0xff, 0xb9,
+	0x5c, 0x50, 0x6b, 0xcb, 0xff, 0xb9, 0x7d, 0xf0, 0x42, 0xbe, 0xa1, 0x88, 0x8f, 0x94, 0xcc, 0x04,
+	0xf2, 0x78, 0xc6, 0x24, 0x49, 0x95, 0xba, 0xd6, 0x9c, 0x2b, 0x85, 0x53, 0x6d, 0x09, 0x71, 0x58,
+	0xb8, 0xe0, 0x7d, 0x50, 0x2f, 0xd6, 0x0e, 0xca, 0x98, 0xa4, 0x91, 0x12, 0x49, 0x6d, 0x7f, 0xc7,
+	0x2a, 0xde, 0x29, 0x6b, 0xf6, 0x4e, 0x59, 0xf3, 0x6d, 0xd5, 0x6b, 0x3c, 0x99, 0xb6, 0x56, 0x1e,
+	0xff, 0xd6, 0x32, 0xbe, 0xff, 0xe3, 0x87, 0xd7, 0x0d, 0xa7, 0x56, 0x7c, 0xfe, 0x71, 0xfe, 0x75,
+	0xef, 0xc1, 0x93, 0xb3, 0xa6, 0xf1, 0xf4, 0xac, 0x69, 0xfc, 0x7e, 0xd6, 0x34, 0x1e, 0x9f, 0x37,
+	0x57, 0x9e, 0x9e, 0x37, 0x57, 0x7e, 0x3d, 0x6f, 0xae, 0x7c, 0xf6, 0xd6, 0x3f, 0x22, 0xe0, 0x64,
+	0xf1, 0x28, 0x2b, 0x2e, 0xdc, 0x0d, 0xd5, 0xc0, 0xc1, 0x9f, 0x01, 0x00, 0x00, 0xff, 0xff, 0xd6,
+	0xcd, 0x00, 0x9d, 0xb5, 0x07, 0x00, 0x00,
 }
 
 func (m *VotingPowerDistCache) Marshal() (dAtA []byte, err error) {
@@ -687,7 +664,7 @@ func (m *FinalityProviderDistInfo) MarshalToSizedBuffer(dAtA []byte) (int, error
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x40
+		dAtA[i] = 0x38
 	}
 	if m.IsJailed {
 		i--
@@ -697,7 +674,7 @@ func (m *FinalityProviderDistInfo) MarshalToSizedBuffer(dAtA []byte) (int, error
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x38
+		dAtA[i] = 0x30
 	}
 	if m.IsTimestamped {
 		i--
@@ -707,21 +684,7 @@ func (m *FinalityProviderDistInfo) MarshalToSizedBuffer(dAtA []byte) (int, error
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x30
-	}
-	if len(m.BtcDels) > 0 {
-		for iNdEx := len(m.BtcDels) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.BtcDels[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintFinality(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x2a
-		}
+		dAtA[i] = 0x28
 	}
 	if m.TotalBondedSat != 0 {
 		i = encodeVarintFinality(dAtA, i, uint64(m.TotalBondedSat))
@@ -744,60 +707,6 @@ func (m *FinalityProviderDistInfo) MarshalToSizedBuffer(dAtA []byte) (int, error
 		i -= len(m.Addr)
 		copy(dAtA[i:], m.Addr)
 		i = encodeVarintFinality(dAtA, i, uint64(len(m.Addr)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if m.BtcPk != nil {
-		{
-			size := m.BtcPk.Size()
-			i -= size
-			if _, err := m.BtcPk.MarshalTo(dAtA[i:]); err != nil {
-				return 0, err
-			}
-			i = encodeVarintFinality(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *BTCDelDistInfo) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *BTCDelDistInfo) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *BTCDelDistInfo) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.TotalSat != 0 {
-		i = encodeVarintFinality(dAtA, i, uint64(m.TotalSat))
-		i--
-		dAtA[i] = 0x20
-	}
-	if len(m.StakingTxHash) > 0 {
-		i -= len(m.StakingTxHash)
-		copy(dAtA[i:], m.StakingTxHash)
-		i = encodeVarintFinality(dAtA, i, uint64(len(m.StakingTxHash)))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.StakerAddr) > 0 {
-		i -= len(m.StakerAddr)
-		copy(dAtA[i:], m.StakerAddr)
-		i = encodeVarintFinality(dAtA, i, uint64(len(m.StakerAddr)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -906,6 +815,47 @@ func (m *PubRandCommit) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *PubRandCommitIndexValue) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PubRandCommitIndexValue) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *PubRandCommitIndexValue) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Heights) > 0 {
+		dAtA2 := make([]byte, len(m.Heights)*10)
+		var j1 int
+		for _, num := range m.Heights {
+			for num >= 1<<7 {
+				dAtA2[j1] = uint8(uint64(num)&0x7f | 0x80)
+				num >>= 7
+				j1++
+			}
+			dAtA2[j1] = uint8(num)
+			j1++
+		}
+		i -= j1
+		copy(dAtA[i:], dAtA2[:j1])
+		i = encodeVarintFinality(dAtA, i, uint64(j1))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Evidence) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -926,6 +876,13 @@ func (m *Evidence) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if len(m.SigningContext) > 0 {
+		i -= len(m.SigningContext)
+		copy(dAtA[i:], m.SigningContext)
+		i = encodeVarintFinality(dAtA, i, uint64(len(m.SigningContext)))
+		i--
+		dAtA[i] = 0x42
+	}
 	if m.ForkFinalitySig != nil {
 		{
 			size := m.ForkFinalitySig.Size()
@@ -1016,12 +973,12 @@ func (m *FinalityProviderSigningInfo) MarshalToSizedBuffer(dAtA []byte) (int, er
 	_ = i
 	var l int
 	_ = l
-	n1, err1 := github_com_cosmos_gogoproto_types.StdTimeMarshalTo(m.JailedUntil, dAtA[i-github_com_cosmos_gogoproto_types.SizeOfStdTime(m.JailedUntil):])
-	if err1 != nil {
-		return 0, err1
+	n3, err3 := github_com_cosmos_gogoproto_types.StdTimeMarshalTo(m.JailedUntil, dAtA[i-github_com_cosmos_gogoproto_types.SizeOfStdTime(m.JailedUntil):])
+	if err3 != nil {
+		return 0, err3
 	}
-	i -= n1
-	i = encodeVarintFinality(dAtA, i, uint64(n1))
+	i -= n3
+	i = encodeVarintFinality(dAtA, i, uint64(n3))
 	i--
 	dAtA[i] = 0x22
 	if m.MissedBlocksCounter != 0 {
@@ -1102,12 +1059,6 @@ func (m *FinalityProviderDistInfo) Size() (n int) {
 	if m.TotalBondedSat != 0 {
 		n += 1 + sovFinality(uint64(m.TotalBondedSat))
 	}
-	if len(m.BtcDels) > 0 {
-		for _, e := range m.BtcDels {
-			l = e.Size()
-			n += 1 + l + sovFinality(uint64(l))
-		}
-	}
 	if m.IsTimestamped {
 		n += 2
 	}
@@ -1116,30 +1067,6 @@ func (m *FinalityProviderDistInfo) Size() (n int) {
 	}
 	if m.IsSlashed {
 		n += 2
-	}
-	return n
-}
-
-func (m *BTCDelDistInfo) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.BtcPk != nil {
-		l = m.BtcPk.Size()
-		n += 1 + l + sovFinality(uint64(l))
-	}
-	l = len(m.StakerAddr)
-	if l > 0 {
-		n += 1 + l + sovFinality(uint64(l))
-	}
-	l = len(m.StakingTxHash)
-	if l > 0 {
-		n += 1 + l + sovFinality(uint64(l))
-	}
-	if m.TotalSat != 0 {
-		n += 1 + sovFinality(uint64(m.TotalSat))
 	}
 	return n
 }
@@ -1185,6 +1112,22 @@ func (m *PubRandCommit) Size() (n int) {
 	return n
 }
 
+func (m *PubRandCommitIndexValue) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Heights) > 0 {
+		l = 0
+		for _, e := range m.Heights {
+			l += sovFinality(uint64(e))
+		}
+		n += 1 + sovFinality(uint64(l)) + l
+	}
+	return n
+}
+
 func (m *Evidence) Size() (n int) {
 	if m == nil {
 		return 0
@@ -1216,6 +1159,10 @@ func (m *Evidence) Size() (n int) {
 	}
 	if m.ForkFinalitySig != nil {
 		l = m.ForkFinalitySig.Size()
+		n += 1 + l + sovFinality(uint64(l))
+	}
+	l = len(m.SigningContext)
+	if l > 0 {
 		n += 1 + l + sovFinality(uint64(l))
 	}
 	return n
@@ -1428,7 +1375,7 @@ func (m *FinalityProviderDistInfo) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_babylonlabs_io_babylon_types.BIP340PubKey
+			var v github_com_babylonlabs_io_babylon_v3_types.BIP340PubKey
 			m.BtcPk = &v
 			if err := m.BtcPk.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1524,40 +1471,6 @@ func (m *FinalityProviderDistInfo) Unmarshal(dAtA []byte) error {
 				}
 			}
 		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BtcDels", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowFinality
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthFinality
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthFinality
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.BtcDels = append(m.BtcDels, &BTCDelDistInfo{})
-			if err := m.BtcDels[len(m.BtcDels)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 6:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field IsTimestamped", wireType)
 			}
@@ -1577,7 +1490,7 @@ func (m *FinalityProviderDistInfo) Unmarshal(dAtA []byte) error {
 				}
 			}
 			m.IsTimestamped = bool(v != 0)
-		case 7:
+		case 6:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field IsJailed", wireType)
 			}
@@ -1597,7 +1510,7 @@ func (m *FinalityProviderDistInfo) Unmarshal(dAtA []byte) error {
 				}
 			}
 			m.IsJailed = bool(v != 0)
-		case 8:
+		case 7:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field IsSlashed", wireType)
 			}
@@ -1617,174 +1530,6 @@ func (m *FinalityProviderDistInfo) Unmarshal(dAtA []byte) error {
 				}
 			}
 			m.IsSlashed = bool(v != 0)
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFinality(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthFinality
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *BTCDelDistInfo) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowFinality
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: BTCDelDistInfo: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: BTCDelDistInfo: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BtcPk", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowFinality
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthFinality
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthFinality
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			var v github_com_babylonlabs_io_babylon_types.BIP340PubKey
-			m.BtcPk = &v
-			if err := m.BtcPk.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field StakerAddr", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowFinality
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthFinality
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthFinality
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.StakerAddr = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field StakingTxHash", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowFinality
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthFinality
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthFinality
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.StakingTxHash = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TotalSat", wireType)
-			}
-			m.TotalSat = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowFinality
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.TotalSat |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipFinality(dAtA[iNdEx:])
@@ -2070,6 +1815,132 @@ func (m *PubRandCommit) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *PubRandCommitIndexValue) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowFinality
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PubRandCommitIndexValue: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PubRandCommitIndexValue: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType == 0 {
+				var v uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowFinality
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					v |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				m.Heights = append(m.Heights, v)
+			} else if wireType == 2 {
+				var packedLen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowFinality
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					packedLen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if packedLen < 0 {
+					return ErrInvalidLengthFinality
+				}
+				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthFinality
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				var elementCount int
+				var count int
+				for _, integer := range dAtA[iNdEx:postIndex] {
+					if integer < 128 {
+						count++
+					}
+				}
+				elementCount = count
+				if elementCount != 0 && len(m.Heights) == 0 {
+					m.Heights = make([]uint64, 0, elementCount)
+				}
+				for iNdEx < postIndex {
+					var v uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowFinality
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						v |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					m.Heights = append(m.Heights, v)
+				}
+			} else {
+				return fmt.Errorf("proto: wrong wireType = %d for field Heights", wireType)
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFinality(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthFinality
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *Evidence) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2128,7 +1999,7 @@ func (m *Evidence) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_babylonlabs_io_babylon_types.BIP340PubKey
+			var v github_com_babylonlabs_io_babylon_v3_types.BIP340PubKey
 			m.FpBtcPk = &v
 			if err := m.FpBtcPk.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -2182,7 +2053,7 @@ func (m *Evidence) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_babylonlabs_io_babylon_types.SchnorrPubRand
+			var v github_com_babylonlabs_io_babylon_v3_types.SchnorrPubRand
 			m.PubRand = &v
 			if err := m.PubRand.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -2285,7 +2156,7 @@ func (m *Evidence) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_babylonlabs_io_babylon_types.SchnorrEOTSSig
+			var v github_com_babylonlabs_io_babylon_v3_types.SchnorrEOTSSig
 			m.CanonicalFinalitySig = &v
 			if err := m.CanonicalFinalitySig.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -2320,11 +2191,43 @@ func (m *Evidence) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_babylonlabs_io_babylon_types.SchnorrEOTSSig
+			var v github_com_babylonlabs_io_babylon_v3_types.SchnorrEOTSSig
 			m.ForkFinalitySig = &v
 			if err := m.ForkFinalitySig.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SigningContext", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowFinality
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthFinality
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthFinality
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SigningContext = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -2405,7 +2308,7 @@ func (m *FinalityProviderSigningInfo) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_babylonlabs_io_babylon_types.BIP340PubKey
+			var v github_com_babylonlabs_io_babylon_v3_types.BIP340PubKey
 			m.FpBtcPk = &v
 			if err := m.FpBtcPk.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err

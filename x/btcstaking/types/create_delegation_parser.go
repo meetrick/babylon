@@ -10,7 +10,7 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	bbn "github.com/babylonlabs-io/babylon/types"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
 )
 
 type ParsedPublicKey struct {
@@ -164,6 +164,10 @@ func ParseCreateDelegationMessage(msg *MsgCreateBTCDelegation) (*ParsedCreateDel
 		return nil, fmt.Errorf("failed to deserialize staking tx: %v", err)
 	}
 
+	if msg.SlashingTx == nil {
+		return nil, fmt.Errorf("SlashingTx is nil")
+	}
+
 	stakingSlashingTx, err := NewBtcTransaction(msg.SlashingTx.MustMarshal())
 
 	if err != nil {
@@ -174,6 +178,10 @@ func ParseCreateDelegationMessage(msg *MsgCreateBTCDelegation) (*ParsedCreateDel
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to deserialize unbonding tx: %v", err)
+	}
+
+	if msg.UnbondingSlashingTx == nil {
+		return nil, fmt.Errorf("UnbondingSlashingTx is nil")
 	}
 
 	unbondingSlashingTx, err := NewBtcTransaction(msg.UnbondingSlashingTx.MustMarshal())
@@ -227,7 +235,11 @@ func ParseCreateDelegationMessage(msg *MsgCreateBTCDelegation) (*ParsedCreateDel
 		return nil, fmt.Errorf("failed to parse finality provider public keys: %v", err)
 	}
 
-	if ExistsDup(fpPKs.PublicKeysBbnFormat) {
+	duplicate, err := ExistsDup(fpPKs.PublicKeysBbnFormat)
+	if err != nil {
+		return nil, fmt.Errorf("error in FPs public keys: %v", err)
+	}
+	if duplicate {
 		return nil, ErrDuplicatedFp
 	}
 
@@ -264,4 +276,8 @@ func ParseCreateDelegationMessage(msg *MsgCreateBTCDelegation) (*ParsedCreateDel
 		FinalityProviderKeys:       fpPKs,
 		ParsedPop:                  msg.Pop,
 	}, nil
+}
+
+func (msg *ParsedCreateDelegationMessage) IsIncludedOnBTC() bool {
+	return msg.StakingTxProofOfInclusion != nil
 }

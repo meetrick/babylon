@@ -5,9 +5,9 @@ import (
 
 	"github.com/boljen/go-bitmap"
 
-	txformat "github.com/babylonlabs-io/babylon/btctxformatter"
-	"github.com/babylonlabs-io/babylon/crypto/bls12381"
-	"github.com/babylonlabs-io/babylon/x/checkpointing/types"
+	txformat "github.com/babylonlabs-io/babylon/v3/btctxformatter"
+	"github.com/babylonlabs-io/babylon/v3/crypto/bls12381"
+	"github.com/babylonlabs-io/babylon/v3/x/checkpointing/types"
 )
 
 const (
@@ -50,9 +50,10 @@ func GetRandomRawBtcCheckpoint(r *rand.Rand) *txformat.RawBtcCheckpoint {
 
 func GenRandomRawCheckpointWithMeta(r *rand.Rand) *types.RawCheckpointWithMeta {
 	ckptWithMeta := &types.RawCheckpointWithMeta{
-		Ckpt:     GenRandomRawCheckpoint(r),
-		Status:   GenRandomStatus(r),
-		PowerSum: 0,
+		Ckpt:      GenRandomRawCheckpoint(r),
+		Status:    GenRandomStatus(r),
+		PowerSum:  0,
+		BlsAggrPk: GenerateGenesisKey().BlsKey.Pubkey,
 	}
 	return ckptWithMeta
 }
@@ -73,13 +74,14 @@ func GenRandomSequenceRawCheckpointsWithMeta(r *rand.Rand) []*types.RawCheckpoin
 	var topEpoch, finalEpoch uint64
 	epoch1 := GenRandomEpochNum(r)
 	epoch2 := GenRandomEpochNum(r)
-	if epoch1 > epoch2 {
+	switch {
+	case epoch1 > epoch2:
 		topEpoch = epoch1
 		finalEpoch = epoch2
-	} else if epoch1 < epoch2 {
+	case epoch1 < epoch2:
 		topEpoch = epoch2
 		finalEpoch = epoch1
-	} else { // In the case they are equal, make the topEpoch one more
+	default:
 		topEpoch = epoch1 + 1
 		finalEpoch = epoch2
 	}

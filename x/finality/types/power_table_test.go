@@ -4,19 +4,29 @@ import (
 	"math/rand"
 	"testing"
 
+	sdkmath "cosmossdk.io/math"
 	"github.com/btcsuite/btcd/btcec/v2"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	types "github.com/babylonlabs-io/babylon/x/finality/types"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	types "github.com/babylonlabs-io/babylon/v3/x/finality/types"
 )
 
 var (
 	fpPrivKey1, _ = btcec.NewPrivateKey()
 	fpPrivKey2, _ = btcec.NewPrivateKey()
+	fpPrivKey3, _ = btcec.NewPrivateKey()
 	fpPubKey1     = bbn.NewBIP340PubKeyFromBTCPK(fpPrivKey1.PubKey())
 	fpPubKey2     = bbn.NewBIP340PubKeyFromBTCPK(fpPrivKey2.PubKey())
+	fpPubKey3     = bbn.NewBIP340PubKeyFromBTCPK(fpPrivKey3.PubKey())
+	fpAddr1       = datagen.GenRandomAddress()
+	fpAddr2       = datagen.GenRandomAddress()
+	fpAddr3       = datagen.GenRandomAddress()
+	negComm       = sdkmath.LegacyNewDec(-1)
+	highComm      = sdkmath.LegacyNewDec(2)
+	validComm     = sdkmath.LegacyMustNewDecFromStr("0.5")
 )
 
 func TestVotingPowerDistCache(t *testing.T) {
@@ -261,6 +271,32 @@ func TestSortFinalityProvidersWithZeroedVotingPower(t *testing.T) {
 	}
 }
 
+func FuzzNewFinalityProviderDistInfo(f *testing.F) {
+	datagen.AddRandomSeedsToFuzzer(f, 1000)
+	f.Fuzz(func(t *testing.T, seed int64) {
+		r := rand.New(rand.NewSource(seed))
+
+		fp, err := datagen.GenRandomFinalityProvider(r, "")
+		require.NoError(t, err)
+
+		if r.Int31n(10) > 5 {
+			fp.SlashedBabylonHeight = r.Uint64()
+		}
+		if r.Int31n(10) > 5 {
+			fp.Jailed = true
+		}
+
+		fpDstInf := types.NewFinalityProviderDistInfo(fp)
+		require.Equal(t, fpDstInf.BtcPk.MarshalHex(), fp.BtcPk.MarshalHex())
+		require.Equal(t, sdk.AccAddress(fpDstInf.Addr).String(), fp.Addr)
+		require.Equal(t, fpDstInf.Commission.String(), fp.Commission.String())
+		require.Equal(t, fpDstInf.TotalBondedSat, uint64(0))
+		require.Equal(t, fpDstInf.IsJailed, fp.Jailed)
+		require.Equal(t, fpDstInf.IsSlashed, fp.IsSlashed())
+		require.Equal(t, fpDstInf.IsTimestamped, false)
+	})
+}
+
 // FuzzSortingDeterminism tests the property of the sorting algorithm that the result should
 // be deterministic
 func FuzzSortingDeterminism(f *testing.F) {
@@ -327,4 +363,200 @@ func FuzzSortingDeterminism(f *testing.F) {
 			require.Equal(t, fpsWithMeta[i].BtcPk.MarshalHex(), fpsWithMeta1[i].BtcPk.MarshalHex())
 		}
 	})
+}
+
+func TestVotingPowerDistCache_Validate(t *testing.T) {
+	t.Parallel()
+	tcs := []struct {
+		name      string
+		vpdc      types.VotingPowerDistCache
+		expErrMsg string
+	}{
+		{
+			name: "empty finality providers - valid",
+			vpdc: types.VotingPowerDistCache{},
+		},
+		{
+			name: "NumActiveFps exceeds number of providers",
+			vpdc: types.VotingPowerDistCache{
+				FinalityProviders: []*types.FinalityProviderDistInfo{
+					{
+						BtcPk:          fpPubKey1,
+						TotalBondedSat: 100,
+						Addr:           fpAddr1,
+						Commission:     &validComm,
+						IsTimestamped:  true,
+					},
+				},
+				NumActiveFps:     2,
+				TotalVotingPower: 100,
+			},
+			expErrMsg: "invalid voting power distribution cache. NumActiveFps 2 is higher than active FPs count 1",
+		},
+		{
+			name: "duplicate finality providers",
+			vpdc: types.VotingPowerDistCache{
+				FinalityProviders: []*types.FinalityProviderDistInfo{
+					{
+						BtcPk:          fpPubKey1,
+						TotalBondedSat: 100,
+						Addr:           fpAddr1,
+						Commission:     &validComm,
+					},
+					{
+						BtcPk:          fpPubKey1,
+						TotalBondedSat: 200,
+						Addr:           fpAddr1,
+						Commission:     &validComm,
+					},
+				},
+				NumActiveFps:     2,
+				TotalVotingPower: 300,
+			},
+			expErrMsg: "invalid voting power distribution cache. Duplicate finality provider entry with BTC PK",
+		},
+		{
+			name: "invalid finality provider PK fails",
+			vpdc: types.VotingPowerDistCache{
+				FinalityProviders: []*types.FinalityProviderDistInfo{
+					{
+						BtcPk:          &bbn.BIP340PubKey{},
+						TotalBondedSat: 100,
+						Addr:           fpAddr1,
+						Commission:     &validComm,
+					},
+				},
+				NumActiveFps:     1,
+				TotalVotingPower: 100,
+			},
+			expErrMsg: "invalid fp dist info. finality provider BTC public key length: got 0, want 32",
+		},
+		{
+			name: "voting power mismatch",
+			vpdc: types.VotingPowerDistCache{
+				FinalityProviders: []*types.FinalityProviderDistInfo{
+					{
+						BtcPk:          fpPubKey1,
+						TotalBondedSat: 100,
+						Addr:           fpAddr1,
+						Commission:     &validComm,
+						IsTimestamped:  true,
+					},
+					{
+						BtcPk:          fpPubKey2,
+						TotalBondedSat: 100,
+						Addr:           fpAddr2,
+						Commission:     &validComm,
+						IsTimestamped:  true,
+					},
+				},
+				NumActiveFps:     2,
+				TotalVotingPower: 150,
+			},
+			expErrMsg: "invalid voting power distribution cache. Provided TotalVotingPower 150 is different than FPs accumulated voting power 200",
+		},
+		{
+			name: "no address",
+			vpdc: types.VotingPowerDistCache{
+				FinalityProviders: []*types.FinalityProviderDistInfo{
+					{BtcPk: fpPubKey1, TotalBondedSat: 100, Commission: &validComm},
+				},
+			},
+			expErrMsg: "invalid fp dist info. empty finality provider address",
+		},
+		{
+			name: "bad address",
+			vpdc: types.VotingPowerDistCache{
+				FinalityProviders: []*types.FinalityProviderDistInfo{
+					{BtcPk: fpPubKey1, TotalBondedSat: 100, Commission: &validComm, Addr: []byte("badaddr")},
+				},
+			},
+			expErrMsg: "invalid bech32 address: address length must be 20 or 32 bytes, got 7: unknown address",
+		},
+		{
+			name: "commission lower than 0",
+			vpdc: types.VotingPowerDistCache{
+				FinalityProviders: []*types.FinalityProviderDistInfo{
+					{BtcPk: fpPubKey1, TotalBondedSat: 100, Commission: &negComm, Addr: fpAddr1},
+				},
+			},
+			expErrMsg: "invalid fp dist info. commission is negative",
+		},
+		{
+			name: "commission greater than 1",
+			vpdc: types.VotingPowerDistCache{
+				FinalityProviders: []*types.FinalityProviderDistInfo{
+					{BtcPk: fpPubKey1, TotalBondedSat: 100, Commission: &highComm, Addr: fpAddr1},
+				},
+			},
+			expErrMsg: "invalid fp dist info. commission is greater than 1",
+		},
+		{
+			name: "one inactive case",
+			vpdc: types.VotingPowerDistCache{
+				FinalityProviders: []*types.FinalityProviderDistInfo{
+					{
+						BtcPk:          fpPubKey1,
+						TotalBondedSat: 100,
+						IsTimestamped:  true,
+						Addr:           fpAddr1,
+						Commission:     &validComm,
+					},
+					{
+						BtcPk:          fpPubKey2,
+						TotalBondedSat: 200,
+						IsTimestamped:  true,
+						Addr:           []byte(fpAddr2),
+						Commission:     &validComm,
+					},
+					{
+						BtcPk:          fpPubKey3,
+						TotalBondedSat: 100,
+						IsTimestamped:  true,
+						IsJailed:       true,
+						Addr:           []byte(fpAddr3),
+						Commission:     &validComm,
+					},
+				},
+				NumActiveFps:     2,
+				TotalVotingPower: 300,
+			},
+		},
+		{
+			name: "valid case",
+			vpdc: types.VotingPowerDistCache{
+				FinalityProviders: []*types.FinalityProviderDistInfo{
+					{
+						BtcPk:          fpPubKey1,
+						TotalBondedSat: 100,
+						Addr:           fpAddr1,
+						Commission:     &validComm,
+						IsTimestamped:  true,
+					},
+					{
+						BtcPk:          fpPubKey2,
+						TotalBondedSat: 200,
+						Addr:           fpAddr2,
+						Commission:     &validComm,
+						IsTimestamped:  true,
+					},
+				},
+				NumActiveFps:     2,
+				TotalVotingPower: 300,
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			err := tc.vpdc.Validate()
+			if tc.expErrMsg == "" {
+				require.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			require.ErrorContains(t, err, tc.expErrMsg)
+		})
+	}
 }

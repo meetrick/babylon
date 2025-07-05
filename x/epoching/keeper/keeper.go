@@ -2,12 +2,13 @@ package keeper
 
 import (
 	"fmt"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	corestoretypes "cosmossdk.io/core/store"
 	"cosmossdk.io/log"
-	"github.com/babylonlabs-io/babylon/x/epoching/types"
-	"github.com/cosmos/cosmos-sdk/baseapp"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	stktypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+
+	"github.com/babylonlabs-io/babylon/v3/x/epoching/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 )
 
@@ -18,7 +19,7 @@ type (
 		hooks        types.EpochingHooks
 		bk           types.BankKeeper
 		stk          types.StakingKeeper
-		router       *baseapp.MsgServiceRouter
+		stkMsgServer stktypes.MsgServer
 		// the address capable of executing a MsgUpdateParams message. Typically, this
 		// should be the x/gov module account.
 		authority string
@@ -30,15 +31,16 @@ func NewKeeper(
 	storeService corestoretypes.KVStoreService,
 	bk types.BankKeeper,
 	stk types.StakingKeeper,
+	stkMsgServer stktypes.MsgServer,
 	authority string,
 ) Keeper {
-
 	return Keeper{
 		cdc:          cdc,
 		storeService: storeService,
 		hooks:        nil,
 		bk:           bk,
 		stk:          stk,
+		stkMsgServer: stkMsgServer,
 		authority:    authority,
 	}
 }
@@ -55,11 +57,5 @@ func (k *Keeper) SetHooks(eh types.EpochingHooks) *Keeper {
 
 	k.hooks = eh
 
-	return k
-}
-
-// SetMsgServiceRouter sets the msgServiceRouter
-func (k *Keeper) SetMsgServiceRouter(router *baseapp.MsgServiceRouter) *Keeper {
-	k.router = router
 	return k
 }

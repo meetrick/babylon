@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	sdktestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
+	"sort"
 
 	sdkmath "cosmossdk.io/math"
 	store "cosmossdk.io/store/types"
@@ -24,31 +26,33 @@ import (
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 
-	"github.com/babylonlabs-io/babylon/app/keepers"
-	appparams "github.com/babylonlabs-io/babylon/app/params"
-	"github.com/babylonlabs-io/babylon/app/upgrades"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	btclightkeeper "github.com/babylonlabs-io/babylon/x/btclightclient/keeper"
-	btclighttypes "github.com/babylonlabs-io/babylon/x/btclightclient/types"
-	btcstkkeeper "github.com/babylonlabs-io/babylon/x/btcstaking/keeper"
-	btcstktypes "github.com/babylonlabs-io/babylon/x/btcstaking/types"
-	finalitykeeper "github.com/babylonlabs-io/babylon/x/finality/keeper"
-	finalitytypes "github.com/babylonlabs-io/babylon/x/finality/types"
-	incentivekeeper "github.com/babylonlabs-io/babylon/x/incentive/keeper"
-	incentivetypes "github.com/babylonlabs-io/babylon/x/incentive/types"
-	mintkeeper "github.com/babylonlabs-io/babylon/x/mint/keeper"
-	minttypes "github.com/babylonlabs-io/babylon/x/mint/types"
+	"github.com/babylonlabs-io/babylon/v3/app/keepers"
+	appparams "github.com/babylonlabs-io/babylon/v3/app/params"
+	"github.com/babylonlabs-io/babylon/v3/app/upgrades"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	btclightkeeper "github.com/babylonlabs-io/babylon/v3/x/btclightclient/keeper"
+	btclighttypes "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
+	btcstkkeeper "github.com/babylonlabs-io/babylon/v3/x/btcstaking/keeper"
+	btcstktypes "github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
+	finalitykeeper "github.com/babylonlabs-io/babylon/v3/x/finality/keeper"
+	finalitytypes "github.com/babylonlabs-io/babylon/v3/x/finality/types"
+	incentivekeeper "github.com/babylonlabs-io/babylon/v3/x/incentive/keeper"
+	incentivetypes "github.com/babylonlabs-io/babylon/v3/x/incentive/types"
+	mintkeeper "github.com/babylonlabs-io/babylon/v3/x/mint/keeper"
+	minttypes "github.com/babylonlabs-io/babylon/v3/x/mint/types"
 )
+
+type ParamUpgradeFn func(ctx sdk.Context, k *keepers.AppKeepers) error
 
 const (
 	ZoneConciergeStoreKey = "zoneconcierge"
 	UpgradeName           = "v1"
 )
 
-func CreateUpgrade(upgradeDataStr UpgradeDataString) upgrades.Upgrade {
+func CreateUpgrade(upgradeDataStr UpgradeDataString, parmUpgradeFn ParamUpgradeFn) upgrades.Upgrade {
 	return upgrades.Upgrade{
 		UpgradeName:          UpgradeName,
-		CreateUpgradeHandler: CreateUpgradeHandler(upgradeDataStr),
+		CreateUpgradeHandler: CreateUpgradeHandler(upgradeDataStr, parmUpgradeFn),
 		// Upgrade necessary for deletions of `zoneconcierge`
 		StoreUpgrades: store.StoreUpgrades{
 			Deleted: []string{ZoneConciergeStoreKey},
@@ -57,7 +61,7 @@ func CreateUpgrade(upgradeDataStr UpgradeDataString) upgrades.Upgrade {
 }
 
 // CreateUpgradeHandler upgrade handler for launch.
-func CreateUpgradeHandler(upgradeDataStr UpgradeDataString) upgrades.UpgradeHandlerCreator {
+func CreateUpgradeHandler(upgradeDataStr UpgradeDataString, parmUpgradeFn ParamUpgradeFn) upgrades.UpgradeHandlerCreator {
 	return func(mm *module.Manager, cfg module.Configurator, keepers *keepers.AppKeepers) upgradetypes.UpgradeHandler {
 		return func(context context.Context, _plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 			ctx := sdk.UnwrapSDKContext(context)
@@ -71,7 +75,6 @@ func CreateUpgradeHandler(upgradeDataStr UpgradeDataString) upgrades.UpgradeHand
 			// mint module with our own one.
 			err = upgradeMint(
 				ctx,
-				keepers.EncCfg.Codec,
 				&keepers.MintKeeper,
 				&keepers.AccountKeeper,
 				keepers.StakingKeeper,
@@ -87,7 +90,7 @@ func CreateUpgradeHandler(upgradeDataStr UpgradeDataString) upgrades.UpgradeHand
 				&keepers.FinalityKeeper,
 				&keepers.IncentiveKeeper,
 				&keepers.WasmKeeper,
-				upgradeDataStr.BtcStakingParamStr,
+				upgradeDataStr.BtcStakingParamsStr,
 				upgradeDataStr.FinalityParamStr,
 				upgradeDataStr.IncentiveParamStr,
 				upgradeDataStr.CosmWasmParamStr,
@@ -110,6 +113,14 @@ func CreateUpgradeHandler(upgradeDataStr UpgradeDataString) upgrades.UpgradeHand
 				return nil, fmt.Errorf("failed to upgrade inserting additional data: %w", err)
 			}
 
+			// if there is hardcoded upgrade for parameters, run it
+			if parmUpgradeFn != nil {
+				err = parmUpgradeFn(ctx, keepers)
+				if err != nil {
+					return nil, fmt.Errorf("failed to upgrade parameters: %w", err)
+				}
+			}
+
 			return migrations, nil
 		}
 	}
@@ -117,7 +128,6 @@ func CreateUpgradeHandler(upgradeDataStr UpgradeDataString) upgrades.UpgradeHand
 
 func upgradeMint(
 	ctx sdk.Context,
-	cdc codec.Codec,
 	k *mintkeeper.Keeper,
 	ak *accountkeeper.AccountKeeper,
 	stk *stakingkeeper.Keeper,
@@ -126,8 +136,10 @@ func upgradeMint(
 	if err != nil {
 		return err
 	}
+	minter := minttypes.DefaultMinter()
+	minter.BondDenom = bondedDenom
 	k.InitGenesis(ctx, ak, &minttypes.GenesisState{
-		BondDenom: bondedDenom,
+		Minter: &minter,
 	})
 	return nil
 }
@@ -142,14 +154,14 @@ func upgradeParameters(
 	btcStakingParam, finalityParam, incentiveParam, wasmParam string,
 ) error {
 	// Upgrade the staking parameters as first, as other upgrades depend on it.
-	if err := upgradeBtcStakingParameters(ctx, cdc, btcK, btcStakingParam); err != nil {
+	if err := upgradeBtcStakingParameters(ctx, btcK, btcStakingParam); err != nil {
 		return fmt.Errorf("failed to upgrade btc staking parameters: %w", err)
 	}
 	if err := upgradeFinalityParameters(ctx, cdc, finK, finalityParam); err != nil {
 		return fmt.Errorf("failed to upgrade finality parameters: %w", err)
 	}
 	if err := upgradeIncentiveParameters(ctx, cdc, iK, incentiveParam); err != nil {
-		return err
+		return fmt.Errorf("failed to upgrade incentive parameters: %w", err)
 	}
 
 	if err := upgradeCosmWasmParameters(ctx, cdc, wasmK, wasmParam); err != nil {
@@ -189,18 +201,22 @@ func upgradeCosmWasmParameters(
 
 func upgradeBtcStakingParameters(
 	ctx sdk.Context,
-	cdc codec.Codec,
 	k *btcstkkeeper.Keeper,
 	btcStakingParam string,
 ) error {
-	params, err := LoadBtcStakingParamsFromData(cdc, btcStakingParam)
+	// params should be already sorted by their btc activation
+	// block height in ascending order
+	params, err := LoadBtcStakingParamsFromData(btcStakingParam)
 	if err != nil {
 		return err
 	}
 
-	// We are overwriting the params at version 0, as the upgrade is happening from
-	// TGE chain so there should be only one version of the params
-	return k.OverwriteParamsAtVersion(ctx, 0, params)
+	for version, p := range params {
+		if err := k.OverwriteParamsAtVersion(ctx, uint32(version), p); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func upgradeFinalityParameters(
@@ -222,7 +238,7 @@ func upgradeFinalityParameters(
 // - Insert new BTC Headers
 func upgradeLaunch(
 	ctx sdk.Context,
-	encCfg *appparams.EncodingConfig,
+	encCfg sdktestutil.TestEncodingConfig,
 	btcLigthK *btclightkeeper.Keeper,
 	btcK *btcstkkeeper.Keeper,
 	bankK bankkeeper.SendKeeper,
@@ -232,7 +248,7 @@ func upgradeLaunch(
 		return fmt.Errorf("failed to upgrade tokens distribution: %w", err)
 	}
 
-	if err := upgradeAllowedStakingTransactions(ctx, encCfg.Codec, btcK, allowedStakingTxHashes); err != nil {
+	if err := upgradeAllowedStakingTransactions(ctx, btcK, allowedStakingTxHashes); err != nil {
 		return fmt.Errorf("failed to upgrade allowed staking transactions: %w", err)
 	}
 
@@ -269,7 +285,7 @@ func upgradeTokensDistribution(ctx sdk.Context, bankK bankkeeper.SendKeeper, tok
 	return nil
 }
 
-func upgradeAllowedStakingTransactions(ctx sdk.Context, cdc codec.Codec, btcStakingK *btcstkkeeper.Keeper, allowedStakingTxHashes string) error {
+func upgradeAllowedStakingTransactions(ctx sdk.Context, btcStakingK *btcstkkeeper.Keeper, allowedStakingTxHashes string) error {
 	data, err := LoadAllowedStakingTransactionHashesFromData(allowedStakingTxHashes)
 	if err != nil {
 		return fmt.Errorf("failed to load allowed staking transaction hashes from string %s: %w", allowedStakingTxHashes, err)
@@ -295,14 +311,19 @@ func upgradeBTCHeaders(ctx sdk.Context, cdc codec.Codec, btcLigthK *btclightkeep
 	return insertBtcHeaders(ctx, btcLigthK, newHeaders)
 }
 
-func LoadBtcStakingParamsFromData(cdc codec.Codec, data string) (btcstktypes.Params, error) {
+func LoadBtcStakingParamsFromData(data string) ([]btcstktypes.Params, error) {
 	buff := bytes.NewBufferString(data)
 
-	var params btcstktypes.Params
-	err := cdc.UnmarshalJSON(buff.Bytes(), &params)
+	var params []btcstktypes.Params
+	err := json.Unmarshal(buff.Bytes(), &params)
 	if err != nil {
-		return btcstktypes.Params{}, err
+		return []btcstktypes.Params{}, err
 	}
+
+	// sort params by the BTC activation height ascending order 100, 150, 200...
+	sort.Slice(params, func(i, j int) bool {
+		return params[i].BtcActivationHeight < params[j].BtcActivationHeight
+	})
 
 	return params, nil
 }

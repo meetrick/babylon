@@ -1,10 +1,10 @@
 package ante
 
 import (
-	bbn "github.com/babylonlabs-io/babylon/types"
-	btccheckpointkeeper "github.com/babylonlabs-io/babylon/x/btccheckpoint/keeper"
-	btccheckpointtypes "github.com/babylonlabs-io/babylon/x/btccheckpoint/types"
-	btclightclient "github.com/babylonlabs-io/babylon/x/btclightclient/types"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	btccheckpointkeeper "github.com/babylonlabs-io/babylon/v3/x/btccheckpoint/keeper"
+	btccheckpointtypes "github.com/babylonlabs-io/babylon/v3/x/btccheckpoint/types"
+	btclightclient "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -24,7 +24,6 @@ func NewBtcValidationDecorator(
 }
 
 func (bvd BtcValidationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-
 	// only do this validation when handling mempool addition. During DeliverTx they
 	// should be performed by btclightclient and btccheckpoint modules
 	if ctx.IsCheckTx() || ctx.IsReCheckTx() {

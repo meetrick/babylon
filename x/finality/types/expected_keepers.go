@@ -3,14 +3,15 @@ package types
 import (
 	"context"
 
-	bbn "github.com/babylonlabs-io/babylon/types"
-	bstypes "github.com/babylonlabs-io/babylon/x/btcstaking/types"
-	etypes "github.com/babylonlabs-io/babylon/x/epoching/types"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	bstypes "github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
+	etypes "github.com/babylonlabs-io/babylon/v3/x/epoching/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 type BTCStakingKeeper interface {
 	GetParams(ctx context.Context) bstypes.Params
+	GetParamsByVersion(ctx context.Context, v uint32) *bstypes.Params
 	GetCurrentBTCHeight(ctx context.Context) uint32
 	GetBTCHeightAtBabylonHeight(ctx context.Context, babylonHeight uint64) uint32
 	GetFinalityProvider(ctx context.Context, fpBTCPK []byte) (*bstypes.FinalityProvider, error)
@@ -22,9 +23,11 @@ type BTCStakingKeeper interface {
 	ClearPowerDistUpdateEvents(ctx context.Context, btcHeight uint32)
 	JailFinalityProvider(ctx context.Context, fpBTCPK []byte) error
 	UnjailFinalityProvider(ctx context.Context, fpBTCPK []byte) error
+	UpdateFinalityProvider(ctx context.Context, fp *bstypes.FinalityProvider) error
 }
 
 type CheckpointingKeeper interface {
+	GetEpochByHeight(ctx context.Context, height uint64) uint64
 	GetEpoch(ctx context.Context) *etypes.Epoch
 	GetLastFinalizedEpoch(ctx context.Context) uint64
 }
@@ -32,6 +35,8 @@ type CheckpointingKeeper interface {
 // IncentiveKeeper defines the expected interface needed for distributing rewards
 // and refund transaction fee for finality signatures
 type IncentiveKeeper interface {
-	RewardBTCStaking(ctx context.Context, height uint64, filteredDc *VotingPowerDistCache)
+	RewardBTCStaking(ctx context.Context, height uint64, filteredDc *VotingPowerDistCache, voters map[string]struct{})
 	IndexRefundableMsg(ctx context.Context, msg sdk.Msg)
+	AddEventBtcDelegationActivated(ctx context.Context, height uint64, fp, del sdk.AccAddress, sat uint64) error
+	AddEventBtcDelegationUnbonded(ctx context.Context, height uint64, fp, del sdk.AccAddress, sat uint64) error
 }

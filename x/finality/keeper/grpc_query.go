@@ -12,9 +12,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	bbn "github.com/babylonlabs-io/babylon/types"
-	bstypes "github.com/babylonlabs-io/babylon/x/btcstaking/types"
-	"github.com/babylonlabs-io/babylon/x/finality/types"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	bstypes "github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
+	"github.com/babylonlabs-io/babylon/v3/x/finality/types"
 )
 
 var _ types.QueryServer = Keeper{}
@@ -90,6 +90,7 @@ func (k Keeper) ActiveFinalityProvidersAtHeight(ctx context.Context, req *types.
 				VotingPower:          votingPower,
 				SlashedBabylonHeight: finalityProvider.SlashedBabylonHeight,
 				SlashedBtcHeight:     finalityProvider.SlashedBtcHeight,
+				HighestVotedHeight:   finalityProvider.HighestVotedHeight,
 			}
 			finalityProvidersWithMeta = append(finalityProvidersWithMeta, &finalityProviderWithMeta)
 		}
@@ -420,6 +421,7 @@ func convertToActiveFinalityProvidersAtHeightResponse(finalityProvidersWithMeta 
 			SlashedBabylonHeight: fpWithMeta.SlashedBabylonHeight,
 			SlashedBtcHeight:     fpWithMeta.SlashedBtcHeight,
 			Jailed:               fpWithMeta.Jailed,
+			HighestVotedHeight:   fpWithMeta.HighestVotedHeight,
 		})
 	}
 	return activeFinalityProvidersAtHeightResponse

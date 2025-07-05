@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"testing"
+	"time"
 
 	"cosmossdk.io/core/header"
 	"cosmossdk.io/log"
@@ -15,18 +16,26 @@ import (
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/x/incentive/keeper"
-	"github.com/babylonlabs-io/babylon/x/incentive/types"
+	appparams "github.com/babylonlabs-io/babylon/v3/app/params"
+	"github.com/babylonlabs-io/babylon/v3/x/incentive/keeper"
+	"github.com/babylonlabs-io/babylon/v3/x/incentive/types"
 )
 
-func IncentiveKeeper(t testing.TB, bankKeeper types.BankKeeper, accountKeeper types.AccountKeeper, epochingKeeper types.EpochingKeeper) (*keeper.Keeper, sdk.Context) {
-	storeKey := storetypes.NewKVStoreKey(types.StoreKey)
+func IncentiveKeeperWithStore(
+	t testing.TB,
+	db dbm.DB,
+	stateStore store.CommitMultiStore,
+	storeKey *storetypes.KVStoreKey,
+	bankKeeper types.BankKeeper,
+	accountKeeper types.AccountKeeper,
+	epochingKeeper types.EpochingKeeper,
+) (*keeper.Keeper, sdk.Context) {
+	if storeKey == nil {
+		storeKey = storetypes.NewKVStoreKey(types.StoreKey)
+	}
 
-	db := dbm.NewMemDB()
-	stateStore := store.NewCommitMultiStore(db, log.NewTestLogger(t), storemetrics.NewNoOpMetrics())
 	stateStore.MountStoreWithDB(storeKey, storetypes.StoreTypeIAVL, db)
 	require.NoError(t, stateStore.LoadLatestVersion())
 
@@ -39,17 +48,43 @@ func IncentiveKeeper(t testing.TB, bankKeeper types.BankKeeper, accountKeeper ty
 		bankKeeper,
 		accountKeeper,
 		epochingKeeper,
-		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		appparams.AccGov.String(),
 		authtypes.FeeCollectorName,
 	)
 
-	ctx := sdk.NewContext(stateStore, cmtproto.Header{}, false, log.NewNopLogger())
+	ctx := sdk.NewContext(
+		stateStore,
+		cmtproto.Header{
+			Time: time.Now().UTC(),
+		},
+		false,
+		log.NewNopLogger(),
+	)
 	ctx = ctx.WithHeaderInfo(header.Info{})
+
+	return &k, ctx
+}
+
+func IncentiveKeeper(t testing.TB, bankKeeper types.BankKeeper, accountKeeper types.AccountKeeper, epochingKeeper types.EpochingKeeper) (*keeper.Keeper, sdk.Context) {
+	return IncentiveKeeperWithStoreKey(t, nil, bankKeeper, accountKeeper, epochingKeeper)
+}
+
+func IncentiveKeeperWithStoreKey(
+	t testing.TB,
+	storeKey *storetypes.KVStoreKey,
+	bankKeeper types.BankKeeper,
+	accountKeeper types.AccountKeeper,
+	epochingKeeper types.EpochingKeeper,
+) (*keeper.Keeper, sdk.Context) {
+	db := dbm.NewMemDB()
+	stateStore := store.NewCommitMultiStore(db, log.NewTestLogger(t), storemetrics.NewNoOpMetrics())
+
+	k, ctx := IncentiveKeeperWithStore(t, db, stateStore, storeKey, bankKeeper, accountKeeper, epochingKeeper)
 
 	// Initialize params
 	if err := k.SetParams(ctx, types.DefaultParams()); err != nil {
 		panic(err)
 	}
 
-	return &k, ctx
+	return k, ctx
 }

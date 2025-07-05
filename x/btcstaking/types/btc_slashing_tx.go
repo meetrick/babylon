@@ -10,9 +10,9 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
 
-	"github.com/babylonlabs-io/babylon/btcstaking"
-	asig "github.com/babylonlabs-io/babylon/crypto/schnorr-adaptor-signature"
-	bbn "github.com/babylonlabs-io/babylon/types"
+	"github.com/babylonlabs-io/babylon/v3/btcstaking"
+	asig "github.com/babylonlabs-io/babylon/v3/crypto/schnorr-adaptor-signature"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
 )
 
 type BTCSlashingTx []byte
@@ -237,14 +237,12 @@ func (tx *BTCSlashingTx) EncVerifyAdaptorSignatures(
 	valPKs []bbn.BIP340PubKey,
 	sigs [][]byte,
 ) error {
-
 	_, err := tx.ParseEncVerifyAdaptorSignatures(fundingOut, slashingSpendInfo, pk, valPKs, sigs)
 	if err != nil {
 		return err
 	}
 
 	return nil
-
 }
 
 // findFPIdxInWitness returns the index of the finality provider's signature
@@ -283,7 +281,7 @@ func (tx *BTCSlashingTx) BuildSlashingTxWithWitness(
 	*/
 	// decrypt covenant adaptor signature to Schnorr signature using finality provider's SK,
 	// then marshal
-	decKey, err := asig.NewDecyptionKeyFromBTCSK(fpSK)
+	decKey, err := asig.NewDecryptionKeyFromBTCSK(fpSK)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get decryption key from BTC SK: %w", err)
 	}
@@ -292,7 +290,11 @@ func (tx *BTCSlashingTx) BuildSlashingTxWithWitness(
 	numSigs := uint32(0)
 	for i, covenantSig := range covenantSigs {
 		if covenantSig != nil {
-			covSigs[i] = covenantSig.Decrypt(decKey)
+			covSig, err := covenantSig.Decrypt(decKey)
+			if err != nil {
+				return nil, fmt.Errorf("failed to decrypt covenant adaptor signature: %w", err)
+			}
+			covSigs[i] = covSig
 			numSigs++
 		} else {
 			covSigs[i] = nil

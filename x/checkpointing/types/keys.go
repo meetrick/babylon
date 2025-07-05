@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/babylonlabs-io/babylon/crypto/bls12381"
+	"github.com/babylonlabs-io/babylon/v3/crypto/bls12381"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -32,7 +32,8 @@ var (
 	AddrToBlsKeyPrefix = append(RegistrationPrefix, 0x0) // where we save the concrete BLS public keys
 	BlsKeyToAddrPrefix = append(RegistrationPrefix, 0x1) // where we save BLS key set
 
-	LastFinalizedEpochKey = []byte{0x04} // LastFinalizedEpochKey defines the key to store the last finalised epoch
+	LastFinalizedEpochKey            = []byte{0x04} // LastFinalizedEpochKey defines the key to store the last finalised epoch
+	ConflictingCheckpointReceivedKey = []byte{0x05} // ConflictingCheckpointReceivedKey defines the key to store the ConflictingCheckpointReceived flag
 )
 
 // CkptsObjectKey defines epoch
@@ -45,8 +46,8 @@ func ValidatorBlsKeySetKey(epoch uint64) []byte {
 	return sdk.Uint64ToBigEndian(epoch)
 }
 
-// AddrToBlsKeyKey defines validator address
-func AddrToBlsKeyKey(valAddr sdk.ValAddress) []byte {
+// AddrToBlsKey defines validator address
+func AddrToBlsKey(valAddr sdk.ValAddress) []byte {
 	return valAddr
 }
 

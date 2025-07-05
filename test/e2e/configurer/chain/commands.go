@@ -13,24 +13,29 @@ import (
 	"time"
 
 	govv1 "cosmossdk.io/api/cosmos/gov/v1"
-	txformat "github.com/babylonlabs-io/babylon/btctxformatter"
-	"github.com/babylonlabs-io/babylon/test/e2e/containers"
-	"github.com/babylonlabs-io/babylon/test/e2e/initialization"
-	"github.com/babylonlabs-io/babylon/test/e2e/util"
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	btccheckpointtypes "github.com/babylonlabs-io/babylon/x/btccheckpoint/types"
-	blc "github.com/babylonlabs-io/babylon/x/btclightclient/types"
-	cttypes "github.com/babylonlabs-io/babylon/x/checkpointing/types"
+	txformat "github.com/babylonlabs-io/babylon/v3/btctxformatter"
+	"github.com/babylonlabs-io/babylon/v3/test/e2e/containers"
+	"github.com/babylonlabs-io/babylon/v3/test/e2e/initialization"
+	"github.com/babylonlabs-io/babylon/v3/test/e2e/util"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	btccheckpointtypes "github.com/babylonlabs-io/babylon/v3/x/btccheckpoint/types"
+	blc "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
+	cttypes "github.com/babylonlabs-io/babylon/v3/x/checkpointing/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	sdkquerytypes "github.com/cosmos/cosmos-sdk/types/query"
+	icatypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/types"
 	"github.com/stretchr/testify/require"
 )
 
 const (
 	flagKeyringTest = "--keyring-backend=test"
 )
+
+func (n *NodeConfig) GetChainID() string {
+	return n.chainId
+}
 
 func (n *NodeConfig) GetWallet(walletName string) string {
 	n.LogActionF("retrieving wallet %s", walletName)
@@ -42,6 +47,11 @@ func (n *NodeConfig) GetWallet(walletName string) string {
 	walletAddr = strings.TrimSuffix(walletAddr, "\n")
 	n.LogActionF("wallet %s found, wallet address - %s", walletName, walletAddr)
 	return walletAddr
+}
+
+func (n *NodeConfig) ExecRawCmd(cmd []string) (bytes.Buffer, bytes.Buffer,
+	error) {
+	return n.containerManager.ExecCmd(n.t, n.Name, cmd, "")
 }
 
 // KeysAdd creates a new key in the keyring
@@ -60,8 +70,8 @@ func (n *NodeConfig) KeysAdd(walletName string, overallFlags ...string) string {
 // QueryParams extracts the params for a given subspace and key. This is done generically via json to avoid having to
 // specify the QueryParamResponse type (which may not exist for all params).
 // TODO for now all commands are not used and left here as an example
-func (n *NodeConfig) QueryParams(subspace, key string, result any) {
-	cmd := []string{"babylond", "query", "params", "subspace", subspace, key, "--output=json"}
+func (n *NodeConfig) QueryParams(module string, result any) {
+	cmd := []string{"babylond", "query", module, "params", "--output=json"}
 
 	out, _, err := n.containerManager.ExecCmd(n.t, n.Name, cmd, "")
 	require.NoError(n.t, err)
@@ -70,14 +80,15 @@ func (n *NodeConfig) QueryParams(subspace, key string, result any) {
 	require.NoError(n.t, err)
 }
 
-func (n *NodeConfig) SendIBCTransfer(from, recipient, memo string, token sdk.Coin) {
+func (n *NodeConfig) SendIBCTransfer(from, recipient, memo string, token sdk.Coin) (txHash string) {
 	n.LogActionF("IBC sending %s from %s to %s. memo: %s", token.Amount.String(), from, recipient, memo)
 
 	cmd := []string{"babylond", "tx", "ibc-transfer", "transfer", "transfer", "channel-0", recipient, token.String(), fmt.Sprintf("--from=%s", from), "--memo", memo}
-	_, _, err := n.containerManager.ExecTxCmd(n.t, n.chainId, n.Name, cmd)
+	outBuf, _, err := n.containerManager.ExecTxCmd(n.t, n.chainId, n.Name, cmd)
 	require.NoError(n.t, err)
 
-	n.LogActionF("successfully submitted sent IBC transfer")
+	n.LogActionF("successfully submitted sent IBC transfer: out %s", outBuf.String())
+	return GetTxHashFromOutput(outBuf.String())
 }
 
 func (n *NodeConfig) FailIBCTransfer(from, recipient, amount string) {
@@ -271,7 +282,7 @@ func (n *NodeConfig) StoreWasmCode(wasmFile, from string) {
 
 func (n *NodeConfig) InstantiateWasmContract(codeId, initMsg, from string) {
 	n.LogActionF("instantiating wasm contract %s with %s", codeId, initMsg)
-	cmd := []string{"babylond", "tx", "wasm", "instantiate", codeId, initMsg, fmt.Sprintf("--from=%s", from), "--no-admin", "--label=contract", "--gas=auto", "--gas-adjustment=1.3"}
+	cmd := []string{"babylond", "tx", "wasm", "instantiate", codeId, initMsg, fmt.Sprintf("--from=%s", from), "--no-admin", "--label=contract", "--gas-adjustment=1.3"}
 	n.LogActionF("Executing command: %s", strings.Join(cmd, " "))
 	_, _, err := n.containerManager.ExecTxCmd(n.t, n.chainId, n.Name, cmd)
 	require.NoError(n.t, err)
@@ -288,13 +299,45 @@ func (n *NodeConfig) WasmExecute(contract, execMsg, from string) {
 }
 
 // WithdrawReward will withdraw the rewards of the address associated with the tx signer `from`
-func (n *NodeConfig) WithdrawReward(sType, from string) {
+func (n *NodeConfig) WithdrawReward(sType, from string) (txHash string) {
 	n.LogActionF("withdraw rewards of type %s for tx signer %s", sType, from)
 	cmd := []string{"babylond", "tx", "incentive", "withdraw-reward", sType, fmt.Sprintf("--from=%s", from)}
 	n.LogActionF("Executing command: %s", strings.Join(cmd, " "))
-	_, _, err := n.containerManager.ExecTxCmd(n.t, n.chainId, n.Name, cmd)
+	outBuf, _, err := n.containerManager.ExecTxCmd(n.t, n.chainId, n.Name, cmd)
 	require.NoError(n.t, err)
-	n.LogActionF("successfully withdrawn")
+	n.LogActionF("successfully withdrawn: %s", outBuf.String())
+	return GetTxHashFromOutput(outBuf.String())
+}
+
+// WithdrawRewardCheckingBalances will withdraw the rewards and verify the amount was correctly withdraw
+func (n *NodeConfig) WithdrawRewardCheckingBalances(sType, fromAddr string) {
+	n.t.Helper()
+	balanceBeforeRwdWithdraw, err := n.QueryBalances(fromAddr)
+	require.NoError(n.t, err)
+
+	rewardGauge, err := n.QueryRewardGauge(sdk.MustAccAddressFromBech32(fromAddr))
+	require.NoError(n.t, err)
+
+	fpRg := rewardGauge[sType].ToRewardGauge()
+	n.t.Logf("address: %s withdrawable reward before withdrawing: %s", fromAddr, fpRg.WithdrawnCoins.String())
+	require.False(n.t, fpRg.Coins.Equal(fpRg.WithdrawnCoins))
+
+	txHash := n.WithdrawReward(sType, fromAddr)
+	n.WaitForNextBlock()
+
+	_, txResp := n.QueryTx(txHash)
+
+	// balance after withdrawing reward
+	balanceAfterRwdWithdraw, err := n.QueryBalances(fromAddr)
+	require.NoError(n.t, err)
+
+	actualAmt := balanceAfterRwdWithdraw.String()
+
+	coinsReceivedWithdraw := fpRg.GetWithdrawableCoins()
+	expectedAmt := balanceBeforeRwdWithdraw.Add(coinsReceivedWithdraw...).Sub(txResp.AuthInfo.Fee.Amount...).String()
+	require.Equal(n.t, expectedAmt, actualAmt, "Expected(after withdraw): %s, actual(before withdraw + withdraw - TxFees): %s", expectedAmt, actualAmt)
+
+	n.t.Logf("BalanceAfterRwdWithdraw: %s; BalanceBeforeRwdWithdraw: %s, txFees: %s, CoinsReceivedWithdraw: %s", balanceAfterRwdWithdraw.String(), balanceBeforeRwdWithdraw.String(), txResp.AuthInfo.Fee.Amount.String(), coinsReceivedWithdraw.String())
 }
 
 // TxMultisigSign sign a tx in a file with one wallet for a multisig address.
@@ -470,4 +513,62 @@ func (n *NodeConfig) SubmitRefundableTxWithAssertion(
 	} else {
 		require.True(n.t, submitterBalanceBefore.IsAllGT(submitterBalanceAfter))
 	}
+}
+
+func GetTxHashFromOutput(txOutput string) (txHash string) {
+	// Define the regex pattern to match txhash
+	re := regexp.MustCompile(`txhash:\s*([A-Fa-f0-9]+)`)
+
+	// Find the first match
+	match := re.FindStringSubmatch(txOutput)
+
+	if len(match) > 1 {
+		// The first capture group contains the txhash value
+		txHash := match[1]
+		return txHash
+	}
+	return ""
+}
+
+func (n *NodeConfig) RegisterICAAccount(from, connectionID string) (txHash string) {
+	n.LogActionF("Registering ICA Account for %s and connection %s", from, connectionID)
+
+	version := string(icatypes.ModuleCdc.MustMarshalJSON(&icatypes.Metadata{
+		Version:                icatypes.Version,
+		ControllerConnectionId: connectionID,
+		HostConnectionId:       connectionID,
+		Encoding:               icatypes.EncodingProtobuf,
+		TxType:                 icatypes.TxTypeSDKMultiMsg,
+	}))
+
+	cmd := []string{
+		"babylond", "tx",
+		"interchain-accounts",
+		"controller", "register",
+		connectionID,
+		fmt.Sprintf("--version=%s", version),
+		fmt.Sprintf("--from=%s", from), "--gas=250000",
+	}
+
+	outBuf, _, err := n.containerManager.ExecTxCmd(n.t, n.chainId, n.Name, cmd)
+	require.NoError(n.t, err)
+
+	n.LogActionF("successfully created ICA account: out %s", outBuf.String())
+	return GetTxHashFromOutput(outBuf.String())
+}
+
+func (n *NodeConfig) FailICASendTx(from, connectionID, packetMsgPath string) {
+	n.LogActionF("%s sending ICA transaction to the host chain %s", from, n.chainId)
+
+	cmd := []string{
+		"babylond", "tx",
+		"interchain-accounts", "controller",
+		"send-tx", connectionID, packetMsgPath,
+		fmt.Sprintf("--from=%s", from),
+	}
+
+	_, _, err := n.containerManager.ExecTxCmdWithSuccessString(n.t, n.chainId, n.Name, cmd, "message type not allowed")
+	require.NoError(n.t, err)
+
+	n.LogActionF("Failed to perform ICA send (as expected)")
 }

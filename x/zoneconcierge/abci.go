@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/babylonlabs-io/babylon/x/zoneconcierge/keeper"
-	"github.com/babylonlabs-io/babylon/x/zoneconcierge/types"
+	"github.com/babylonlabs-io/babylon/v3/x/zoneconcierge/keeper"
+	"github.com/babylonlabs-io/babylon/v3/x/zoneconcierge/types"
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 )
@@ -20,6 +20,13 @@ func BeginBlocker(ctx context.Context, k keeper.Keeper) error {
 func EndBlocker(ctx context.Context, k keeper.Keeper) ([]abci.ValidatorUpdate, error) {
 	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), telemetry.MetricKeyEndBlocker)
 
-	k.BroadcastBTCStakingConsumerEvents(ctx)
+	// error in generating IBC packet data or sending packets is consensus-critical
+	if err := k.BroadcastBTCHeaders(ctx); err != nil {
+		panic(err)
+	}
+	if err := k.BroadcastBTCStakingConsumerEvents(ctx); err != nil {
+		panic(err)
+	}
+
 	return []abci.ValidatorUpdate{}, nil
 }

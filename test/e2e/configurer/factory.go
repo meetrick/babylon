@@ -7,10 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/babylonlabs-io/babylon/test/e2e/configurer/chain"
-	"github.com/babylonlabs-io/babylon/test/e2e/containers"
-	"github.com/babylonlabs-io/babylon/test/e2e/initialization"
-	btclighttypes "github.com/babylonlabs-io/babylon/x/btclightclient/types"
+	"github.com/babylonlabs-io/babylon/v3/test/e2e/configurer/chain"
+	"github.com/babylonlabs-io/babylon/v3/test/e2e/containers"
+	"github.com/babylonlabs-io/babylon/v3/test/e2e/initialization"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	btclighttypes "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
 )
 
 type Configurer interface {
@@ -30,7 +31,15 @@ type Configurer interface {
 	RunCosmosRelayerIBC() error
 
 	RunIBCTransferChannel() error
+	// CompleteIBCChannelHandshake completes the channel handshake in cases when ChanOpenInit was initiated
+	// by some transaction that was previously executed on the chain. For example,
+	// ICA MsgRegisterInterchainAccount will perform ChanOpenInit during its execution.
+	CompleteIBCChannelHandshake(srcChain, dstChain, srcConnection, dstConnection, srcPort, dstPort, srcChannel, dstChannel string) error
 }
+
+const (
+	btcNetworkStr = string(bbn.BtcSimnet)
+)
 
 var (
 	// Last nodes are non validator nodes to serve as the ones using relayer. Out
@@ -50,6 +59,7 @@ var (
 			SnapshotInterval:   25,
 			SnapshotKeepRecent: 10,
 			IsValidator:        true,
+			BtcNetwork:         btcNetworkStr,
 		},
 		{
 			Name:               "babylon-default-a-2",
@@ -59,6 +69,7 @@ var (
 			SnapshotInterval:   1500,
 			SnapshotKeepRecent: 2,
 			IsValidator:        true,
+			BtcNetwork:         btcNetworkStr,
 		},
 		{
 			Name:               "babylon-default-a-3",
@@ -68,6 +79,7 @@ var (
 			SnapshotInterval:   1500,
 			SnapshotKeepRecent: 2,
 			IsValidator:        false,
+			BtcNetwork:         btcNetworkStr,
 		},
 	}
 	validatorConfigsChainB = []*initialization.NodeConfig{
@@ -79,6 +91,7 @@ var (
 			SnapshotInterval:   1500,
 			SnapshotKeepRecent: 2,
 			IsValidator:        true,
+			BtcNetwork:         btcNetworkStr,
 		},
 		{
 			Name:               "babylon-default-b-2",
@@ -88,6 +101,7 @@ var (
 			SnapshotInterval:   1500,
 			SnapshotKeepRecent: 2,
 			IsValidator:        true,
+			BtcNetwork:         btcNetworkStr,
 		},
 		{
 			Name:               "babylon-default-b-3",
@@ -97,6 +111,7 @@ var (
 			SnapshotInterval:   1500,
 			SnapshotKeepRecent: 2,
 			IsValidator:        false,
+			BtcNetwork:         btcNetworkStr,
 		},
 	}
 )
@@ -140,8 +155,8 @@ func NewIBCTransferConfigurer(t *testing.T, isDebugLogEnabled bool) (Configurer,
 	), nil
 }
 
-// NewBTCStakingConfigurer returns a new Configurer for BTC staking service
-func NewBTCStakingConfigurer(t *testing.T, isDebugLogEnabled bool) (Configurer, error) {
+// NewBabylonConfigurer returns a new Configurer for BTC staking service
+func NewBabylonConfigurer(t *testing.T, isDebugLogEnabled bool) (Configurer, error) {
 	identifier := identifierName(t)
 	containerManager, err := containers.NewManager(identifier, isDebugLogEnabled, false, false)
 	if err != nil {
@@ -166,7 +181,20 @@ func NewSoftwareUpgradeConfigurer(t *testing.T, isDebugLogEnabled bool, upgradeP
 		return nil, err
 	}
 
-	chainA := chain.New(t, containerManager, initialization.ChainAID, updateNodeConfigNameWithIdentifier(validatorConfigsChainA, identifier), nil)
+	cfgs := updateNodeConfigs(validatorConfigsChainA, func(cfg *initialization.NodeConfig) *initialization.NodeConfig {
+		return &initialization.NodeConfig{
+			Name:               fmt.Sprintf("%s-%s", cfg.Name, identifier),
+			Pruning:            cfg.Pruning,
+			PruningKeepRecent:  cfg.PruningKeepRecent,
+			PruningInterval:    cfg.PruningInterval,
+			SnapshotInterval:   cfg.SnapshotInterval,
+			SnapshotKeepRecent: cfg.SnapshotKeepRecent,
+			IsValidator:        cfg.IsValidator,
+			BtcNetwork:         string(bbn.BtcSignet),
+		}
+	})
+
+	chainA := chain.New(t, containerManager, initialization.ChainAID, cfgs, nil)
 	if btcHeaders != nil {
 		chainA.BTCHeaders = btcHeaders
 	}
@@ -184,6 +212,23 @@ func NewSoftwareUpgradeConfigurer(t *testing.T, isDebugLogEnabled bool, upgradeP
 	), nil
 }
 
+// NewFinalityContractConfigurer returns a new Configurer for finality contract tests.
+func NewFinalityContractConfigurer(t *testing.T, isDebugLogEnabled bool) (Configurer, error) {
+	identifier := identifierName(t)
+	containerManager, err := containers.NewManager(identifier, isDebugLogEnabled, false, false)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewCurrentBranchConfigurer(t,
+		[]*chain.Config{
+			chain.New(t, containerManager, initialization.ChainAID, updateNodeConfigNameWithIdentifier(validatorConfigsChainA, identifier), nil),
+		},
+		baseSetup, // base setup
+		containerManager,
+	), nil
+}
+
 func identifierName(t *testing.T) string {
 	str := strings.ToLower(t.Name())
 	str = strings.ReplaceAll(str, "/", "-")
@@ -196,9 +241,8 @@ func identifierName(t *testing.T) string {
 }
 
 func updateNodeConfigNameWithIdentifier(cfgs []*initialization.NodeConfig, identifier string) []*initialization.NodeConfig {
-	result := make([]*initialization.NodeConfig, len(cfgs))
-	for i, cfg := range cfgs {
-		result[i] = &initialization.NodeConfig{
+	return updateNodeConfigs(cfgs, func(cfg *initialization.NodeConfig) *initialization.NodeConfig {
+		return &initialization.NodeConfig{
 			Name:               fmt.Sprintf("%s-%s", cfg.Name, identifier),
 			Pruning:            cfg.Pruning,
 			PruningKeepRecent:  cfg.PruningKeepRecent,
@@ -206,7 +250,15 @@ func updateNodeConfigNameWithIdentifier(cfgs []*initialization.NodeConfig, ident
 			SnapshotInterval:   cfg.SnapshotInterval,
 			SnapshotKeepRecent: cfg.SnapshotKeepRecent,
 			IsValidator:        cfg.IsValidator,
+			BtcNetwork:         cfg.BtcNetwork,
 		}
+	})
+}
+
+func updateNodeConfigs(cfgs []*initialization.NodeConfig, f func(cfg *initialization.NodeConfig) *initialization.NodeConfig) []*initialization.NodeConfig {
+	result := make([]*initialization.NodeConfig, len(cfgs))
+	for i, cfg := range cfgs {
+		result[i] = f(cfg)
 	}
 	return result
 }

@@ -8,9 +8,9 @@ import (
 	context "context"
 	reflect "reflect"
 
-	types "github.com/babylonlabs-io/babylon/types"
-	types0 "github.com/babylonlabs-io/babylon/x/btccheckpoint/types"
-	types1 "github.com/babylonlabs-io/babylon/x/btclightclient/types"
+	types "github.com/babylonlabs-io/babylon/v3/types"
+	types0 "github.com/babylonlabs-io/babylon/v3/x/btccheckpoint/types"
+	types1 "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
 	types2 "github.com/cosmos/cosmos-sdk/types"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -53,11 +53,12 @@ func (mr *MockBTCLightClientKeeperMockRecorder) GetBaseBTCHeader(ctx interface{}
 }
 
 // GetHeaderByHash mocks base method.
-func (m *MockBTCLightClientKeeper) GetHeaderByHash(ctx context.Context, hash *types.BTCHeaderHashBytes) *types1.BTCHeaderInfo {
+func (m *MockBTCLightClientKeeper) GetHeaderByHash(ctx context.Context, hash *types.BTCHeaderHashBytes) (*types1.BTCHeaderInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHeaderByHash", ctx, hash)
 	ret0, _ := ret[0].(*types1.BTCHeaderInfo)
-	return ret0
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // GetHeaderByHash indicates an expected call of GetHeaderByHash.

@@ -6,7 +6,7 @@ package types
 import (
 	cosmossdk_io_math "cosmossdk.io/math"
 	fmt "fmt"
-	github_com_babylonlabs_io_babylon_types "github.com/babylonlabs-io/babylon/types"
+	github_com_babylonlabs_io_babylon_v3_types "github.com/babylonlabs-io/babylon/v3/types"
 	_ "github.com/cosmos/cosmos-proto"
 	_ "github.com/cosmos/gogoproto/gogoproto"
 	proto "github.com/cosmos/gogoproto/proto"
@@ -31,7 +31,7 @@ type Params struct {
 	// PARAMETERS COVERING STAKING
 	// covenant_pks is the list of public keys held by the covenant committee
 	// each PK follows encoding in BIP-340 spec on Bitcoin
-	CovenantPks []github_com_babylonlabs_io_babylon_types.BIP340PubKey `protobuf:"bytes,1,rep,name=covenant_pks,json=covenantPks,proto3,customtype=github.com/babylonlabs-io/babylon/types.BIP340PubKey" json:"covenant_pks,omitempty"`
+	CovenantPks []github_com_babylonlabs_io_babylon_v3_types.BIP340PubKey `protobuf:"bytes,1,rep,name=covenant_pks,json=covenantPks,proto3,customtype=github.com/babylonlabs-io/babylon/v3/types.BIP340PubKey" json:"covenant_pks,omitempty"`
 	// covenant_quorum is the minimum number of signatures needed for the covenant
 	// multisignature
 	CovenantQuorum uint32 `protobuf:"varint,2,opt,name=covenant_quorum,json=covenantQuorum,proto3" json:"covenant_quorum,omitempty"`
@@ -39,13 +39,15 @@ type Params struct {
 	MinStakingValueSat int64 `protobuf:"varint,3,opt,name=min_staking_value_sat,json=minStakingValueSat,proto3" json:"min_staking_value_sat,omitempty"`
 	// max_staking_value_sat is the maximum of satoshis locked in staking output
 	MaxStakingValueSat int64 `protobuf:"varint,4,opt,name=max_staking_value_sat,json=maxStakingValueSat,proto3" json:"max_staking_value_sat,omitempty"`
-	// min_staking_time is the minimum lock time specified in staking output script
+	// min_staking_time is the minimum lock time specified in staking output
+	// script
 	MinStakingTimeBlocks uint32 `protobuf:"varint,5,opt,name=min_staking_time_blocks,json=minStakingTimeBlocks,proto3" json:"min_staking_time_blocks,omitempty"`
-	// max_staking_time_blocks is the maximum lock time time specified in staking output script
+	// max_staking_time_blocks is the maximum lock time time specified in staking
+	// output script
 	MaxStakingTimeBlocks uint32 `protobuf:"varint,6,opt,name=max_staking_time_blocks,json=maxStakingTimeBlocks,proto3" json:"max_staking_time_blocks,omitempty"`
 	// PARAMETERS COVERING SLASHING
-	// slashing_pk_script is the pk_script expected in slashing output ie. the first
-	// output of slashing transaction
+	// slashing_pk_script is the pk_script expected in slashing output ie. the
+	// first output of slashing transaction
 	SlashingPkScript []byte `protobuf:"bytes,7,opt,name=slashing_pk_script,json=slashingPkScript,proto3" json:"slashing_pk_script,omitempty"`
 	// min_slashing_tx_fee_sat is the minimum amount of tx fee (quantified
 	// in Satoshi) needed for the pre-signed slashing tx. It covers both:
@@ -56,14 +58,16 @@ type Params struct {
 	// places
 	SlashingRate cosmossdk_io_math.LegacyDec `protobuf:"bytes,9,opt,name=slashing_rate,json=slashingRate,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"slashing_rate"`
 	// PARAMETERS COVERING UNBONDING
-	// min_unbonding_time is the minimum time for unbonding transaction timelock in BTC blocks
-	MinUnbondingTimeBlocks uint32 `protobuf:"varint,10,opt,name=min_unbonding_time_blocks,json=minUnbondingTimeBlocks,proto3" json:"min_unbonding_time_blocks,omitempty"`
+	// unbonding_time is the exact unbonding time required from unbonding
+	// transaction it must be larger than `checkpoint_finalization_timeout` from
+	// `btccheckpoint` module
+	UnbondingTimeBlocks uint32 `protobuf:"varint,10,opt,name=unbonding_time_blocks,json=unbondingTimeBlocks,proto3" json:"unbonding_time_blocks,omitempty"`
 	// unbonding_fee exact fee required for unbonding transaction
 	UnbondingFeeSat int64 `protobuf:"varint,11,opt,name=unbonding_fee_sat,json=unbondingFeeSat,proto3" json:"unbonding_fee_sat,omitempty"`
 	// PARAMETERS COVERING FINALITY PROVIDERS
-	// min_commission_rate is the chain-wide minimum commission rate that a finality provider
-	// can charge their delegators expressed as a decimal (e.g., 0.5 for 50%). Maximal precion
-	// is 2 decimal places
+	// min_commission_rate is the chain-wide minimum commission rate that a
+	// finality provider can charge their delegators expressed as a decimal (e.g.,
+	// 0.5 for 50%). Maximal precion is 2 decimal places
 	MinCommissionRate cosmossdk_io_math.LegacyDec `protobuf:"bytes,12,opt,name=min_commission_rate,json=minCommissionRate,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"min_commission_rate"`
 	// base gas fee for delegation creation
 	DelegationCreationBaseGasFee uint64 `protobuf:"varint,13,opt,name=delegation_creation_base_gas_fee,json=delegationCreationBaseGasFee,proto3" json:"delegation_creation_base_gas_fee,omitempty"`
@@ -71,6 +75,9 @@ type Params struct {
 	// i.e all staking transactions are allowed to enter Babylon chain afterwards
 	// setting it to 0 means allow list is disabled
 	AllowListExpirationHeight uint64 `protobuf:"varint,14,opt,name=allow_list_expiration_height,json=allowListExpirationHeight,proto3" json:"allow_list_expiration_height,omitempty"`
+	// btc_activation_height is the btc height from which parameters are activated
+	// (inclusive)
+	BtcActivationHeight uint32 `protobuf:"varint,15,opt,name=btc_activation_height,json=btcActivationHeight,proto3" json:"btc_activation_height,omitempty"`
 }
 
 func (m *Params) Reset()      { *m = Params{} }
@@ -154,9 +161,9 @@ func (m *Params) GetMinSlashingTxFeeSat() int64 {
 	return 0
 }
 
-func (m *Params) GetMinUnbondingTimeBlocks() uint32 {
+func (m *Params) GetUnbondingTimeBlocks() uint32 {
 	if m != nil {
-		return m.MinUnbondingTimeBlocks
+		return m.UnbondingTimeBlocks
 	}
 	return 0
 }
@@ -182,6 +189,116 @@ func (m *Params) GetAllowListExpirationHeight() uint64 {
 	return 0
 }
 
+func (m *Params) GetBtcActivationHeight() uint32 {
+	if m != nil {
+		return m.BtcActivationHeight
+	}
+	return 0
+}
+
+// HeightVersionPair pairs a btc height with a version of the parameters
+type HeightVersionPair struct {
+	// start_height is the height from which the parameters are activated
+	// (inclusive)
+	StartHeight uint64 `protobuf:"varint,1,opt,name=start_height,json=startHeight,proto3" json:"start_height,omitempty"`
+	// version is the version of the parameters
+	Version uint32 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+}
+
+func (m *HeightVersionPair) Reset()         { *m = HeightVersionPair{} }
+func (m *HeightVersionPair) String() string { return proto.CompactTextString(m) }
+func (*HeightVersionPair) ProtoMessage()    {}
+func (*HeightVersionPair) Descriptor() ([]byte, []int) {
+	return fileDescriptor_8d1392776a3e15b9, []int{1}
+}
+func (m *HeightVersionPair) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *HeightVersionPair) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_HeightVersionPair.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *HeightVersionPair) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HeightVersionPair.Merge(m, src)
+}
+func (m *HeightVersionPair) XXX_Size() int {
+	return m.Size()
+}
+func (m *HeightVersionPair) XXX_DiscardUnknown() {
+	xxx_messageInfo_HeightVersionPair.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_HeightVersionPair proto.InternalMessageInfo
+
+func (m *HeightVersionPair) GetStartHeight() uint64 {
+	if m != nil {
+		return m.StartHeight
+	}
+	return 0
+}
+
+func (m *HeightVersionPair) GetVersion() uint32 {
+	if m != nil {
+		return m.Version
+	}
+	return 0
+}
+
+// HeightToVersionMap maps a btc height to a version of the parameters
+type HeightToVersionMap struct {
+	// Pairs must be sorted by `start_height` in ascending order, without
+	// duplicates
+	Pairs []*HeightVersionPair `protobuf:"bytes,1,rep,name=pairs,proto3" json:"pairs,omitempty"`
+}
+
+func (m *HeightToVersionMap) Reset()         { *m = HeightToVersionMap{} }
+func (m *HeightToVersionMap) String() string { return proto.CompactTextString(m) }
+func (*HeightToVersionMap) ProtoMessage()    {}
+func (*HeightToVersionMap) Descriptor() ([]byte, []int) {
+	return fileDescriptor_8d1392776a3e15b9, []int{2}
+}
+func (m *HeightToVersionMap) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *HeightToVersionMap) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_HeightToVersionMap.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *HeightToVersionMap) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HeightToVersionMap.Merge(m, src)
+}
+func (m *HeightToVersionMap) XXX_Size() int {
+	return m.Size()
+}
+func (m *HeightToVersionMap) XXX_DiscardUnknown() {
+	xxx_messageInfo_HeightToVersionMap.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_HeightToVersionMap proto.InternalMessageInfo
+
+func (m *HeightToVersionMap) GetPairs() []*HeightVersionPair {
+	if m != nil {
+		return m.Pairs
+	}
+	return nil
+}
+
 // StoredParams attach information about the version of stored parameters
 type StoredParams struct {
 	// version of the stored parameters. Each parameters update
@@ -195,7 +312,7 @@ func (m *StoredParams) Reset()         { *m = StoredParams{} }
 func (m *StoredParams) String() string { return proto.CompactTextString(m) }
 func (*StoredParams) ProtoMessage()    {}
 func (*StoredParams) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8d1392776a3e15b9, []int{1}
+	return fileDescriptor_8d1392776a3e15b9, []int{3}
 }
 func (m *StoredParams) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -240,6 +357,8 @@ func (m *StoredParams) GetParams() Params {
 
 func init() {
 	proto.RegisterType((*Params)(nil), "babylon.btcstaking.v1.Params")
+	proto.RegisterType((*HeightVersionPair)(nil), "babylon.btcstaking.v1.HeightVersionPair")
+	proto.RegisterType((*HeightToVersionMap)(nil), "babylon.btcstaking.v1.HeightToVersionMap")
 	proto.RegisterType((*StoredParams)(nil), "babylon.btcstaking.v1.StoredParams")
 }
 
@@ -248,49 +367,53 @@ func init() {
 }
 
 var fileDescriptor_8d1392776a3e15b9 = []byte{
-	// 658 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x54, 0xcd, 0x6e, 0xd3, 0x4c,
-	0x14, 0x8d, 0xbf, 0xe6, 0x4b, 0xe9, 0x34, 0x6d, 0xa9, 0x69, 0xc1, 0x2d, 0x25, 0xb1, 0xca, 0x82,
-	0x08, 0x51, 0x9b, 0xd0, 0x22, 0xf1, 0xb3, 0x40, 0x72, 0x4b, 0x01, 0x51, 0xa1, 0xe0, 0x94, 0x2e,
-	0x60, 0x61, 0x8d, 0x9d, 0x8b, 0x33, 0xb2, 0xc7, 0x63, 0x3c, 0x93, 0x90, 0xbc, 0x05, 0x4b, 0x96,
-	0x3c, 0x04, 0x0f, 0xd1, 0x65, 0xc5, 0x0a, 0x75, 0x51, 0xa1, 0x66, 0xc5, 0x5b, 0x20, 0x8f, 0xed,
-	0x24, 0xaa, 0xba, 0xe8, 0xce, 0x33, 0xe7, 0xe7, 0x9e, 0xe3, 0xe4, 0x1a, 0x6d, 0xba, 0xd8, 0x1d,
-	0x86, 0x2c, 0x32, 0x5d, 0xe1, 0x71, 0x81, 0x03, 0x12, 0xf9, 0x66, 0xbf, 0x69, 0xc6, 0x38, 0xc1,
-	0x94, 0x1b, 0x71, 0xc2, 0x04, 0x53, 0x57, 0x73, 0x8e, 0x31, 0xe1, 0x18, 0xfd, 0xe6, 0xfa, 0x8a,
-	0xcf, 0x7c, 0x26, 0x19, 0x66, 0xfa, 0x94, 0x91, 0xd7, 0xd7, 0x3c, 0xc6, 0x29, 0xe3, 0x4e, 0x06,
-	0x64, 0x87, 0x0c, 0xda, 0xfc, 0x5b, 0x41, 0x95, 0x96, 0x34, 0x56, 0x3f, 0xa1, 0xaa, 0xc7, 0xfa,
-	0x10, 0xe1, 0x48, 0x38, 0x71, 0xc0, 0x35, 0x45, 0x9f, 0x69, 0x54, 0xad, 0x27, 0xa7, 0x67, 0xf5,
-	0x1d, 0x9f, 0x88, 0x6e, 0xcf, 0x35, 0x3c, 0x46, 0xcd, 0x7c, 0x6e, 0x88, 0x5d, 0xbe, 0x45, 0x58,
-	0x71, 0x34, 0xc5, 0x30, 0x06, 0x6e, 0x58, 0x6f, 0x5a, 0xdb, 0x3b, 0x0f, 0x5b, 0x3d, 0xf7, 0x2d,
-	0x0c, 0xed, 0xf9, 0xc2, 0xad, 0x15, 0x70, 0xf5, 0x1e, 0x5a, 0x1a, 0x9b, 0x7f, 0xe9, 0xb1, 0xa4,
-	0x47, 0xb5, 0xff, 0x74, 0xa5, 0xb1, 0x60, 0x2f, 0x16, 0xd7, 0xef, 0xe5, 0xad, 0xda, 0x44, 0xab,
-	0x94, 0x44, 0x4e, 0xde, 0xc9, 0xe9, 0xe3, 0xb0, 0x07, 0x0e, 0xc7, 0x42, 0x9b, 0xd1, 0x95, 0xc6,
-	0x8c, 0xad, 0x52, 0x12, 0xb5, 0x33, 0xec, 0x28, 0x85, 0xda, 0x58, 0x48, 0x09, 0x1e, 0x5c, 0x22,
-	0x29, 0xe7, 0x12, 0x3c, 0xb8, 0x28, 0x79, 0x8c, 0x6e, 0x4d, 0x4f, 0x11, 0x84, 0x82, 0xe3, 0x86,
-	0xcc, 0x0b, 0xb8, 0xf6, 0xbf, 0x8c, 0xb5, 0x32, 0x99, 0x73, 0x48, 0x28, 0x58, 0x12, 0x93, 0xb2,
-	0xa9, 0x49, 0xd3, 0xb2, 0x4a, 0x2e, 0x1b, 0xcf, 0x9a, 0x92, 0x3d, 0x40, 0x2a, 0x0f, 0x31, 0xef,
-	0xa6, 0x9a, 0x38, 0x70, 0xb8, 0x97, 0x90, 0x58, 0x68, 0xb3, 0xba, 0xd2, 0xa8, 0xda, 0xd7, 0x0b,
-	0xa4, 0x15, 0xb4, 0xe5, 0xbd, 0xba, 0x93, 0x67, 0x2b, 0x14, 0x62, 0xe0, 0x7c, 0x86, 0xac, 0xd0,
-	0x35, 0x59, 0xe8, 0x46, 0x9a, 0x2d, 0x47, 0x0f, 0x07, 0xfb, 0x20, 0x1b, 0x1d, 0xa1, 0x85, 0xb1,
-	0x22, 0xc1, 0x02, 0xb4, 0x39, 0x5d, 0x69, 0xcc, 0x59, 0xcd, 0xe3, 0xb3, 0x7a, 0xe9, 0xf4, 0xac,
-	0x7e, 0x3b, 0xfb, 0xd5, 0x79, 0x27, 0x30, 0x08, 0x33, 0x29, 0x16, 0x5d, 0xe3, 0x00, 0x7c, 0xec,
-	0x0d, 0xf7, 0xc0, 0xfb, 0xf5, 0x73, 0x0b, 0xe5, 0x7f, 0x8a, 0x3d, 0xf0, 0xec, 0x6a, 0xe1, 0x63,
-	0x63, 0x01, 0xea, 0x53, 0xb4, 0x96, 0xa6, 0xe9, 0x45, 0x2e, 0x8b, 0x3a, 0x17, 0x4b, 0x23, 0x59,
-	0xfa, 0x26, 0x25, 0xd1, 0x87, 0x02, 0x9f, 0xaa, 0x7d, 0x1f, 0x2d, 0x4f, 0x64, 0x45, 0x85, 0x79,
-	0x59, 0x61, 0x69, 0x0c, 0xe4, 0xf1, 0xdb, 0x28, 0x6d, 0xe5, 0x78, 0x8c, 0x52, 0xc2, 0x39, 0x61,
-	0x51, 0x56, 0xa2, 0x2a, 0x4b, 0xdc, 0xbd, 0x42, 0x09, 0x7b, 0x99, 0x92, 0x68, 0x77, 0x2c, 0x97,
-	0xd9, 0xf7, 0x91, 0xde, 0x81, 0x10, 0x7c, 0x2c, 0x52, 0x43, 0x2f, 0x81, 0xec, 0xc1, 0xc5, 0x1c,
-	0x1c, 0x1f, 0xf3, 0x34, 0x93, 0xb6, 0xa0, 0x2b, 0x8d, 0xb2, 0xbd, 0x31, 0xe1, 0xed, 0xe6, 0x34,
-	0x0b, 0x73, 0x78, 0x85, 0xf9, 0x3e, 0x80, 0xfa, 0x02, 0x6d, 0xe0, 0x30, 0x64, 0x5f, 0x9d, 0x90,
-	0x70, 0xe1, 0xc0, 0x20, 0x26, 0x49, 0xe6, 0xd4, 0x05, 0xe2, 0x77, 0x85, 0xb6, 0x28, 0x3d, 0xd6,
-	0x24, 0xe7, 0x80, 0x70, 0xf1, 0x72, 0xcc, 0x78, 0x2d, 0x09, 0xcf, 0xca, 0xdf, 0x7f, 0xd4, 0x4b,
-	0x9b, 0x80, 0xaa, 0x6d, 0xc1, 0x12, 0xe8, 0xe4, 0x0b, 0xa7, 0xa1, 0xd9, 0x3e, 0x24, 0x69, 0x5a,
-	0x4d, 0x91, 0x2f, 0xb2, 0x38, 0xaa, 0xcf, 0x51, 0x25, 0xdb, 0x76, 0xb9, 0x24, 0xf3, 0x8f, 0xee,
-	0x18, 0x97, 0xae, 0xbb, 0x91, 0x19, 0x59, 0xe5, 0xf4, 0xfd, 0xd8, 0xb9, 0xc4, 0x7a, 0x77, 0x7c,
-	0x5e, 0x53, 0x4e, 0xce, 0x6b, 0xca, 0x9f, 0xf3, 0x9a, 0xf2, 0x6d, 0x54, 0x2b, 0x9d, 0x8c, 0x6a,
-	0xa5, 0xdf, 0xa3, 0x5a, 0xe9, 0xe3, 0x15, 0xf6, 0x78, 0x30, 0xfd, 0xd1, 0x91, 0x4b, 0xed, 0x56,
-	0xe4, 0x97, 0x62, 0xfb, 0x5f, 0x00, 0x00, 0x00, 0xff, 0xff, 0xdc, 0xd0, 0x43, 0xb7, 0x97, 0x04,
-	0x00, 0x00,
+	// 733 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x54, 0x5f, 0x4f, 0xd3, 0x5c,
+	0x18, 0x5f, 0x5f, 0xc6, 0x78, 0x39, 0x1b, 0xf0, 0x52, 0x20, 0x6f, 0x41, 0xdc, 0xe6, 0xbc, 0x70,
+	0x31, 0xd2, 0x3a, 0xc0, 0x98, 0x48, 0xa2, 0x71, 0x20, 0x6a, 0xc4, 0x64, 0x74, 0x0b, 0x17, 0x5e,
+	0xd8, 0x9c, 0x76, 0xc7, 0xee, 0x64, 0x6d, 0x4f, 0xed, 0x39, 0x9b, 0xdb, 0xb7, 0xf0, 0x52, 0xef,
+	0xfc, 0x10, 0x7e, 0x08, 0x2e, 0x89, 0x57, 0x86, 0x0b, 0x62, 0xe0, 0x8b, 0x98, 0x9e, 0x73, 0xda,
+	0x15, 0xc4, 0x84, 0xbb, 0x9d, 0xf3, 0xfb, 0xfb, 0xb4, 0xeb, 0x03, 0x6a, 0x36, 0xb4, 0xc7, 0x1e,
+	0x09, 0x0c, 0x9b, 0x39, 0x94, 0xc1, 0x3e, 0x0e, 0x5c, 0x63, 0xd8, 0x30, 0x42, 0x18, 0x41, 0x9f,
+	0xea, 0x61, 0x44, 0x18, 0x51, 0x57, 0x24, 0x47, 0x9f, 0x70, 0xf4, 0x61, 0x63, 0x6d, 0xd9, 0x25,
+	0x2e, 0xe1, 0x0c, 0x23, 0xfe, 0x25, 0xc8, 0x6b, 0xab, 0x0e, 0xa1, 0x3e, 0xa1, 0x96, 0x00, 0xc4,
+	0x41, 0x40, 0xb5, 0xaf, 0x33, 0xa0, 0xd0, 0xe2, 0xc6, 0xea, 0x7b, 0x50, 0x72, 0xc8, 0x10, 0x05,
+	0x30, 0x60, 0x56, 0xd8, 0xa7, 0x9a, 0x52, 0x9d, 0xaa, 0x97, 0x9a, 0x3b, 0xa7, 0x67, 0x95, 0xc7,
+	0x2e, 0x66, 0xbd, 0x81, 0xad, 0x3b, 0xc4, 0x37, 0x64, 0xae, 0x07, 0x6d, 0xba, 0x81, 0x49, 0x72,
+	0x34, 0x86, 0x5b, 0x06, 0x1b, 0x87, 0x88, 0xea, 0xcd, 0xd7, 0xad, 0xad, 0xed, 0x87, 0xad, 0x81,
+	0xfd, 0x06, 0x8d, 0xcd, 0x62, 0x62, 0xd8, 0xea, 0x53, 0xf5, 0x1e, 0x58, 0x48, 0xfd, 0x3f, 0x0e,
+	0x48, 0x34, 0xf0, 0xb5, 0x7f, 0xaa, 0x4a, 0x7d, 0xce, 0x9c, 0x4f, 0xae, 0x0f, 0xf9, 0xad, 0xda,
+	0x00, 0x2b, 0x3e, 0x0e, 0x2c, 0x39, 0x96, 0x35, 0x84, 0xde, 0x00, 0x59, 0x14, 0x32, 0x6d, 0xaa,
+	0xaa, 0xd4, 0xa7, 0x4c, 0xd5, 0xc7, 0x41, 0x5b, 0x60, 0x47, 0x31, 0xd4, 0x86, 0x8c, 0x4b, 0xe0,
+	0xe8, 0x1a, 0x49, 0x5e, 0x4a, 0xe0, 0xe8, 0xaa, 0xe4, 0x11, 0xf8, 0x3f, 0x9b, 0xc2, 0xb0, 0x8f,
+	0x2c, 0xdb, 0x23, 0x4e, 0x9f, 0x6a, 0xd3, 0xbc, 0xd6, 0xf2, 0x24, 0xa7, 0x83, 0x7d, 0xd4, 0xe4,
+	0x18, 0x97, 0x65, 0x92, 0xb2, 0xb2, 0x82, 0x94, 0xa5, 0x59, 0x19, 0xd9, 0x03, 0xa0, 0x52, 0x0f,
+	0xd2, 0x5e, 0xac, 0x09, 0xfb, 0x16, 0x75, 0x22, 0x1c, 0x32, 0x6d, 0xa6, 0xaa, 0xd4, 0x4b, 0xe6,
+	0x7f, 0x09, 0xd2, 0xea, 0xb7, 0xf9, 0xbd, 0xba, 0x2d, 0xbb, 0x25, 0x0a, 0x36, 0xb2, 0x3e, 0x20,
+	0x31, 0xd0, 0xbf, 0x7c, 0xa0, 0xa5, 0xb8, 0x9b, 0x44, 0x3b, 0xa3, 0x7d, 0xc4, 0x27, 0x3a, 0x02,
+	0x73, 0xa9, 0x22, 0x82, 0x0c, 0x69, 0xb3, 0x55, 0xa5, 0x3e, 0xdb, 0x6c, 0x1c, 0x9f, 0x55, 0x72,
+	0xa7, 0x67, 0x95, 0x5b, 0xe2, 0xc5, 0xd3, 0x6e, 0x5f, 0xc7, 0xc4, 0xf0, 0x21, 0xeb, 0xe9, 0x07,
+	0xc8, 0x85, 0xce, 0x78, 0x0f, 0x39, 0x3f, 0xbe, 0x6f, 0x00, 0xf9, 0xbf, 0xd8, 0x43, 0x8e, 0x59,
+	0x4a, 0x7c, 0x4c, 0xc8, 0x90, 0xba, 0x09, 0x56, 0x06, 0x81, 0x4d, 0x82, 0xee, 0xd5, 0x81, 0x01,
+	0x1f, 0x78, 0x29, 0x05, 0x33, 0xf3, 0xde, 0x07, 0x8b, 0x13, 0x4d, 0xd2, 0xbd, 0xc8, 0xbb, 0x2f,
+	0xa4, 0x80, 0xec, 0xdd, 0x06, 0xf1, 0x38, 0x96, 0x43, 0x7c, 0x1f, 0x53, 0x8a, 0x49, 0x20, 0xda,
+	0x97, 0x78, 0xfb, 0xbb, 0x37, 0x68, 0x6f, 0x2e, 0xfa, 0x38, 0xd8, 0x4d, 0xe5, 0xbc, 0xf4, 0x3e,
+	0xa8, 0x76, 0x91, 0x87, 0x5c, 0xc8, 0x62, 0x43, 0x27, 0x42, 0xe2, 0x87, 0x0d, 0x29, 0xb2, 0x5c,
+	0x48, 0xe3, 0x4e, 0xda, 0x5c, 0x55, 0xa9, 0xe7, 0xcd, 0xf5, 0x09, 0x6f, 0x57, 0xd2, 0x9a, 0x90,
+	0xa2, 0x97, 0x90, 0xee, 0x23, 0xa4, 0x3e, 0x03, 0xeb, 0xd0, 0xf3, 0xc8, 0x27, 0xcb, 0xc3, 0x94,
+	0x59, 0x68, 0x14, 0xe2, 0x48, 0x38, 0xf5, 0x10, 0x76, 0x7b, 0x4c, 0x9b, 0xe7, 0x1e, 0xab, 0x9c,
+	0x73, 0x80, 0x29, 0x7b, 0x91, 0x32, 0x5e, 0x71, 0x42, 0xfc, 0xf4, 0x6c, 0xe6, 0x58, 0xd0, 0x61,
+	0x78, 0x78, 0x49, 0xb9, 0x20, 0x9e, 0x9e, 0xcd, 0x9c, 0xe7, 0x29, 0x26, 0x34, 0x4f, 0xf2, 0x5f,
+	0xbe, 0x55, 0x72, 0xb5, 0x16, 0x58, 0x14, 0xe7, 0x23, 0x14, 0xc5, 0x73, 0xb5, 0x20, 0x8e, 0xd4,
+	0x3b, 0xa0, 0x44, 0x19, 0x8c, 0x58, 0xe2, 0xa2, 0xf0, 0xfc, 0x22, 0xbf, 0x93, 0x89, 0x1a, 0x98,
+	0x19, 0x0a, 0x85, 0xfc, 0xc0, 0x92, 0x63, 0xad, 0x03, 0x54, 0xc1, 0xe9, 0x10, 0xe9, 0xf9, 0x16,
+	0x86, 0xea, 0x53, 0x30, 0x1d, 0x42, 0x1c, 0x89, 0x2f, 0xbe, 0xb8, 0x59, 0xd7, 0xaf, 0xdd, 0x2d,
+	0xfa, 0x1f, 0x5d, 0x4c, 0x21, 0xab, 0x21, 0x50, 0x6a, 0x33, 0x12, 0xa1, 0xae, 0x5c, 0x24, 0x99,
+	0x7c, 0xe5, 0x52, 0xbe, 0xba, 0x03, 0x0a, 0x62, 0x8b, 0xf1, 0x62, 0xc5, 0xcd, 0xdb, 0x7f, 0x89,
+	0x12, 0x46, 0xcd, 0x7c, 0xfc, 0xee, 0x4d, 0x29, 0x69, 0x1e, 0x1e, 0x9f, 0x97, 0x95, 0x93, 0xf3,
+	0xb2, 0xf2, 0xeb, 0xbc, 0xac, 0x7c, 0xbe, 0x28, 0xe7, 0x4e, 0x2e, 0xca, 0xb9, 0x9f, 0x17, 0xe5,
+	0xdc, 0xbb, 0x9b, 0xed, 0xa7, 0x51, 0x76, 0x9f, 0xf2, 0x65, 0x65, 0x17, 0xf8, 0x12, 0xdc, 0xfa,
+	0x1d, 0x00, 0x00, 0xff, 0xff, 0x78, 0xd0, 0xd2, 0x35, 0x72, 0x05, 0x00, 0x00,
 }
 
 func (m *Params) Marshal() (dAtA []byte, err error) {
@@ -313,6 +436,11 @@ func (m *Params) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.BtcActivationHeight != 0 {
+		i = encodeVarintParams(dAtA, i, uint64(m.BtcActivationHeight))
+		i--
+		dAtA[i] = 0x78
+	}
 	if m.AllowListExpirationHeight != 0 {
 		i = encodeVarintParams(dAtA, i, uint64(m.AllowListExpirationHeight))
 		i--
@@ -338,8 +466,8 @@ func (m *Params) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x58
 	}
-	if m.MinUnbondingTimeBlocks != 0 {
-		i = encodeVarintParams(dAtA, i, uint64(m.MinUnbondingTimeBlocks))
+	if m.UnbondingTimeBlocks != 0 {
+		i = encodeVarintParams(dAtA, i, uint64(m.UnbondingTimeBlocks))
 		i--
 		dAtA[i] = 0x50
 	}
@@ -398,6 +526,76 @@ func (m *Params) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 				if _, err := m.CovenantPks[iNdEx].MarshalTo(dAtA[i:]); err != nil {
 					return 0, err
 				}
+				i = encodeVarintParams(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *HeightVersionPair) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *HeightVersionPair) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *HeightVersionPair) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Version != 0 {
+		i = encodeVarintParams(dAtA, i, uint64(m.Version))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.StartHeight != 0 {
+		i = encodeVarintParams(dAtA, i, uint64(m.StartHeight))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *HeightToVersionMap) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *HeightToVersionMap) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *HeightToVersionMap) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Pairs) > 0 {
+		for iNdEx := len(m.Pairs) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Pairs[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
 				i = encodeVarintParams(dAtA, i, uint64(size))
 			}
 			i--
@@ -492,8 +690,8 @@ func (m *Params) Size() (n int) {
 	}
 	l = m.SlashingRate.Size()
 	n += 1 + l + sovParams(uint64(l))
-	if m.MinUnbondingTimeBlocks != 0 {
-		n += 1 + sovParams(uint64(m.MinUnbondingTimeBlocks))
+	if m.UnbondingTimeBlocks != 0 {
+		n += 1 + sovParams(uint64(m.UnbondingTimeBlocks))
 	}
 	if m.UnbondingFeeSat != 0 {
 		n += 1 + sovParams(uint64(m.UnbondingFeeSat))
@@ -505,6 +703,39 @@ func (m *Params) Size() (n int) {
 	}
 	if m.AllowListExpirationHeight != 0 {
 		n += 1 + sovParams(uint64(m.AllowListExpirationHeight))
+	}
+	if m.BtcActivationHeight != 0 {
+		n += 1 + sovParams(uint64(m.BtcActivationHeight))
+	}
+	return n
+}
+
+func (m *HeightVersionPair) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.StartHeight != 0 {
+		n += 1 + sovParams(uint64(m.StartHeight))
+	}
+	if m.Version != 0 {
+		n += 1 + sovParams(uint64(m.Version))
+	}
+	return n
+}
+
+func (m *HeightToVersionMap) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Pairs) > 0 {
+		for _, e := range m.Pairs {
+			l = e.Size()
+			n += 1 + l + sovParams(uint64(l))
+		}
 	}
 	return n
 }
@@ -587,7 +818,7 @@ func (m *Params) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_babylonlabs_io_babylon_types.BIP340PubKey
+			var v github_com_babylonlabs_io_babylon_v3_types.BIP340PubKey
 			m.CovenantPks = append(m.CovenantPks, v)
 			if err := m.CovenantPks[len(m.CovenantPks)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -777,9 +1008,9 @@ func (m *Params) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 10:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field MinUnbondingTimeBlocks", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field UnbondingTimeBlocks", wireType)
 			}
-			m.MinUnbondingTimeBlocks = 0
+			m.UnbondingTimeBlocks = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowParams
@@ -789,7 +1020,7 @@ func (m *Params) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.MinUnbondingTimeBlocks |= uint32(b&0x7F) << shift
+				m.UnbondingTimeBlocks |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -885,6 +1116,197 @@ func (m *Params) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BtcActivationHeight", wireType)
+			}
+			m.BtcActivationHeight = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowParams
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.BtcActivationHeight |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipParams(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthParams
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *HeightVersionPair) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowParams
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: HeightVersionPair: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: HeightVersionPair: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StartHeight", wireType)
+			}
+			m.StartHeight = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowParams
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.StartHeight |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
+			}
+			m.Version = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowParams
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Version |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipParams(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthParams
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *HeightToVersionMap) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowParams
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: HeightToVersionMap: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: HeightToVersionMap: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pairs", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowParams
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthParams
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthParams
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Pairs = append(m.Pairs, &HeightVersionPair{})
+			if err := m.Pairs[len(m.Pairs)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipParams(dAtA[iNdEx:])

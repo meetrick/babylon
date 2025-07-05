@@ -3,12 +3,19 @@ package btcstaking_test
 import (
 	"testing"
 
+	"cosmossdk.io/log"
+	"cosmossdk.io/store"
+	storemetrics "cosmossdk.io/store/metrics"
+
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/stretchr/testify/require"
 
-	keepertest "github.com/babylonlabs-io/babylon/testutil/keeper"
-	"github.com/babylonlabs-io/babylon/testutil/nullify"
-	"github.com/babylonlabs-io/babylon/x/btcstaking"
-	"github.com/babylonlabs-io/babylon/x/btcstaking/types"
+	keepertest "github.com/babylonlabs-io/babylon/v3/testutil/keeper"
+	"github.com/babylonlabs-io/babylon/v3/testutil/nullify"
+	btcctypes "github.com/babylonlabs-io/babylon/v3/x/btccheckpoint/types"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstaking"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
+	dbm "github.com/cosmos/cosmos-db"
 )
 
 func TestGenesis(t *testing.T) {
@@ -16,8 +23,17 @@ func TestGenesis(t *testing.T) {
 	genesisState := types.GenesisState{
 		Params: []*types.Params{&p},
 	}
+	db := dbm.NewMemDB()
+	stateStore := store.NewCommitMultiStore(db, log.NewTestLogger(t), storemetrics.NewNoOpMetrics())
 
-	k, ctx := keepertest.BTCStakingKeeper(t, nil, nil, nil)
+	lc := btcctypes.NewMockBTCLightClientKeeper()
+	cc := btcctypes.NewMockCheckpointingKeeper()
+	ic := btcctypes.NewMockIncentiveKeeper()
+
+	btcCkpK, _ := keepertest.NewBTCChkptKeeperWithStoreKeys(t, db, nil, nil, stateStore, lc, cc, ic, chaincfg.SimNetParams.PowLimit)
+
+	k, ctx := keepertest.BTCStakingKeeperWithStore(t, db, stateStore, nil, nil, btcCkpK, nil)
+
 	btcstaking.InitGenesis(ctx, *k, genesisState)
 	got := btcstaking.ExportGenesis(ctx, *k)
 	require.NotNil(t, got)

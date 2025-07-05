@@ -10,9 +10,9 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/spf13/cobra"
 
-	"github.com/babylonlabs-io/babylon/x/mint/client/cli"
-	"github.com/babylonlabs-io/babylon/x/mint/keeper"
-	"github.com/babylonlabs-io/babylon/x/mint/types"
+	"github.com/babylonlabs-io/babylon/v3/x/mint/client/cli"
+	"github.com/babylonlabs-io/babylon/v3/x/mint/keeper"
+	"github.com/babylonlabs-io/babylon/v3/x/mint/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -58,7 +58,7 @@ func (AppModuleBasic) ValidateGenesis(cdc codec.JSONCodec, _ client.TxEncodingCo
 		return fmt.Errorf("failed to unmarshal %s genesis state: %w", types.ModuleName, err)
 	}
 
-	return types.ValidateGenesis(data)
+	return data.Validate()
 }
 
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the mint module.
@@ -100,6 +100,7 @@ func (AppModule) Name() string {
 }
 
 // RegisterInvariants registers the mint module invariants.
+// nolint staticcheck
 func (am AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
 
 // QuerierRoute returns the mint module's querier route name.

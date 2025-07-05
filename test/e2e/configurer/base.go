@@ -1,6 +1,7 @@
 package configurer
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/babylonlabs-io/babylon/test/e2e/configurer/chain"
-	"github.com/babylonlabs-io/babylon/test/e2e/containers"
-	"github.com/babylonlabs-io/babylon/test/e2e/initialization"
-	"github.com/babylonlabs-io/babylon/test/e2e/util"
+	"github.com/babylonlabs-io/babylon/v3/test/e2e/configurer/chain"
+	"github.com/babylonlabs-io/babylon/v3/test/e2e/containers"
+	"github.com/babylonlabs-io/babylon/v3/test/e2e/initialization"
+	"github.com/babylonlabs-io/babylon/v3/test/e2e/util"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 )
@@ -114,6 +115,84 @@ func (bc *baseConfigurer) RunIBCTransferChannel() error {
 	return nil
 }
 
+// CompleteIBCChannelHandshake completes the channel handshake in cases when ChanOpenInit was initiated
+// by some transaction that was previously executed on the chain. For example,
+// ICA MsgRegisterInterchainAccount will perform ChanOpenInit during its execution.
+func (bc *baseConfigurer) CompleteIBCChannelHandshake(
+	srcChain, dstChain,
+	srcConnection, dstConnection,
+	srcPort, dstPort,
+	srcChannel, dstChannel string,
+) error {
+	bc.t.Logf("completing IBC channel handshake between: (%s, %s, %s, %s) and (%s, %s, %s, %s)",
+		srcChain, srcConnection, srcPort, srcChannel,
+		dstChain, dstConnection, dstPort, dstChannel)
+
+	cmd := []string{
+		"hermes",
+		"--json",
+		"tx",
+		"chan-open-try",
+		"--dst-chain", dstChain,
+		"--src-chain", srcChain,
+		"--dst-connection", dstConnection,
+		"--dst-port", dstPort,
+		"--src-port", srcPort,
+		"--src-channel", srcChannel,
+	}
+
+	bc.t.Log(cmd)
+	_, _, err := bc.containerManager.ExecHermesCmd(bc.t, cmd, "success")
+	if err != nil {
+		return err
+	}
+
+	cmd = []string{
+		"hermes",
+		"--json",
+		"tx",
+		"chan-open-ack",
+		"--dst-chain", srcChain,
+		"--src-chain", dstChain,
+		"--dst-connection", srcConnection,
+		"--dst-port", srcPort,
+		"--src-port", dstPort,
+		"--dst-channel", srcChannel,
+		"--src-channel", dstChannel,
+	}
+
+	bc.t.Log(cmd)
+	_, _, err = bc.containerManager.ExecHermesCmd(bc.t, cmd, "")
+	if err != nil {
+		return err
+	}
+	cmd = []string{
+		"hermes",
+		"--json",
+		"tx",
+		"chan-open-confirm",
+		"--dst-chain", dstChain,
+		"--src-chain", srcChain,
+		"--dst-connection", dstConnection,
+		"--dst-port", dstPort,
+		"--src-port", srcPort,
+		"--dst-channel", dstChannel,
+		"--src-channel", srcChannel,
+	}
+
+	bc.t.Log(cmd)
+	_, _, err = bc.containerManager.ExecHermesCmd(bc.t, cmd, "")
+	if err != nil {
+		return err
+	}
+
+	bc.t.Logf("IBC channel handshake completed between: (%s, %s, %s, %s) and (%s, %s, %s, %s)",
+		srcChain, srcConnection, srcPort, srcChannel,
+		dstChain, dstConnection, dstPort, dstChannel)
+
+	return nil
+}
+
 func (bc *baseConfigurer) runHermesIBCRelayer(chainConfigA *chain.Config, chainConfigB *chain.Config) error {
 	bc.t.Log("starting Hermes relayer container...")
 
@@ -156,7 +235,17 @@ func (bc *baseConfigurer) runHermesIBCRelayer(chainConfigA *chain.Config, chainC
 	endpoint := fmt.Sprintf("http://%s/state", hermesResource.GetHostPort("3031/tcp"))
 
 	require.Eventually(bc.t, func() bool {
-		resp, err := http.Get(endpoint)
+		req, err := http.NewRequestWithContext(
+			context.Background(),
+			http.MethodGet,
+			endpoint,
+			nil,
+		)
+		if err != nil {
+			return false
+		}
+
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			return false
 		}
@@ -247,14 +336,18 @@ func (bc *baseConfigurer) runCosmosIBCRelayer(chainConfigA *chain.Config, chainC
 }
 
 func (bc *baseConfigurer) createIBCTransferChannel(chainA *chain.Config, chainB *chain.Config) error {
-	bc.t.Logf("connecting %s and %s chains via IBC", chainA.ChainMeta.Id, chainB.ChainMeta.Id)
-	cmd := []string{"hermes", "create", "channel", "--a-chain", chainA.ChainMeta.Id, "--b-chain", chainB.ChainMeta.Id, "--a-port", "transfer", "--b-port", "transfer", "--new-client-connection", "--yes"}
+	return bc.createIBCChannel(chainA, chainB, "transfer", "transfer")
+}
+
+func (bc *baseConfigurer) createIBCChannel(chainA *chain.Config, chainB *chain.Config, srcPortID, destPortID string) error {
+	bc.t.Logf("connecting %s and %s chains via IBC: src port %q; dest port %q", chainA.ChainMeta.Id, chainB.ChainMeta.Id, srcPortID, destPortID)
+	cmd := []string{"hermes", "create", "channel", "--a-chain", chainA.ChainMeta.Id, "--b-chain", chainB.ChainMeta.Id, "--a-port", srcPortID, "--b-port", destPortID, "--new-client-connection", "--yes"}
 	bc.t.Log(cmd)
 	_, _, err := bc.containerManager.ExecHermesCmd(bc.t, cmd, "SUCCESS")
 	if err != nil {
 		return err
 	}
-	bc.t.Logf("connected %s and %s chains via IBC", chainA.ChainMeta.Id, chainB.ChainMeta.Id)
+	bc.t.Logf("connected %s and %s chains via IBC src port %q; dest port %q", chainA.ChainMeta.Id, chainB.ChainMeta.Id, srcPortID, destPortID)
 	return nil
 }
 

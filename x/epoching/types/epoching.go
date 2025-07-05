@@ -2,6 +2,8 @@ package types
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	errorsmod "cosmossdk.io/errors"
@@ -88,7 +90,7 @@ func (e Epoch) IsFirstBlockOfNextEpoch(ctx context.Context) bool {
 
 // WithinBoundary checks whether the given height is within this epoch or not
 func (e Epoch) WithinBoundary(height uint64) bool {
-	if height < e.FirstBlockHeight || height > uint64(e.GetLastBlockHeight()) {
+	if height < e.FirstBlockHeight || height > e.GetLastBlockHeight() {
 		return false
 	} else {
 		return true
@@ -97,7 +99,9 @@ func (e Epoch) WithinBoundary(height uint64) bool {
 
 // ValidateBasic does sanity checks on Epoch
 func (e Epoch) ValidateBasic() error {
-	if e.CurrentEpochInterval < 2 {
+	// epoch 0 is created with CurrentEpochInterval = 1
+	// the rest of the epochs should comply with this condition
+	if e.EpochNumber > 0 && e.CurrentEpochInterval < 2 {
 		return ErrInvalidEpoch.Wrapf("CurrentEpochInterval (%d) < 2", e.CurrentEpochInterval)
 	}
 	return nil
@@ -146,6 +150,20 @@ func NewQueuedMessage(blockHeight uint64, blockTime time.Time, txid []byte, msg 
 		qmsg = &QueuedMessage_MsgCreateValidator{
 			MsgCreateValidator: msgWithType,
 		}
+	case *stakingtypes.MsgEditValidator:
+		if msgBytes, err = msgWithType.Marshal(); err != nil {
+			return QueuedMessage{}, err
+		}
+		qmsg = &QueuedMessage_MsgEditValidator{
+			MsgEditValidator: msgWithType,
+		}
+	case *stakingtypes.MsgUpdateParams:
+		if msgBytes, err = msgWithType.Marshal(); err != nil {
+			return QueuedMessage{}, err
+		}
+		qmsg = &QueuedMessage_MsgUpdateParams{
+			MsgUpdateParams: msgWithType,
+		}
 	default:
 		return QueuedMessage{}, ErrUnwrappedMsgType
 	}
@@ -183,8 +201,82 @@ func (qm *QueuedMessage) UnwrapToSdkMsg() sdk.Msg {
 		unwrappedMsgWithType = unwrappedMsg.MsgBeginRedelegate
 	case *QueuedMessage_MsgCancelUnbondingDelegation:
 		unwrappedMsgWithType = unwrappedMsg.MsgCancelUnbondingDelegation
+	case *QueuedMessage_MsgEditValidator:
+		unwrappedMsgWithType = unwrappedMsg.MsgEditValidator
+	case *QueuedMessage_MsgUpdateParams:
+		unwrappedMsgWithType = unwrappedMsg.MsgUpdateParams
 	default:
 		panic(errorsmod.Wrap(ErrInvalidQueuedMessageType, qm.String()))
 	}
 	return unwrappedMsgWithType
+}
+
+func (e Validator) Validate() error {
+	if e.Power < 0 {
+		return fmt.Errorf("validator power cannot be negative: got %d", e.Power)
+	}
+
+	valAddrStr := sdk.ValAddress(e.Addr).String()
+	_, err := sdk.ValAddressFromBech32(valAddrStr)
+	return err
+}
+
+func (vl ValidatorLifecycle) Validate() error {
+	if len(vl.ValLife) == 0 {
+		return errors.New("validator lyfecycle is empty")
+	}
+
+	for _, vsu := range vl.ValLife {
+		if err := vsu.Validate(); err != nil {
+			return err
+		}
+	}
+
+	_, err := sdk.ValAddressFromBech32(vl.ValAddr)
+	return err
+}
+
+func (v ValStateUpdate) Validate() error {
+	return ValidateBondState(v.State)
+}
+
+func ValidateBondState(bs BondState) error {
+	switch bs {
+	case BondState_CREATED:
+		return nil
+	case BondState_BONDED:
+		return nil
+	case BondState_UNBONDING:
+		return nil
+	case BondState_UNBONDED:
+		return nil
+	case BondState_REMOVED:
+		return nil
+	default:
+		return fmt.Errorf("invalid bond state: %d", bs)
+	}
+}
+
+func (dl DelegationLifecycle) Validate() error {
+	if len(dl.DelLife) == 0 {
+		return errors.New("delegation lyfecycle is empty")
+	}
+	_, err := sdk.AccAddressFromBech32(dl.DelAddr)
+
+	for _, vsu := range dl.DelLife {
+		if err := vsu.Validate(); err != nil {
+			return err
+		}
+	}
+
+	return err
+}
+
+func (d DelegationStateUpdate) Validate() error {
+	if err := ValidateBondState(d.State); err != nil {
+		return err
+	}
+
+	_, err := sdk.ValAddressFromBech32(d.ValAddr)
+	return err
 }

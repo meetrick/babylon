@@ -1,15 +1,17 @@
 package types
 
 import (
+	"errors"
 	"fmt"
+	time "time"
 
 	"cosmossdk.io/math"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	stktypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	asig "github.com/babylonlabs-io/babylon/crypto/schnorr-adaptor-signature"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	btcctypes "github.com/babylonlabs-io/babylon/x/btccheckpoint/types"
+	asig "github.com/babylonlabs-io/babylon/v3/crypto/schnorr-adaptor-signature"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	btclightclienttypes "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
 )
 
 func (fp *FinalityProvider) IsSlashed() bool {
@@ -18,6 +20,11 @@ func (fp *FinalityProvider) IsSlashed() bool {
 
 func (fp *FinalityProvider) IsJailed() bool {
 	return fp.Jailed
+}
+
+// Address returns the bech32 fp address
+func (fp *FinalityProvider) Address() sdk.AccAddress {
+	return sdk.MustAccAddressFromBech32(fp.Addr)
 }
 
 func (fp *FinalityProvider) ValidateBasic() error {
@@ -38,22 +45,46 @@ func (fp *FinalityProvider) ValidateBasic() error {
 		return fmt.Errorf("PoP is not valid: %w", err)
 	}
 
+	if err := validateDescription(fp.Description); err != nil {
+		return err
+	}
+
+	if fp.Commission == nil {
+		return fmt.Errorf("empty commission")
+	}
+
+	if fp.CommissionInfo == nil {
+		return fmt.Errorf("empty commission info")
+	}
+
+	if err := NewCommissionRates(
+		*fp.Commission,
+		fp.CommissionInfo.MaxRate,
+		fp.CommissionInfo.MaxChangeRate,
+	).Validate(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func ExistsDup(btcPKs []bbn.BIP340PubKey) bool {
+func ExistsDup(btcPKs []bbn.BIP340PubKey) (bool, error) {
 	seen := make(map[string]struct{})
 
 	for _, btcPK := range btcPKs {
+		if _, err := btcPK.ToBTCPK(); err != nil {
+			return false, err
+		}
+
 		pkStr := string(btcPK)
 		if _, found := seen[pkStr]; found {
-			return true
+			return true, nil
 		} else {
 			seen[pkStr] = struct{}{}
 		}
 	}
 
-	return false
+	return false, nil
 }
 
 func NewSignatureInfo(pk *bbn.BIP340PubKey, sig *bbn.BIP340Signature) *SignatureInfo {
@@ -106,14 +137,88 @@ func GetOrderedCovenantSignatures(fpIdx int, covSigsList []*CovenantAdaptorSigna
 	return orderedCovSigs, nil
 }
 
-// MinimumUnbondingTime returns the minimum unbonding time. It is the bigger value from:
-// - MinUnbondingTime
-// - CheckpointFinalizationTimeout
-func MinimumUnbondingTime(
-	stakingParams *Params,
-	checkpointingParams *btcctypes.Params) uint32 {
-	return math.Max[uint32](
-		stakingParams.MinUnbondingTimeBlocks,
-		checkpointingParams.CheckpointFinalizationTimeout,
-	)
+// NewLargestBtcReOrg creates a new Largest BTC reorg based on the rollback vars
+func NewLargestBtcReOrg(rollbackFrom, rollbackTo *btclightclienttypes.BTCHeaderInfo) LargestBtcReOrg {
+	return LargestBtcReOrg{
+		BlockDiff:    rollbackFrom.Height - rollbackTo.Height,
+		RollbackFrom: rollbackFrom,
+		RollbackTo:   rollbackTo,
+	}
+}
+
+func (lbr LargestBtcReOrg) Validate() error {
+	if lbr.RollbackFrom == nil {
+		return errors.New("rollback_from is nil")
+	}
+
+	if lbr.RollbackTo == nil {
+		return errors.New("rollback_to is nil")
+	}
+
+	if err := lbr.RollbackFrom.Validate(); err != nil {
+		return fmt.Errorf("error validating rollback_from: %w", err)
+	}
+
+	if err := lbr.RollbackTo.Validate(); err != nil {
+		return fmt.Errorf("error validating rollback_to: %w", err)
+	}
+
+	if lbr.RollbackFrom.Height <= lbr.RollbackTo.Height {
+		return fmt.Errorf("rollback_from height %d is lower or equal than rollback_to height %d", lbr.RollbackFrom.Height, lbr.RollbackTo.Height)
+	}
+
+	expectedBlockDiff := lbr.RollbackFrom.Height - lbr.RollbackTo.Height
+	if expectedBlockDiff != lbr.BlockDiff {
+		return fmt.Errorf("block_diff %d does not match the difference between rollback_from height %d and rollback_to height %d (expected %d)",
+			lbr.BlockDiff, lbr.RollbackFrom.Height, lbr.RollbackTo.Height, expectedBlockDiff)
+	}
+
+	return nil
+}
+
+// NewCommissionInfoWithTime returns an initialized finality provider commission info with a specified
+// update time which should be the current block BFT time.
+func NewCommissionInfoWithTime(maxRate, maxChangeRate math.LegacyDec, updatedAt time.Time) *CommissionInfo {
+	return &CommissionInfo{
+		MaxRate:       maxRate,
+		MaxChangeRate: maxChangeRate,
+		UpdateTime:    updatedAt,
+	}
+}
+
+// Validate performs basic sanity validation checks of initial commission
+// info parameters. If validation fails, an SDK error is returned.
+func (cr CommissionInfo) Validate() error {
+	switch {
+	case cr.MaxRate.IsNegative():
+		// max rate cannot be negative
+		return stktypes.ErrCommissionNegative
+
+	case cr.MaxRate.GT(math.LegacyOneDec()):
+		// max rate cannot be greater than 1
+		return stktypes.ErrCommissionHuge
+
+	case cr.MaxChangeRate.IsNegative():
+		// change rate cannot be negative
+		return stktypes.ErrCommissionChangeRateNegative
+
+	case cr.MaxChangeRate.GT(cr.MaxRate):
+		// change rate cannot be greater than the max rate
+		return stktypes.ErrCommissionChangeRateGTMaxRate
+	}
+
+	return nil
+}
+
+func validateDescription(d *stktypes.Description) error {
+	if d == nil {
+		return fmt.Errorf("empty description")
+	}
+	if len(d.Moniker) == 0 {
+		return fmt.Errorf("empty moniker")
+	}
+	if _, err := d.EnsureLength(); err != nil {
+		return err
+	}
+	return nil
 }

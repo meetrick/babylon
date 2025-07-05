@@ -15,7 +15,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
 )
 
 // adapted from https://github.com/cosmos/cosmos-sdk/blob/v0.50.6/baseapp/abci_utils_test.go
@@ -94,6 +94,7 @@ func (h *Helper) genAndApplyEmptyBlock() error {
 }
 
 func (h *Helper) ApplyEmptyBlockWithVoteExtension(r *rand.Rand) (sdk.Context, error) {
+	h.t.Helper()
 	emptyCtx := sdk.Context{}
 	if h.App.LastBlockHeight() == 0 {
 		if err := h.genAndApplyEmptyBlock(); err != nil {
@@ -128,15 +129,18 @@ func (h *Helper) ApplyEmptyBlockWithVoteExtension(r *rand.Rand) (sdk.Context, er
 		LastBlockID: cmttypes.BlockID{
 			Hash: datagen.GenRandomByteArray(r, 32),
 		},
+		Time: h.Ctx.BlockTime(),
 	}
 	h.Ctx = h.Ctx.WithHeaderInfo(header.Info{
 		Height: newHeader.Height,
 		Hash:   newHeader.Hash(),
+		Time:   newHeader.Time,
 	}).WithBlockHeader(*newHeader.ToProto()).WithCometInfo(cometInfo)
 
 	// 3. prepare proposal with previous BLS sigs
 	blockTxs := [][]byte{}
 	ppRes, err := h.App.PrepareProposal(&abci.RequestPrepareProposal{
+		MaxTxBytes:      10000,
 		LocalLastCommit: extendedCommitInfo,
 		Height:          newHeight,
 	})
@@ -165,6 +169,7 @@ func (h *Helper) ApplyEmptyBlockWithVoteExtension(r *rand.Rand) (sdk.Context, er
 		Height:             newHeader.Height,
 		NextValidatorsHash: newHeader.NextValidatorsHash,
 		Hash:               newHeader.Hash(),
+		Time:               h.Ctx.BlockTime(),
 	})
 	if err != nil {
 		return emptyCtx, err
@@ -174,6 +179,7 @@ func (h *Helper) ApplyEmptyBlockWithVoteExtension(r *rand.Rand) (sdk.Context, er
 	h.Ctx = h.Ctx.WithHeaderInfo(header.Info{
 		Height:  newHeader.Height,
 		AppHash: resp.AppHash,
+		Time:    h.Ctx.BlockTime(),
 	})
 
 	_, err = h.App.Commit()
@@ -227,6 +233,7 @@ func (h *Helper) ApplyEmptyBlockWithValSet(r *rand.Rand, valSetWithKeys *datagen
 	// 3. prepare proposal with previous BLS sigs
 	blockTxs := [][]byte{}
 	ppRes, err := h.App.PrepareProposal(&abci.RequestPrepareProposal{
+		MaxTxBytes:      10000,
 		LocalLastCommit: abci.ExtendedCommitInfo{Votes: extendedVotes},
 		Height:          newHeight,
 	})
@@ -328,6 +335,7 @@ func (h *Helper) ApplyEmptyBlockWithInvalidVoteExtensions(r *rand.Rand) (sdk.Con
 	// 3. prepare proposal with previous BLS sigs
 	blockTxs := [][]byte{}
 	ppRes, err := h.App.PrepareProposal(&abci.RequestPrepareProposal{
+		MaxTxBytes:      10000,
 		LocalLastCommit: extendedCommitInfo,
 		Height:          newHeight,
 	})
@@ -435,6 +443,7 @@ func (h *Helper) ApplyEmptyBlockWithSomeInvalidVoteExtensions(r *rand.Rand) (sdk
 	var blockTxs [][]byte
 
 	ppRes, err := h.App.PrepareProposal(&abci.RequestPrepareProposal{
+		MaxTxBytes:      10000,
 		LocalLastCommit: extendedCommitInfo,
 		Height:          newHeight,
 	})

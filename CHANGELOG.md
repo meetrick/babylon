@@ -31,53 +31,551 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 # Changelog
 
-## [Unreleased](https://github.com/babylonchain/babylon-private/tree/HEAD)
-
-[Full Changelog](https://github.com/babylonchain/babylon-private/compare/euphrates-0.2.0-rc.0...HEAD)
-
-
-## [euphrates-v0.2.0-rc.0](https://github.com/babylonchain/babylon-private/tree/euphrates-v0.2.0-rc.0) (2024-05-17)
-
-[Full Changelog](https://github.com/babylonchain/babylon-private/compare/euphrates-0.1.0-rc.1...euphrates-v0.2.0-rc.0)
-
-## [euphrates-0.1.0-rc.1](https://github.com/babylonchain/babylon-private/tree/euphrates-0.1.0-rc.1) (2024-03-25)
-
-[Full Changelog](https://github.com/babylonchain/babylon-private/compare/euphrates-0.1.0-rc.0...euphrates-0.1.0-rc.1)
-
-**Fixed bugs:**
-
-- Fix: only calculating Babylon FPs for FP set rotation (#223)
-
-## [euphrates-0.1.0-rc.0](https://github.com/babylonchain/babylon-private/tree/euphrates-0.1.0-rc.0) (2024-03-22)
-
-[Full Changelog](https://github.com/babylonchain/babylon-private/compare/v0.8.5...euphrates-0.1.0-rc.0)
-
-**Closed issues:**
-
-- handler for registering consumer chain finality providers [\#211](https://github.com/babylonchain/babylon-private/issues/211)
-- restaking support and tests [\#208](https://github.com/babylonchain/babylon-private/issues/208)
-- New module for BTC staking integration [\#204](https://github.com/babylonchain/babylon-private/issues/204)
-- Consumer chain finality provider registry [\#203](https://github.com/babylonchain/babylon-private/issues/203)
-
-## [v0.8.0](https://github.com/babylonchain/babylon/tree/v0.8.0) (2024-02-08)
+All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## Unreleased
 
+### Improvements
+
+- [#1285](https://github.com/babylonlabs-io/babylon/pull/1285) Optimize BTC header forwarding in `x/zoneconcierge` 
+by using `k` instead of `w` headers.
+- [#1273](https://github.com/babylonlabs-io/babylon/pull/1273) Deterministic iteration of maps in `x/zoneconcierge`.
+- [#1265](https://github.com/babylonlabs-io/babylon/pull/1265) Remove `ListEpochHeaders` and `QueryChainList` query.
+- [#1256](https://github.com/babylonlabs-io/babylon/pull/1256) remove query chains info request from `x/zoneconcierge` 
+- [#1222](https://github.com/babylonlabs-io/babylon/pull/1222) doc: revise zone concierge doc (round 1)
+- [#1234](https://github.com/babylonlabs-io/babylon/pull/1234) doc: revise zone concierge doc (round 2)
+- [#1015](https://github.com/babylonlabs-io/babylon/pull/1015) Add finality contract e2e tests follup-up.
+- [#970](https://github.com/babylonlabs-io/babylon/pull/970) Add finality contract e2e tests follup-up.
+- [#946](https://github.com/babylonlabs-io/babylon/pull/946) Add finality contract e2e tests follup-up.
+- [#945](https://github.com/babylonlabs-io/babylon/pull/945) Add finality contract e2e tests.
+- [#879](https://github.com/babylonlabs-io/babylon/pull/879) Add v2 e2e upgrade test.
+- [#869](https://github.com/babylonlabs-io/babylon/pull/869) Rename CZ to Consumer in btcstkconsumer and zoneconcierge.
+- [#837](https://github.com/babylonlabs-io/babylon/pull/837) Bump repository to v2.
+- [#675](https://github.com/babylonlabs-io/babylon/pull/675) Add no-retries option to babylon client send msg.
+- [#623](https://github.com/babylonlabs-io/babylon/pull/623) Add check for empty string in `bls` loading.
+- [#536](https://github.com/babylonlabs-io/babylon/pull/536) Improve protobuf vs. json error msgs / types
+- [#513](https://github.com/babylonlabs-io/babylon/pull/513) Suport datagen BTC delegation creation from Consumers
+- [#470](https://github.com/babylonlabs-io/babylon/pull/470) Return full consumer info and remove DB object
+usage in `x/btcstkconsumer` queries
+- [#391](https://github.com/babylonlabs-io/babylon/pull/391) Fix e2e `TestBTCRewardsDistribution` flunky
+check of rewards
+- [#480](https://github.com/babylonlabs-io/babylon/pull/480) Improve IBC packet structure
+- [#516](https://github.com/babylonlabs-io/babylon/pull/516) Add `HasGenesis` interface to `epoching` module
+- [#504](https://github.com/babylonlabs-io/babylon/pull/504) Add `btc-headers` IBC packet
+- [#575](https://github.com/babylonlabs-io/babylon/pull/575) Add `ConsumerId` field in `FinalityProviderResponse` in `x/btcstaking` module
+- [#624](https://github.com/babylonlabs-io/babylon/pull/624) Make keeper's collections private in `x/incentive` module
+- [#643](https://github.com/babylonlabs-io/babylon/pull/643) Fix flaky test `FuzzBTCDelegation`
+- [#696](https://github.com/babylonlabs-io/babylon/pull/696) Restore zoneconcierge queries in query client
+- [#822](https://github.com/babylonlabs-io/babylon/pull/822) chore: upgrade the make file: protobuf
+- [#831](https://github.com/babylonlabs-io/babylon/pull/831) Add `BtcConsumerDelegators` and `ConsumerEvents` to import/export genesis logic in `x/btcstaking` module
+- [#836](https://github.com/babylonlabs-io/babylon/pull/836) Add import/export genesis logic in `x/btcstakingconsumer` module
+- [#871](https://github.com/babylonlabs-io/babylon/pull/871) create `update-bls-password` cmd
+- [#887](https://github.com/babylonlabs-io/babylon/pull/887) Update init/export genesis logic in `x/zoneconcierge` module
+- [#927](https://github.com/babylonlabs-io/babylon/pull/927) Add Mergify configuration file to improve PR backporting.
+- [#924](https://github.com/babylonlabs-io/babylon/pull/924) Improve BLS file check order in related commands
+- [#926](https://github.com/babylonlabs-io/babylon/pull/926) Update genesis initialization validations.
+- [#933](https://github.com/babylonlabs-io/babylon/pull/933) Update repository version to `v4`.
+- [#935](https://github.com/babylonlabs-io/babylon/pull/935) Add `release/v4` branch to docker publish workflow.
+- [#943](https://github.com/babylonlabs-io/babylon/pull/943) Adds consumer event in `x/btcstakingconsumer` module
+- [#955](https://github.com/babylonlabs-io/babylon/pull/955) Update Mergify rules
+- [#967](https://github.com/babylonlabs-io/babylon/pull/967) Add `ValidateBasic` in `MsgInsertBTCSpvProof` (`x/btccheckpoint`)
+- [#969](https://github.com/babylonlabs-io/babylon/pull/969) Add `ValidateBasic` to `MsgSelectiveSlashingEvidence` in `x/btcstaking` module
+- [#974](https://github.com/babylonlabs-io/babylon/pull/974) Update Mergify rules for automatic backport changes to `v2`, `v3` and `v4`
+- [#977](https://github.com/babylonlabs-io/babylon/pull/977) Update `ValidateBasic` in `x/finality` module messages
+- [#988](https://github.com/babylonlabs-io/babylon/pull/988) Fix flaky e2e ibc test
+`TestIBCTransferSuite`
+- [#1000](https://github.com/babylonlabs-io/babylon/pull/1000) Add multi-staking replay test
+- [#1028](https://github.com/babylonlabs-io/babylon/pull/1028) Bump ibc-go to `v10` and wire up IBC `v2`.
+- [#702](https://github.com/babylonlabs-io/babylon/pull/702) Add test for small rewards in fee collector
+- [#1040](https://github.com/babylonlabs-io/babylon/pull/1040) Rename ETH L2 to rollup
+- [#1195](https://github.com/babylonlabs-io/babylon/pull/1195) Update repository version to `v3`.
+- [#1060](https://github.com/babylonlabs-io/babylon/pull/1060) Optimize `PubRandCommit` lookup in `x/finality` module
+- [#1223](https://github.com/babylonlabs-io/babylon/pull/1223) Bump Cosmos SDK to `v0.53.0`
+- [#1229](https://github.com/babylonlabs-io/babylon/pull/1229) Wire up EVM.
+- [#1269](https://github.com/babylonlabs-io/babylon/pull/1269) Add fee collector e2e tests.
+- [#1062](https://github.com/babylonlabs-io/babylon/pull/1062) Add `anteHandler` to avoid fee grants on refundable tx (`x/incentive`)
+
+### State Machine Breaking
+
+- [#1271](https://github.com/babylonlabs-io/babylon/pull/1271) Add equivocation e2e test for rollup BSN.
+- [#402](https://github.com/babylonlabs-io/babylon/pull/402) **Babylon multi-staking support**.
+This PR contains a series of PRs on multi-staking support and BTC staking integration.
+- [#847](https://github.com/babylonlabs-io/babylon/pull/847) Add ibc callbacks to
+transfer stack
+- [#877](https://github.com/babylonlabs-io/babylon/pull/877) fix: BTC reward tracker are stored as events and updated only
+when the babylon block is being BTC rewarded.
+
+### Bug fixes
+
+- [#796](https://github.com/babylonlabs-io/babylon/pull/796) fix: goreleaser add `mainnet` build flag to generated binary
+- [#741](https://github.com/babylonlabs-io/babylon/pull/741) chore: fix register consumer CLI
+- [#525](https://github.com/babylonlabs-io/babylon/pull/525) fix: add back `NewIBCHeaderDecorator` post handler
+- [#964](https://github.com/babylonlabs-io/babylon/pull/964) fix: stateless validation `ValidateBasic` of
+`MsgWrappedCreateValidator` to avoid panic in transaction submission
+- [#1247](https://github.com/babylonlabs-io/babylon/pull/1247) fix: zoneconcierge ibc router
+- [#1252](https://github.com/babylonlabs-io/babylon/pull/1252) Implement context separation
+between different signing operations
+
+## v2.2.0
+
+### Improvements
+
+- [GHSA-56j4-446m-qrf6](https://github.com/babylonlabs-io/babylon-ghsa-56j4-446m-qrf6/pull/1) Add bank restriction for fee collector account
+
+## v2.1.0
+
+- [#1244](https://github.com/babylonlabs-io/babylon/pull/1244) fix: remove staking module from app end blocker order
+
+## v2.0.0
+
+- [#1226](https://github.com/babylonlabs-io/babylon/pull/1226) chore: Revert goreleaser to use musl
+
+## v2.0.0-rc.4
+
+### Improvements
+
+- [#1191](https://github.com/babylonlabs-io/babylon/pull/1191) fix: update fp commission
+- [#1109](https://github.com/babylonlabs-io/babylon/pull/1109) Use glibc for goreleaser
+- [#1197](https://github.com/babylonlabs-io/babylon/pull/1197) fix: add validate of bad unbonding fee in btcstaking params.
+- [#1211](https://github.com/babylonlabs-io/babylon/pull/1211) Update upgrade handler name to v2rc4
+
+### State Machine Breaking
+
+- [#1207](https://github.com/babylonlabs-io/babylon/pull/1207) Update wasmd to [v0.54.1](https://github.com/CosmWasm/wasmd/releases/tag/v0.54.1)
+
+### Bug fixes
+
+- [#1196](https://github.com/babylonlabs-io/babylon/pull/1196) fix: add pagination in `QueryBlsPublicKeyListRequest`.
+
+## v2.0.0-rc.3
+
+### Improvements
+
+- [#1065](https://github.com/babylonlabs-io/babylon/pull/1065) Add check for period of current rewards to be larger than zero.
+- [#1128](https://github.com/babylonlabs-io/babylon/pull/1128) Validate genesis fp historic reward entries.
+- [#1064](https://github.com/babylonlabs-io/babylon/pull/1064) Signing info validation for `StartHeight` and `MissedBlockCounter`.
+- [#1034](https://github.com/babylonlabs-io/babylon/pull/1034) Remove redundant `ValidateBasic` call in `x/btcstaking` message server
+- [#1036](https://github.com/babylonlabs-io/babylon/pull/1036) Remove token factory `enable_admin_sudo_mint` capability
+- [#1046](https://github.com/babylonlabs-io/babylon/pull/1046) Update genesis & validations `x/btcstaking` module
+- [#1050](https://github.com/babylonlabs-io/babylon/pull/1050) Add query to get btc delegations at specific block height
+- [#1061](https://github.com/babylonlabs-io/babylon/pull/1061) Add size and hex decode in
+`RefundableMsgHashes` validate genesis
+- [#1071](https://github.com/babylonlabs-io/babylon/pull/1071) Update `FinalityProviderDistInfo` validations
+- [#1069](https://github.com/babylonlabs-io/babylon/pull/1069) Add validation on the txkey in btcstaking
+- [#1070](https://github.com/babylonlabs-io/babylon/pull/1070) fix: validation for vp dist cache
+- [#1078](https://github.com/babylonlabs-io/babylon/pull/1078) fix: enforce check ibc msg size in `finalizeBlockState`
+- [#1082](https://github.com/babylonlabs-io/babylon/pull/1082) chore: val sequential epoch
+- [#1083](https://github.com/babylonlabs-io/babylon/pull/1083) Check if `WithdrawAddress` is a blocked address in `SetWithdrawAddress`
+- [#1084](https://github.com/babylonlabs-io/babylon/pull/1084) Check for negative amount in `TotalActiveSat` in `subFinalityProviderStaked`
+- [#1085](https://github.com/babylonlabs-io/babylon/pull/1085) Update comment in `SetRewardTrackerEvent` function
+- [#1089](https://github.com/babylonlabs-io/babylon/pull/1089) chore: validate block diff
+- [#1096](https://github.com/babylonlabs-io/babylon/pull/1096) chore: validate stats positive
+- [#1097](https://github.com/babylonlabs-io/babylon/pull/1097) Update `Evidence.ValidateBasic` function
+- [#1098](https://github.com/babylonlabs-io/babylon/pull/1098) Support `HasValidateBasic` interface in `ValidateEntries` function
+- [#1102](https://github.com/babylonlabs-io/babylon/pull/1102) Handle empty `BTCStakingGauge` when no fees are intercepted
+- [#1118](https://github.com/babylonlabs-io/babylon/pull/1118) Update `RawCheckpointWithMeta` and `BlsMultiSig` validations
+- [#1126](https://github.com/babylonlabs-io/babylon/pull/1126) chore: add bls key validation
+- [#1135](https://github.com/babylonlabs-io/babylon/pull/1135) Add validation to `LastProcessedHeightEventRewardTracker` on `InitGenesis`
+- [#1136](https://github.com/babylonlabs-io/babylon/pull/1136) Fix `SubmissionEntry` duplicate validation in `InitGenesis`
+- [#1147](https://github.com/babylonlabs-io/babylon/pull/1147) chore: vp dist cache count active fps
+- [#1151](https://github.com/babylonlabs-io/babylon/pull/1151) Add whitelisted channels to add rate limit in `v2` upgrade.
+- [#1152](https://github.com/babylonlabs-io/babylon/pull/1152) chore: validate power non negative.
+- [#1168](https://github.com/babylonlabs-io/babylon/pull/1168) chore: removed duplicated addr len check in `SetAddressVerifier`.
+- [#1171](https://github.com/babylonlabs-io/babylon/pull/1171) chore: add validation of `DelegationLifecycle`.
+- [#1174](https://github.com/babylonlabs-io/babylon/pull/1174) chore: reduced ibc `MaxAddressSize` to max value of bech 32 addr (90).
+- [#1181](https://github.com/babylonlabs-io/babylon/pull/1181) Update upgrade handler name to v2rc3
+
+### State Machine Breaking
+
+- [#1146](https://github.com/babylonlabs-io/babylon/pull/1146) Remove deprecated `x/crisis` module.
+
+## v2.0.0-rc.2
+
+### Improvements
+
+- [#981](https://github.com/babylonlabs-io/babylon/pull/981) Set IBC rate limit for `ubbn` to 10%
+- [#1013](https://github.com/babylonlabs-io/babylon/pull/1013) Update to ibc rate limit `v8.1.0`
+- [#1018](https://github.com/babylonlabs-io/babylon/pull/1018) Improve genesis validations in `x/mint` and `x/btccheckpoint`
+- [#1030](https://github.com/babylonlabs-io/babylon/pull/1030) Update upgrade handler name to v2rc2
+
+## v2.0.0-rc.1
+
+### Improvements
+
+- [#931](https://github.com/babylonlabs-io/babylon/pull/931) Add darwin and linux-arm64 build
+- [#992](https://github.com/babylonlabs-io/babylon/pull/992) Add checks for bad halting height in `HandleResumeFinalityProposal`
+- [#993](https://github.com/babylonlabs-io/babylon/pull/993) Remove async-icq
+  module.
+
+### State Machine Breaking
+
+- [#947](https://github.com/babylonlabs-io/babylon/pull/947) Improve signing info update upon fp activated
+- [#994](https://github.com/babylonlabs-io/babylon/pull/994) Soft fork ibcratelimit to call `BeginBlock`
+
+## v2.0.0-rc.0
+
+### Improvements
+
+- [#850](https://github.com/babylonlabs-io/babylon/pull/850) Add BLS improvement including permission and verification
+- [#841](https://github.com/babylonlabs-io/babylon/pull/841) chore: upgrade the make file: release
+- [#909](https://github.com/babylonlabs-io/babylon/pull/909) Update tokenfactory upgrade fee params to `ubbn`.
+- [#884](https://github.com/babylonlabs-io/babylon/pull/884) Bump tokenfactory version to v0.50.6
+- [#846](https://github.com/babylonlabs-io/babylon/pull/846) Add tokenfactory module.
+- [#821](https://github.com/babylonlabs-io/babylon/pull/821) Add import/export genesis logic in `x/btccheckpoint` module
+- [#828](https://github.com/babylonlabs-io/babylon/pull/828) Add `AllowedStakingTxHashes` and `LargetsBTCReorg` to import/export genesis logic in `x/btcstaking` module
+- [#840](https://github.com/babylonlabs-io/babylon/pull/840) Add import/export genesis logic in `x/checkpointing` module
+- [#843](https://github.com/babylonlabs-io/babylon/pull/843) Add import/export genesis logic in `x/epoching` module
+- [#859](https://github.com/babylonlabs-io/babylon/pull/859) Update init/export genesis logic in `x/finality` module
+- [#876](https://github.com/babylonlabs-io/babylon/pull/876) Add Packet Forwarding Middleware (PFM) module.
+- [#881](https://github.com/babylonlabs-io/babylon/pull/881) Update init/export genesis logic in `x/mint` module
+- [#883](https://github.com/babylonlabs-io/babylon/pull/883) Update init/export genesis logic in `x/monitor` module
+- [#897](https://github.com/babylonlabs-io/babylon/pull/897) Add Interchain Accounts (ICA) and Interchain Queries (ICQ) modules.
+- [#902](https://github.com/babylonlabs-io/babylon/pull/902) Add IBC rate limiter to IBC transfer module
+- [#913](https://github.com/babylonlabs-io/babylon/pull/913) Remove IBC-fee module.
+
+### State Machine Breaking
+
+- [#877](https://github.com/babylonlabs-io/babylon/pull/877) fix: BTC reward tracker are stored as events and updated only
+when the babylon block is being BTC rewarded.
+- [#847](https://github.com/babylonlabs-io/babylon/pull/847) Add ibc callbacks to
+transfer stack
+
+## v1.1.0
+
+### Bug fixes
+
+- [#860](https://github.com/babylonlabs-io/babylon/pull/860) fix: ensure active fps have signing info after finality resumption proposal.
+- [#842](https://github.com/babylonlabs-io/babylon/pull/842) fix: Properly wire `btclightclient` hook for
+`btcstaking` to panic in case of a BTC reorg larger than `BtcConfirmationDepth`.
+- [#829](https://github.com/babylonlabs-io/babylon/pull/829) fix: add checks for slashed fp in gov resume finality.
+- [#905](https://github.com/babylonlabs-io/babylon/pull/905) Add `ValidateBasic` for `CommitPubRandList`
+- [#906](https://github.com/babylonlabs-io/babylon/pull/906) Add distribution bank wrapper.
+
+## v1.0.2
+
+- [#802](https://github.com/babylonlabs-io/babylon/pull/802) fix: clean up resources allocated by TmpAppOptions
+- [#805](https://github.com/babylonlabs-io/babylon/pull/805) chore: upgrade the make file: linting
+- [#816](https://github.com/babylonlabs-io/babylon/pull/816) chore: upgrade the make file: gosec
+
+## v1.0.1
+
+### Bug fixes
+
+- [#793](https://github.com/babylonlabs-io/babylon/pull/793) fix: BLS key will be overwritten when the password is not retrieved
+
+## v1.0.0
+
+## v1.0.0-rc11
+
+### Bug fixes
+
+- [#780](https://github.com/babylonlabs-io/babylon/pull/780) crypto: remove Verify for ECDSA
+
+## v1.0.0-rc10
+
+### Improvements
+
+- [#761](https://github.com/babylonlabs-io/babylon/pull/746) Add mainnet allowed transaction hash to v1 upgrade handler.
+- [#760](https://github.com/babylonlabs-io/babylon/pull/760) Add mainnet BTC headers
+height from `854785` to `890123`.
+- [#757](https://github.com/babylonlabs-io/babylon/pull/757) Statically link wasm and add binaries
+with [`testnet`, `mainnet`] flags to release assets.
+- [#746](https://github.com/babylonlabs-io/babylon/pull/746) Add mainnet parameters to v1 upgrade handler.
+
+## v1.0.0-rc9
+
+### Improvements
+
+- [#749](https://github.com/babylonlabs-io/babylon/pull/749) Upgrade handler for `v1rc9`
+
+### State Machine Breaking
+
+- [#745](https://github.com/babylonlabs-io/babylon/pull/745) Hard limit of the number of finalized
+and rewarded blocks
+
+### Bug fixes
+
+- [#748](https://github.com/babylonlabs-io/babylon/pull/748) fix: gov resume finality, index block before tally.
+- [#731](https://github.com/babylonlabs-io/babylon/pull/731) chore: fix block timeout in Babylon client
+
+## v1.0.0-rc8
+
+### API Breaking
+
+- [#690](https://github.com/babylonlabs-io/babylon/pull/690) Add new BLS password flow which includes env variable.
+- [#682](https://github.com/babylonlabs-io/babylon/pull/682) Avoid creating pop in `babylond tx checkpointing create-validator`
+
+### Bug fixes
+
+- [#657](https://github.com/babylonlabs-io/babylon/pull/657) crypto: fix adaptor sig timing side channels
+- [#656](https://github.com/babylonlabs-io/babylon/pull/656) crypto: fix adaptor sig validity and typos
+- [#658](https://github.com/babylonlabs-io/babylon/pull/658) crypto: check if Z==1 in ToBTCPK
+- [#667](https://github.com/babylonlabs-io/babylon/pull/667) crypto: enable groupcheck in BLS verification/aggregation
+- [#680](https://github.com/babylonlabs-io/babylon/pull/680) crypto: fix bls rogue attack
+- [#673](https://github.com/babylonlabs-io/babylon/pull/673) fix: move bip322 signing functions to `testutil`
+- [#683](https://github.com/babylonlabs-io/babylon/pull/683) crypto: fix eots signing timing attack
+- [#691](https://github.com/babylonlabs-io/babylon/pull/691) crypto: fix eots missing normalization in use of secp256k1.FieldVal
+- [#671](https://github.com/babylonlabs-io/babylon/pull/671) crypto: align adaptor sig impl with Blockstream spec
+- [#705](https://github.com/babylonlabs-io/babylon/pull/705) Add bls key length validation from the ERC-2335 keystore
+- [#712](https://github.com/babylonlabs-io/babylon/pull/712) fix: remove exponentially events emission at processing queued msgs at the end epoch.
+
+### Improvements
+
+- [#701](https://github.com/babylonlabs-io/babylon/pull/701) Update upgrade name to `v1rc8`
+- [#687](https://github.com/babylonlabs-io/babylon/pull/687) Add details to btc-reorg runbook.
+- [#655](https://github.com/babylonlabs-io/babylon/pull/655) Add func `ParseV0StakingTxWithoutTag` to
+parse staking tx without verifying opreturn tag.
+- [#666](https://github.com/babylonlabs-io/babylon/pull/666) Upgrade to wasmvm v2.2.3.
+- [#668](https://github.com/babylonlabs-io/babylon/pull/668) Remove unused unsafe key gen functions
+- [#676](https://github.com/babylonlabs-io/babylon/pull/676) Bump IBC-go to `v8.7.0`
+- [#644](https://github.com/babylonlabs-io/babylon/pull/644) Add priority nonce mempool and transaction priority ante handler decorator
+- [#693](https://github.com/babylonlabs-io/babylon/pull/693) chore: use timeout from config in bbn client
+- [#660](https://github.com/babylonlabs-io/babylon/pull/660) add function to recover pub key from sig
+- [#625](https://github.com/babylonlabs-io/babylon/pull/625) add tx gas limit decorator and local mempool config
+
+### State breaking
+
+- [#697](https://github.com/babylonlabs-io/babylon/pull/697) Update BIP322 PoP and
+ECDSA Pop to sign bech32 encoded cosmos address
+- [#695](https://github.com/babylonlabs-io/babylon/pull/695) Improve checkpoint panicking behavior
+
+## v1.0.0-rc7
+
+### Improvements
+
+- [#648](https://github.com/babylonlabs-io/babylon/pull/648) Add query to get all parameters
+from `x/btcstaking` module.
+- [#544](https://github.com/babylonlabs-io/babylon/pull/544) Add `bls-config` to `app.toml` for custom bls key location.
+- [#558](https://github.com/babylonlabs-io/babylon/pull/558) Change BLS public key format from hex to base64 in bls_key.json.
+- [#466](https://github.com/babylonlabs-io/babylon/pull/466) Add e2e test to
+- [#519](https://github.com/babylonlabs-io/babylon/pull/519) Add missing data in `InitGenesis` and `ExportGenesis` in `x/incentive` module
+block bank send and still create BTC delegations
+- [#538](https://github.com/babylonlabs-io/babylon/pull/538) Upgrade to wasmd v0.54.x and wasmvm v2.2.x
+- [#527](https://github.com/babylonlabs-io/babylon/pull/527) Create BSL signer on start command with flags.
+- [#554](https://github.com/babylonlabs-io/babylon/pull/554) Improve vote extension logs
+- [#566](https://github.com/babylonlabs-io/babylon/pull/566) Remove float values in `BeforeValidatorSlashed` hook in `x/epoching` module
+- [#542](https://github.com/babylonlabs-io/babylon/pull/542) Add missing data in `InitGenesis` and `ExportGenesis` in `x/incentive` module (follow up of [#519](https://github.com/babylonlabs-io/babylon/pull/519))
+- [#589](https://github.com/babylonlabs-io/babylon/pull/589) Rename `btc_delegation` stakeholder type to `btc_staker` in `x/incentive` module
+- [#590](https://github.com/babylonlabs-io/babylon/pull/590) Add `DelegationRewards` query in `x/incentive` module
+- [#633](https://github.com/babylonlabs-io/babylon/pull/633) Fix swagger
+
+### State Machine Breaking
+
+- [#518](https://github.com/babylonlabs-io/babylon/pull/518) Add check BTC reorg blocks higher than `k` deep
+- [#530](https://github.com/babylonlabs-io/babylon/pull/530) Add `ConflictingCheckpointReceived` flag in `x/checkpointing` module.
+- [#537](https://github.com/babylonlabs-io/babylon/pull/537) Add `CommissionRates` type to `MsgCreateFinalityProvider` and commission validation to `EditFinalityProvider` in `x/btcstaking` module
+- [#567](https://github.com/babylonlabs-io/babylon/pull/567) Add check for height overflow in `CommitPubRandList` in `x/finality` module
+- [#620](https://github.com/babylonlabs-io/babylon/pull/620) fix: Incorrect set of JailUntil after unjailing
+
+### Bug fixes
+
+- [#539](https://github.com/babylonlabs-io/babylon/pull/539) fix: add missing `x/checkpointing` hooks
+invocation
+- [#591](https://github.com/babylonlabs-io/babylon/pull/591) bump ibc to v8.6.1 that fixes security issue
+- [#579](https://github.com/babylonlabs-io/babylon/pull/579) Slashed FP gets activated in voting power distribution
+cache if an old BTC delegation receives inclusion proof
+- [#592](https://github.com/babylonlabs-io/babylon/pull/592) finality: avoid refunding finality signatures over forks
+- [#563](https://github.com/babylonlabs-io/babylon/pull/563) reject coinbase staking transactions
+- [#584](https://github.com/babylonlabs-io/babylon/pull/584) fix: Panic can be triggered in handling liveness
+- [#585](https://github.com/babylonlabs-io/babylon/pull/585) fix: Proposal vote extensions' byte limit
+- [#594](https://github.com/babylonlabs-io/babylon/pull/594) Refund tx to correct recipient
+- [#599](https://github.com/babylonlabs-io/babylon/pull/599) check staker signature in `BTCUndelegate`
+- [#631](https://github.com/babylonlabs-io/babylon/pull/631) Ignore expired events
+if delegation was never activated
+- [#629](https://github.com/babylonlabs-io/babylon/pull/629) Allow OP_RETURN as slashing output
+- [#597](https://github.com/babylonlabs-io/babylon/pull/597) fix: Expired and Unbonding delegation
+in the same BTC block could lead to a panic and chain halt
+- [#647](https://github.com/babylonlabs-io/babylon/pull/647) Ignore unbonding event
+if delegation did not have covenant quorum
+
+## v1.0.0-rc6
+
+### Improvements
+
+- [#508](https://github.com/babylonlabs-io/babylon/pull/508) Move PoP constructor functiosn to datagen/
+- [#499](https://github.com/babylonlabs-io/babylon/pull/499) Add `params-by-version` CLI command
+- [#515](https://github.com/babylonlabs-io/babylon/pull/515) Add `staker_addr` to `EventBTCDelegationCreated`
+- [#458](https://github.com/babylonlabs-io/babylon/pull/458) Set `CosmosProvider` functions as public in
+`babylonclient` package
+
+### Bug fixes
+
+- [#509](https://github.com/babylonlabs-io/babylon/pull/509) crypto: fix ECDSA malleability
+- [#486](https://github.com/babylonlabs-io/babylon/pull/486) crypto: blinding base mult of nonce
+- [#443](https://github.com/babylonlabs-io/babylon/pull/443) Fix swagger generation for incentive missing `v1` in path
+- [#505](https://github.com/babylonlabs-io/babylon/pull/505) Fix `x/btcstaking`
+delegation queries
+
+## v1.0.0-rc5
+
+### Improvements
+
+- [#467](https://github.com/babylonlabs-io/babylon/pull/467) BLS keystore improvement
+- [#483](https://github.com/babylonlabs-io/babylon/pull/483) Upgrade wasmd and wasmvm to latest
+versions (related to security advisories CWA-2025-001 and CWA-2025-002)
+- [#464](https://github.com/babylonlabs-io/babylon/pull/464) Update security email. Fix site / repository refs
+- [#421](https://github.com/babylonlabs-io/babylon/pull/421) Add checks to public
+randomness commit at `TestBTCRewardsDistribution`.
+- [#445](https://github.com/babylonlabs-io/babylon/pull/445) Reject BTC headers
+forks starting with already known header
+- [#457](https://github.com/babylonlabs-io/babylon/pull/457)  Remove staking msg
+server and update gentx to generate `MsgWrappedCreateValidator`
+- [#473](https://github.com/babylonlabs-io/babylon/pull/473) Fix checkpoint status transition
+from `Finalized` to `Forgotten`
+- [#476](https://github.com/babylonlabs-io/babylon/pull/476) Bump cometbft to `v0.38.17`
+- [#491](https://github.com/babylonlabs-io/babylon/pull/491) Allow slashing rate
+to have 4 decimal places
+- [#488](https://github.com/babylonlabs-io/babylon/pull/488) Fix duplicate BLS key registration in testnet command
+- [#493](https://github.com/babylonlabs-io/babylon/pull/493) Add v1rc5 testnet
+upgrade handler
+
+## v1.0.0-rc4
+
+### Improvements
+
+- [#419](https://github.com/babylonlabs-io/babylon/pull/419) Add new modules to swagger config
+- [#429](https://github.com/babylonlabs-io/babylon/pull/429) chore: remove cosmos/relayer dependency
+
+### Bug fixes
+
+- [#353](https://github.com/babylonlabs-io/babylon/pull/353) Bump to SDK
+  0.50.11
+- [#404](https://github.com/babylonlabs-io/babylon/pull/404) Improve adaptor
+signature nonce generation to match reference implementation
+- [#413](https://github.com/babylonlabs-io/babylon/pull/413) Fix adaptor
+signature R verification
+- [#441](https://github.com/babylonlabs-io/babylon/pull/441) Fix fuzzing test for
+`CreateBTCDelegationWithParamsFromBtcHeight`
+
+## v1.0.0-rc3
+
+### Bug fixes
+
+- [#374](https://github.com/babylonlabs-io/babylon/pull/374) Fix non-consecutive finalization
+of the block in `TallyBlocks` function
+- [#378](https://github.com/babylonlabs-io/babylon/pull/378) Fix give out rewards
+with gaps of unfinalized blocks
+- [#385](https://github.com/babylonlabs-io/babylon/pull/385) Fix epoching module
+ante handler to return from antehandler chain only in case of error
+
+## v1.0.0-rc2
+
+### Bug fixes
+
+- [#371](https://github.com/babylonlabs-io/babylon/pull/371) Do not prune BTC
+reward tracker structures at the slash of finality provider.
+
+## v1.0.0-rc.1
+
+### Improvements
+
+- [#306](https://github.com/babylonlabs-io/babylon/pull/306) feat: improve BTC reward distribution with
+virtual block periods for each finality provider that has delegations and reward tracker structures.
+- [#338](https://github.com/babylonlabs-io/babylon/pull/338) Add print BIP-340 in
+`debug pubkey-raw` subcommand
+- [#316](https://github.com/babylonlabs-io/babylon/pull/316) Add testnet upgrade data
+- [#326](https://github.com/babylonlabs-io/babylon/pull/326) docs: btcstaking:
+Update btcstaking module docs to include EOI
+- [#348](https://github.com/babylonlabs-io/babylon/pull/348) refactory `PrivateSigner`
+and module account vars in appparams
+- [#351](https://github.com/babylonlabs-io/babylon/pull/351) docs: Add state
+transition docs.
+- [#358](https://github.com/babylonlabs-io/babylon/pull/358) Remove unused deps in `.proto` files
+- [#364](https://github.com/babylonlabs-io/babylon/pull/364) Add testnet upgrade data
+
+### Bug fixes
+
+- [#324](https://github.com/babylonlabs-io/babylon/pull/324) Fix decrementing
+jailed fp counter
+- [#352](https://github.com/babylonlabs-io/babylon/pull/352) Fix: withdrawal cli
+for rewards
+
+### State Machine Breaking
+
+- [#341](https://github.com/babylonlabs-io/babylon/pull/341) Select parameters
+for pre-approval flow based on BTC LC tip height
+- [#360](https://github.com/babylonlabs-io/babylon/pull/360) Refactor rewarding
+- [#365](https://github.com/babylonlabs-io/babylon/pull/365) Reject outdated finality votes
+
+## v0.18.2
+
+### Bug fixes
+
+- [#342](https://github.com/babylonlabs-io/babylon/pull/342) Fix non-determinism while jailing
+
+## v0.18.1
+
+- [#328](https://github.com/babylonlabs-io/babylon/pull/328) Fix btc activation height validation in genesis
+
+## v0.18.0
+
+### Improvements
+
+- [#309](https://github.com/babylonlabs-io/babylon/pull/309) feat(adr-036): custom withdrawal address
+- [#305](https://github.com/babylonlabs-io/babylon/pull/305) chore: add more error logs to `VerifyInclusionProofAndGetHeight`
+- [#304](https://github.com/babylonlabs-io/babylon/pull/304) Add highest voted height to finality provider
+- [#314](https://github.com/babylonlabs-io/babylon/pull/314) Require exact unbonding time in delegation
+- [#317](https://github.com/babylonlabs-io/babylon/pull/317) Enforce that EOI
+delegations using correct parameters version
+
+### State Machine Breaking
+
+- [#310](https://github.com/babylonlabs-io/babylon/pull/310) implement adr-37 -
+making params valid for btc light client ranges
+
+### Bug fixes
+
+- [#318](https://github.com/babylonlabs-io/babylon/pull/318) Fix BTC delegation status check
+to relay on UnbondingTime in delegation
+
+## v0.17.2
+
+### Improvements
+
+- [#311](https://github.com/babylonlabs-io/babylon/pull/311) Enforce version 2
+for unbonding transactions
+
+## v0.17.1
+
+### Bug fixes
+
+- [#289](https://github.com/babylonlabs-io/babylon/pull/289) hotfix: Invalid minUnbondingTime for verifying inclusion proof
+
+## v0.17.0
+
+### State Breaking
+
+- [278](https://github.com/babylonlabs-io/babylon/pull/278) Allow unbonding time to be min unbonding value
+
+### Improvements
+
+- [#264](https://github.com/babylonlabs-io/babylon/pull/264) bump docker workflow
+version to 0.10.2, fix some Dockerfile issues
+- [#284](https://github.com/babylonlabs-io/babylon/pull/284) Update cosmos sdk math dependency
+- [#285](https://github.com/babylonlabs-io/babylon/pull/285) Update cometbft dependency
+version
 
 ### Bug fixes
 
 - [#270](https://github.com/babylonlabs-io/babylon/pull/270) Validate there is only
 one finality provider key in the staking request
+- [#270](https://github.com/babylonlabs-io/babylon/pull/277) Panic due to possible
+nil params response
+
+## v0.16.1
 
 ### API Breaking
 
 - [#273](https://github.com/babylonlabs-io/babylon/pull/273) Add full staking tx to BTC delegation creation event
+
 ## v0.16.0
 
 ### Improvements
 
+* [#242](https://github.com/babylonlabs-io/babylon/pull/242) Add
+ResumeFinalityProposal and handler
 * [#258](https://github.com/babylonlabs-io/babylon/pull/258) fix go releaser
 and trigger by github action
 * [#252](https://github.com/babylonlabs-io/babylon/pull/252) Fix

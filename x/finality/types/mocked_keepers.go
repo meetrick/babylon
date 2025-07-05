@@ -8,9 +8,9 @@ import (
 	context "context"
 	reflect "reflect"
 
-	types "github.com/babylonlabs-io/babylon/types"
-	types0 "github.com/babylonlabs-io/babylon/x/btcstaking/types"
-	types1 "github.com/babylonlabs-io/babylon/x/epoching/types"
+	types "github.com/babylonlabs-io/babylon/v3/types"
+	types0 "github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
+	types1 "github.com/babylonlabs-io/babylon/v3/x/epoching/types"
 	types2 "github.com/cosmos/cosmos-sdk/types"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -136,6 +136,20 @@ func (mr *MockBTCStakingKeeperMockRecorder) GetParams(ctx interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetParams", reflect.TypeOf((*MockBTCStakingKeeper)(nil).GetParams), ctx)
 }
 
+// GetParamsByVersion mocks base method.
+func (m *MockBTCStakingKeeper) GetParamsByVersion(ctx context.Context, v uint32) *types0.Params {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetParamsByVersion", ctx, v)
+	ret0, _ := ret[0].(*types0.Params)
+	return ret0
+}
+
+// GetParamsByVersion indicates an expected call of GetParamsByVersion.
+func (mr *MockBTCStakingKeeperMockRecorder) GetParamsByVersion(ctx, v interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetParamsByVersion", reflect.TypeOf((*MockBTCStakingKeeper)(nil).GetParamsByVersion), ctx, v)
+}
+
 // HasFinalityProvider mocks base method.
 func (m *MockBTCStakingKeeper) HasFinalityProvider(ctx context.Context, fpBTCPK []byte) bool {
 	m.ctrl.T.Helper()
@@ -206,6 +220,20 @@ func (mr *MockBTCStakingKeeperMockRecorder) UnjailFinalityProvider(ctx, fpBTCPK 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnjailFinalityProvider", reflect.TypeOf((*MockBTCStakingKeeper)(nil).UnjailFinalityProvider), ctx, fpBTCPK)
 }
 
+// UpdateFinalityProvider mocks base method.
+func (m *MockBTCStakingKeeper) UpdateFinalityProvider(ctx context.Context, fp *types0.FinalityProvider) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateFinalityProvider", ctx, fp)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateFinalityProvider indicates an expected call of UpdateFinalityProvider.
+func (mr *MockBTCStakingKeeperMockRecorder) UpdateFinalityProvider(ctx, fp interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateFinalityProvider", reflect.TypeOf((*MockBTCStakingKeeper)(nil).UpdateFinalityProvider), ctx, fp)
+}
+
 // MockCheckpointingKeeper is a mock of CheckpointingKeeper interface.
 type MockCheckpointingKeeper struct {
 	ctrl     *gomock.Controller
@@ -241,6 +269,20 @@ func (m *MockCheckpointingKeeper) GetEpoch(ctx context.Context) *types1.Epoch {
 func (mr *MockCheckpointingKeeperMockRecorder) GetEpoch(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpoch", reflect.TypeOf((*MockCheckpointingKeeper)(nil).GetEpoch), ctx)
+}
+
+// GetEpochByHeight mocks base method.
+func (m *MockCheckpointingKeeper) GetEpochByHeight(ctx context.Context, height uint64) uint64 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEpochByHeight", ctx, height)
+	ret0, _ := ret[0].(uint64)
+	return ret0
+}
+
+// GetEpochByHeight indicates an expected call of GetEpochByHeight.
+func (mr *MockCheckpointingKeeperMockRecorder) GetEpochByHeight(ctx, height interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpochByHeight", reflect.TypeOf((*MockCheckpointingKeeper)(nil).GetEpochByHeight), ctx, height)
 }
 
 // GetLastFinalizedEpoch mocks base method.
@@ -280,6 +322,34 @@ func (m *MockIncentiveKeeper) EXPECT() *MockIncentiveKeeperMockRecorder {
 	return m.recorder
 }
 
+// AddEventBtcDelegationActivated mocks base method.
+func (m *MockIncentiveKeeper) AddEventBtcDelegationActivated(ctx context.Context, height uint64, fp, del types2.AccAddress, sat uint64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddEventBtcDelegationActivated", ctx, height, fp, del, sat)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddEventBtcDelegationActivated indicates an expected call of AddEventBtcDelegationActivated.
+func (mr *MockIncentiveKeeperMockRecorder) AddEventBtcDelegationActivated(ctx, height, fp, del, sat interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddEventBtcDelegationActivated", reflect.TypeOf((*MockIncentiveKeeper)(nil).AddEventBtcDelegationActivated), ctx, height, fp, del, sat)
+}
+
+// AddEventBtcDelegationUnbonded mocks base method.
+func (m *MockIncentiveKeeper) AddEventBtcDelegationUnbonded(ctx context.Context, height uint64, fp, del types2.AccAddress, sat uint64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddEventBtcDelegationUnbonded", ctx, height, fp, del, sat)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddEventBtcDelegationUnbonded indicates an expected call of AddEventBtcDelegationUnbonded.
+func (mr *MockIncentiveKeeperMockRecorder) AddEventBtcDelegationUnbonded(ctx, height, fp, del, sat interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddEventBtcDelegationUnbonded", reflect.TypeOf((*MockIncentiveKeeper)(nil).AddEventBtcDelegationUnbonded), ctx, height, fp, del, sat)
+}
+
 // IndexRefundableMsg mocks base method.
 func (m *MockIncentiveKeeper) IndexRefundableMsg(ctx context.Context, msg types2.Msg) {
 	m.ctrl.T.Helper()
@@ -293,13 +363,13 @@ func (mr *MockIncentiveKeeperMockRecorder) IndexRefundableMsg(ctx, msg interface
 }
 
 // RewardBTCStaking mocks base method.
-func (m *MockIncentiveKeeper) RewardBTCStaking(ctx context.Context, height uint64, filteredDc *VotingPowerDistCache) {
+func (m *MockIncentiveKeeper) RewardBTCStaking(ctx context.Context, height uint64, filteredDc *VotingPowerDistCache, voters map[string]struct{}) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "RewardBTCStaking", ctx, height, filteredDc)
+	m.ctrl.Call(m, "RewardBTCStaking", ctx, height, filteredDc, voters)
 }
 
 // RewardBTCStaking indicates an expected call of RewardBTCStaking.
-func (mr *MockIncentiveKeeperMockRecorder) RewardBTCStaking(ctx, height, filteredDc interface{}) *gomock.Call {
+func (mr *MockIncentiveKeeperMockRecorder) RewardBTCStaking(ctx, height, filteredDc, voters interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RewardBTCStaking", reflect.TypeOf((*MockIncentiveKeeper)(nil).RewardBTCStaking), ctx, height, filteredDc)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RewardBTCStaking", reflect.TypeOf((*MockIncentiveKeeper)(nil).RewardBTCStaking), ctx, height, filteredDc, voters)
 }

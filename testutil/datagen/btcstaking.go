@@ -1,13 +1,18 @@
 package datagen
 
 import (
+	"bytes"
 	"math/rand"
+	"sort"
 	"testing"
+	"time"
 
 	sdkmath "cosmossdk.io/math"
+	stk "github.com/babylonlabs-io/babylon/v3/btcstaking"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
@@ -15,9 +20,11 @@ import (
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/btcstaking"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	bstypes "github.com/babylonlabs-io/babylon/x/btcstaking/types"
+	appparams "github.com/babylonlabs-io/babylon/v3/app/params"
+	"github.com/babylonlabs-io/babylon/v3/btcstaking"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
+	bstypes "github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
 )
 
 const (
@@ -25,27 +32,52 @@ const (
 	UnbondingTxFee = int64(1000)
 )
 
-func GenRandomFinalityProvider(r *rand.Rand) (*bstypes.FinalityProvider, error) {
+func GenRandomFinalityProvider(
+	r *rand.Rand,
+	signingContext string,
+) (*bstypes.FinalityProvider, error) {
 	// BTC key pairs
 	btcSK, _, err := GenRandomBTCKeyPair(r)
 	if err != nil {
 		return nil, err
 	}
-	return GenRandomFinalityProviderWithBTCSK(r, btcSK, "")
+	return GenRandomFinalityProviderWithBTCSK(r, btcSK, signingContext, "")
 }
 
-func CreateNFinalityProviders(r *rand.Rand, t *testing.T, n int) []*bstypes.FinalityProvider {
+func GenRandomMsgCreateFinalityProvider(
+	r *rand.Rand,
+	signingContext string,
+) (*bstypes.MsgCreateFinalityProvider, error) {
+	// BTC key pairs
+	btcSK, _, err := GenRandomBTCKeyPair(r)
+	if err != nil {
+		return nil, err
+	}
+	return GenRandomCreateFinalityProviderMsgWithBTCBabylonSKs(r, btcSK, signingContext, GenRandomAccount().GetAddress())
+}
+
+func CreateNFinalityProviders(
+	r *rand.Rand,
+	t *testing.T,
+	signingContext string,
+	n int,
+) []*bstypes.FinalityProvider {
 	fps := make([]*bstypes.FinalityProvider, n)
 	for i := 0; i < n; i++ {
-		fp, err := GenRandomFinalityProvider(r)
+		fp, err := GenRandomFinalityProvider(r, signingContext)
 		require.NoError(t, err)
 		fps[i] = fp
 	}
 	return fps
 }
 
-func GenRandomFinalityProviderWithBTCSK(r *rand.Rand, btcSK *btcec.PrivateKey, consumerID string) (*bstypes.FinalityProvider, error) {
-	return GenCustomFinalityProvider(r, btcSK, GenRandomAccount().GetAddress(), consumerID)
+func GenRandomFinalityProviderWithBTCSK(
+	r *rand.Rand,
+	btcSK *btcec.PrivateKey,
+	signingContext string,
+	consumerID string,
+) (*bstypes.FinalityProvider, error) {
+	return GenCustomFinalityProvider(r, btcSK, signingContext, GenRandomAccount().GetAddress(), consumerID)
 }
 
 func GenRandomCommission(r *rand.Rand) sdkmath.LegacyDec {
@@ -56,7 +88,13 @@ func GenRandomDescription(r *rand.Rand) *stakingtypes.Description {
 	return &stakingtypes.Description{Moniker: GenRandomHexStr(r, 10)}
 }
 
-func GenCustomFinalityProvider(r *rand.Rand, btcSK *btcec.PrivateKey, fpAddr sdk.AccAddress, consumerID string) (*bstypes.FinalityProvider, error) {
+func GenCustomFinalityProvider(
+	r *rand.Rand,
+	btcSK *btcec.PrivateKey,
+	signingContext string,
+	fpAddr sdk.AccAddress,
+	consumerID string,
+) (*bstypes.FinalityProvider, error) {
 	// commission
 	commission := GenRandomCommission(r)
 	// description
@@ -65,7 +103,7 @@ func GenCustomFinalityProvider(r *rand.Rand, btcSK *btcec.PrivateKey, fpAddr sdk
 	btcPK := btcSK.PubKey()
 	bip340PK := bbn.NewBIP340PubKeyFromBTCPK(btcPK)
 	// pop
-	pop, err := bstypes.NewPoPBTC(fpAddr, btcSK)
+	pop, err := NewPoPBTC(signingContext, fpAddr, btcSK)
 	if err != nil {
 		return nil, err
 	}
@@ -76,6 +114,34 @@ func GenCustomFinalityProvider(r *rand.Rand, btcSK *btcec.PrivateKey, fpAddr sdk
 		Addr:        fpAddr.String(),
 		Pop:         pop,
 		ConsumerId:  consumerID,
+		CommissionInfo: bstypes.NewCommissionInfoWithTime(
+			sdkmath.LegacyOneDec(),
+			sdkmath.LegacyOneDec(),
+			time.Unix(0, 0).UTC(),
+		),
+	}, nil
+}
+
+func GenRandomCreateFinalityProviderMsgWithBTCBabylonSKs(
+	r *rand.Rand,
+	btcSK *btcec.PrivateKey,
+	signingContext string,
+	fpAddr sdk.AccAddress,
+) (*bstypes.MsgCreateFinalityProvider, error) {
+	fp, err := GenCustomFinalityProvider(r, btcSK, signingContext, fpAddr, "")
+	if err != nil {
+		return nil, err
+	}
+	return &bstypes.MsgCreateFinalityProvider{
+		Addr:        fp.Addr,
+		Description: fp.Description,
+		Commission: types.NewCommissionRates(
+			*fp.Commission,
+			fp.CommissionInfo.MaxRate,
+			fp.CommissionInfo.MaxChangeRate,
+		),
+		BtcPk: fp.BtcPk,
+		Pop:   fp.Pop,
 	}, nil
 }
 
@@ -86,6 +152,7 @@ func GenRandomBTCDelegation(
 	btcNet *chaincfg.Params,
 	fpBTCPKs []bbn.BIP340PubKey,
 	delSK *btcec.PrivateKey,
+	signingContext string,
 	covenantSKs []*btcec.PrivateKey,
 	covenantPks []*btcec.PublicKey,
 	covenantQuorum uint32,
@@ -103,7 +170,8 @@ func GenRandomBTCDelegation(
 	if err != nil {
 		return nil, err
 	}
-	staker := GenRandomAccount()
+
+	stakerAddress := GenRandomSecp256k1Address()
 
 	// staking/slashing tx
 	stakingSlashingInfo := GenBTCStakingSlashingInfo(
@@ -147,15 +215,15 @@ func GenRandomBTCDelegation(
 	require.NoError(t, err)
 	w := uint16(100) // TODO: parameterise w
 
-	pop, err := bstypes.NewPoPBTC(sdk.MustAccAddressFromBech32(staker.Address), delSK)
+	pop, err := NewPoPBTC(signingContext, stakerAddress, delSK)
 	require.NoError(t, err)
 
 	del := &bstypes.BTCDelegation{
-		StakerAddr:       staker.Address,
+		StakerAddr:       sdk.MustBech32ifyAddressBytes(appparams.Bech32PrefixAccAddr, stakerAddress), // Staker address is always Babylon's
 		BtcPk:            delBTCPK,
 		Pop:              pop,
 		FpBtcPkList:      fpBTCPKs,
-		StakingTime:      uint32(stakingTime),
+		StakingTime:      stakingTime,
 		StartHeight:      startHeight,
 		EndHeight:        endHeight,
 		TotalSat:         totalSat,
@@ -222,6 +290,187 @@ func GenRandomBTCDelegation(
 	return del, nil
 }
 
+type CreateDelegationInfo struct {
+	MsgCreateBTCDelegation *bstypes.MsgCreateBTCDelegation
+	MsgAddCovenantSigs     []*bstypes.MsgAddCovenantSigs
+	StakingTxHash          string
+	StakingTx              *wire.MsgTx
+	UnbondingTx            *wire.MsgTx
+}
+
+func DelegationInfosToBTCTx(
+	delInfos []*CreateDelegationInfo,
+) []*wire.MsgTx {
+	txs := []*wire.MsgTx{}
+	for _, delInfo := range delInfos {
+		txs = append(txs, delInfo.StakingTx)
+	}
+	return txs
+}
+
+// GenRandomMsgCreateBtcDelegation generates a random MsgCreateBTCDelegation message
+// valid for the given parameters.
+func GenRandomMsgCreateBtcDelegationAndMsgAddCovenantSignatures(
+	r *rand.Rand,
+	t *testing.T,
+	btcNet *chaincfg.Params,
+	stakerAddr sdk.AccAddress,
+	fpBTCPKs []bbn.BIP340PubKey,
+	delSK *btcec.PrivateKey,
+	signingContext string,
+	covenantSKs []*btcec.PrivateKey,
+	params *bstypes.Params,
+) *CreateDelegationInfo {
+	require.Positive(t, params.CovenantQuorum)
+	require.Positive(t, len(fpBTCPKs))
+	require.Positive(t, len(covenantSKs))
+	require.Equal(t, len(params.CovenantPks), len(covenantSKs))
+
+	delPK := delSK.PubKey()
+
+	delBTCPK := bbn.NewBIP340PubKeyFromBTCPK(delPK)
+	// list of finality provider PKs
+	fpPKs, err := bbn.NewBTCPKsFromBIP340PKs(fpBTCPKs)
+	require.NoError(t, err)
+	var covenantPks []*btcec.PublicKey
+	for _, sk := range covenantSKs {
+		covenantPks = append(covenantPks, sk.PubKey())
+	}
+
+	stakingTime := RandomInRange(
+		r,
+		int(params.MinStakingTimeBlocks),
+		int(params.MaxStakingTimeBlocks),
+	)
+
+	totalSat := RandomInRange(
+		r,
+		// add 10000 just in case
+		int(params.MinStakingValueSat)+10000,
+		int(params.MaxStakingValueSat),
+	)
+
+	// staking/slashing tx
+	stakingSlashingInfo := GenBTCStakingSlashingInfo(
+		r,
+		t,
+		btcNet,
+		delSK,
+		fpPKs,
+		covenantPks,
+		params.CovenantQuorum,
+		uint16(stakingTime),
+		int64(totalSat),
+		params.SlashingPkScript,
+		params.SlashingRate,
+		uint16(params.UnbondingTimeBlocks),
+	)
+
+	slashingPathSpendInfo, err := stakingSlashingInfo.StakingInfo.SlashingPathSpendInfo()
+	require.NoError(t, err)
+
+	// delegator pre-signs slashing tx
+	delegatorSig, err := stakingSlashingInfo.SlashingTx.Sign(
+		stakingSlashingInfo.StakingTx,
+		StakingOutIdx,
+		slashingPathSpendInfo.GetPkScriptPath(),
+		delSK,
+	)
+	require.NoError(t, err)
+
+	serializedStakingTx, err := bbn.SerializeBTCTx(stakingSlashingInfo.StakingTx)
+	require.NoError(t, err)
+
+	stkTxHash := stakingSlashingInfo.StakingTx.TxHash()
+	unbondingValue := uint64(totalSat) - uint64(params.UnbondingFeeSat)
+
+	unbondingSlashingInfo := GenBTCUnbondingSlashingInfo(
+		r,
+		t,
+		btcNet,
+		delSK,
+		fpPKs,
+		covenantPks,
+		params.CovenantQuorum,
+		wire.NewOutPoint(&stkTxHash, StakingOutIdx),
+		uint16(params.UnbondingTimeBlocks),
+		int64(unbondingValue),
+		params.SlashingPkScript,
+		params.SlashingRate,
+		uint16(params.UnbondingTimeBlocks),
+	)
+
+	unbondingTxBytes, err := bbn.SerializeBTCTx(unbondingSlashingInfo.UnbondingTx)
+	require.NoError(t, err)
+	delSlashingTxSig, err := unbondingSlashingInfo.GenDelSlashingTxSig(delSK)
+	require.NoError(t, err)
+
+	pop, err := NewPoPBTC(signingContext, sdk.MustAccAddressFromBech32(stakerAddr.String()), delSK)
+	require.NoError(t, err)
+
+	msg := &bstypes.MsgCreateBTCDelegation{
+		StakerAddr:   stakerAddr.String(),
+		Pop:          pop,
+		BtcPk:        delBTCPK,
+		FpBtcPkList:  fpBTCPKs,
+		StakingTime:  uint32(stakingTime),
+		StakingValue: int64(totalSat),
+		StakingTx:    serializedStakingTx,
+		// By default it is nil it is up to the caller to set it
+		StakingTxInclusionProof:       nil,
+		SlashingTx:                    stakingSlashingInfo.SlashingTx,
+		DelegatorSlashingSig:          delegatorSig,
+		UnbondingValue:                int64(unbondingValue),
+		UnbondingTime:                 params.UnbondingTimeBlocks,
+		UnbondingTx:                   unbondingTxBytes,
+		UnbondingSlashingTx:           unbondingSlashingInfo.SlashingTx,
+		DelegatorUnbondingSlashingSig: delSlashingTxSig,
+	}
+
+	// covenant pre-signs slashing tx for staking tx
+	covenantSigs, err := GenCovenantAdaptorSigs(
+		covenantSKs,
+		fpPKs,
+		stakingSlashingInfo.StakingTx,
+		slashingPathSpendInfo.GetPkScriptPath(),
+		stakingSlashingInfo.SlashingTx,
+	)
+	require.NoError(t, err)
+
+	// covenant pre-signs slashing tx and unbonding tx
+	unbondingPathSpendInfo, err := stakingSlashingInfo.StakingInfo.UnbondingPathSpendInfo()
+	require.NoError(t, err)
+	covUnbondingSlashingSigs, covUnbondingSigs, err := unbondingSlashingInfo.GenCovenantSigs(
+		covenantSKs,
+		fpPKs,
+		stakingSlashingInfo.StakingTx,
+		unbondingPathSpendInfo.GetPkScriptPath(),
+	)
+	require.NoError(t, err)
+
+	msgs := make([]*bstypes.MsgAddCovenantSigs, len(covenantPks))
+
+	for i := 0; i < len(covenantPks); i++ {
+		msgAddCovenantSig := &bstypes.MsgAddCovenantSigs{
+			Signer:                  stakerAddr.String(),
+			Pk:                      covenantSigs[i].CovPk,
+			StakingTxHash:           stkTxHash.String(),
+			SlashingTxSigs:          covenantSigs[i].AdaptorSigs,
+			UnbondingTxSig:          covUnbondingSigs[i].Sig,
+			SlashingUnbondingTxSigs: covUnbondingSlashingSigs[i].AdaptorSigs,
+		}
+		msgs[i] = msgAddCovenantSig
+	}
+
+	return &CreateDelegationInfo{
+		MsgCreateBTCDelegation: msg,
+		MsgAddCovenantSigs:     msgs,
+		StakingTxHash:          stkTxHash.String(),
+		StakingTx:              stakingSlashingInfo.StakingTx,
+		UnbondingTx:            unbondingSlashingInfo.UnbondingTx,
+	}
+}
+
 type TestStakingSlashingInfo struct {
 	StakingTx   *wire.MsgTx
 	SlashingTx  *bstypes.BTCSlashingTx
@@ -249,7 +498,6 @@ func GenBTCStakingSlashingInfoWithOutPoint(
 	slashingRate sdkmath.LegacyDec,
 	slashingChangeLockTime uint16,
 ) *TestStakingSlashingInfo {
-
 	stakingInfo, err := btcstaking.BuildStakingInfo(
 		stakerSK.PubKey(),
 		fpPKs,
@@ -343,7 +591,6 @@ func GenBTCUnbondingSlashingInfo(
 	slashingRate sdkmath.LegacyDec,
 	slashingChangeLockTime uint16,
 ) *TestUnbondingSlashingInfo {
-
 	unbondingInfo, err := btcstaking.BuildUnbondingInfo(
 		stakerSK.PubKey(),
 		fpPKs,
@@ -438,4 +685,137 @@ func (info *TestUnbondingSlashingInfo) GenCovenantSigs(
 		})
 	}
 	return covUnbondingSlashingSigs, covUnbondingSigList, nil
+}
+
+type SignatureInfo struct {
+	SignerPubKey *btcec.PublicKey
+	Signature    *schnorr.Signature
+}
+
+func NewSignatureInfo(
+	signerPubKey *btcec.PublicKey,
+	signature *schnorr.Signature,
+) *SignatureInfo {
+	return &SignatureInfo{
+		SignerPubKey: signerPubKey,
+		Signature:    signature,
+	}
+}
+
+// Helper function to sort all signatures in reverse lexicographical order of signing public keys
+// this way signatures are ready to be used in multisig witness with corresponding public keys
+func sortSignatureInfo(infos []*SignatureInfo) []*SignatureInfo {
+	sortedInfos := make([]*SignatureInfo, len(infos))
+	copy(sortedInfos, infos)
+	sort.SliceStable(sortedInfos, func(i, j int) bool {
+		keyIBytes := schnorr.SerializePubKey(sortedInfos[i].SignerPubKey)
+		keyJBytes := schnorr.SerializePubKey(sortedInfos[j].SignerPubKey)
+		return bytes.Compare(keyIBytes, keyJBytes) == 1
+	})
+
+	return sortedInfos
+}
+
+// generate list of signatures in valid order
+func GenerateSignatures(
+	t *testing.T,
+	keys []*btcec.PrivateKey,
+	tx *wire.MsgTx,
+	stakingOutput *wire.TxOut,
+	leaf txscript.TapLeaf,
+) []*schnorr.Signature {
+	var si []*SignatureInfo
+
+	for _, key := range keys {
+		pubKey := key.PubKey()
+		sig, err := btcstaking.SignTxWithOneScriptSpendInputFromTapLeaf(
+			tx,
+			stakingOutput,
+			key,
+			leaf,
+		)
+		require.NoError(t, err)
+		info := NewSignatureInfo(
+			pubKey,
+			sig,
+		)
+		si = append(si, info)
+	}
+
+	// sort signatures by public key
+	sortedSigInfo := sortSignatureInfo(si)
+
+	var sigs []*schnorr.Signature = make([]*schnorr.Signature, len(sortedSigInfo))
+
+	for i, sigInfo := range sortedSigInfo {
+		sig := sigInfo
+		sigs[i] = sig.Signature
+	}
+
+	return sigs
+}
+
+func AddWitnessToUnbondingTx(
+	t *testing.T,
+	stakingOutput *wire.TxOut,
+	stakerSk *btcec.PrivateKey,
+	covenantSks []*btcec.PrivateKey,
+	covenantQuorum uint32,
+	finalityProviderPKs []*btcec.PublicKey,
+	stakingTime uint16,
+	stakingValue int64,
+	unbondingTx *wire.MsgTx,
+	net *chaincfg.Params,
+) ([]byte, *wire.MsgTx) {
+	var covenatnPks []*btcec.PublicKey
+	for _, sk := range covenantSks {
+		covenatnPks = append(covenatnPks, sk.PubKey())
+	}
+
+	stakingInfo, err := stk.BuildStakingInfo(
+		stakerSk.PubKey(),
+		finalityProviderPKs,
+		covenatnPks,
+		covenantQuorum,
+		stakingTime,
+		btcutil.Amount(stakingValue),
+		net,
+	)
+	require.NoError(t, err)
+
+	// sanity check that what we re-build is the same as what we have in the BTC delegation
+	require.Equal(t, stakingOutput, stakingInfo.StakingOutput)
+
+	unbondingSpendInfo, err := stakingInfo.UnbondingPathSpendInfo()
+	require.NoError(t, err)
+
+	unbondingScirpt := unbondingSpendInfo.RevealedLeaf.Script
+	require.NotNil(t, unbondingScirpt)
+
+	covenantSigs := GenerateSignatures(
+		t,
+		covenantSks,
+		unbondingTx,
+		stakingOutput,
+		unbondingSpendInfo.RevealedLeaf,
+	)
+	require.NoError(t, err)
+
+	stakerSig, err := stk.SignTxWithOneScriptSpendInputFromTapLeaf(
+		unbondingTx,
+		stakingOutput,
+		stakerSk,
+		unbondingSpendInfo.RevealedLeaf,
+	)
+	require.NoError(t, err)
+
+	ubWitness, err := unbondingSpendInfo.CreateUnbondingPathWitness(covenantSigs, stakerSig)
+	require.NoError(t, err)
+
+	unbondingTx.TxIn[0].Witness = ubWitness
+
+	serializedUnbondingTxWithWitness, err := bbn.SerializeBTCTx(unbondingTx)
+	require.NoError(t, err)
+
+	return serializedUnbondingTxWithWitness, unbondingTx
 }

@@ -6,12 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/stretchr/testify/require"
 
-	keepertest "github.com/babylonlabs-io/babylon/testutil/keeper"
-	"github.com/babylonlabs-io/babylon/x/btclightclient/keeper"
-	"github.com/babylonlabs-io/babylon/x/btclightclient/types"
+	keepertest "github.com/babylonlabs-io/babylon/v3/testutil/keeper"
+	"github.com/babylonlabs-io/babylon/v3/x/btclightclient/keeper"
+	"github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -129,7 +130,7 @@ func FuzzMsgServerReorgChain(f *testing.F) {
 			r,
 			forkHeader.Header.ToBlockHeader(),
 			nil,
-			uint32(forkChainLen),
+			forkChainLen,
 		)
 		chainExtensionWork := chainWork(chainExtension)
 		msg := &types.MsgInsertHeaders{Signer: address.String(), Headers: keepertest.NewBTCHeaderBytesList(chainExtension)}
@@ -222,4 +223,60 @@ func TestAllowUpdatesOnlyFromReportesInTheList(t *testing.T) {
 	msg1 = &types.MsgInsertHeaders{Signer: address2.String(), Headers: keepertest.NewBTCHeaderBytesList(newChainExt)}
 	_, err = srv.InsertHeaders(sdkCtx, msg1)
 	require.NoError(t, err)
+}
+
+func TestRejectForWithAlreadyKnownHeader(t *testing.T) {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	senderPrivKey := secp256k1.GenPrivKey()
+	address, err := sdk.AccAddressFromHexUnsafe(senderPrivKey.PubKey().Address().String())
+	require.NoError(t, err)
+
+	srv, blcKeeper, sdkCtx := setupMsgServer(t)
+	ctx := sdk.UnwrapSDKContext(sdkCtx)
+
+	chainLength := uint32(datagen.RandomInt(r, 50)) + 10
+	_, chain := datagen.GenRandBtcChainInsertingInKeeper(
+		t,
+		r,
+		blcKeeper,
+		ctx,
+		uint32(datagen.RandomInt(r, 50))+10,
+		chainLength,
+	)
+	initTip := chain.GetTipInfo()
+
+	checkTip(
+		t,
+		ctx,
+		blcKeeper,
+		*initTip.Work,
+		initTip.Height,
+		initTip.Header.ToBlockHeader(),
+	)
+
+	reorgDepth := datagen.RandomInRange(r, 3, 5)
+
+	forkHeaderHeight := initTip.Height - uint32(reorgDepth)
+	forkHeader := blcKeeper.GetHeaderByHeight(ctx, forkHeaderHeight)
+	require.NotNil(t, forkHeader)
+
+	forkChainLen := uint32(reorgDepth + 10)
+	chainExtension := datagen.GenRandomValidChainStartingFrom(
+		r,
+		forkHeader.Header.ToBlockHeader(),
+		nil,
+		forkChainLen,
+	)
+
+	forkHeaderAsBTCHeader := forkHeader.Header.ToBlockHeader()
+
+	var extensionChainWithExistingHeader []*wire.BlockHeader
+	// attach already existing header to the extension chain
+	extensionChainWithExistingHeader = append(extensionChainWithExistingHeader, forkHeaderAsBTCHeader)
+	extensionChainWithExistingHeader = append(extensionChainWithExistingHeader, chainExtension...)
+
+	msg := &types.MsgInsertHeaders{Signer: address.String(), Headers: keepertest.NewBTCHeaderBytesList(extensionChainWithExistingHeader)}
+	_, err = srv.InsertHeaders(sdkCtx, msg)
+	require.Error(t, err)
+	require.ErrorIs(t, err, types.ErrForkStartWithKnownHeader)
 }

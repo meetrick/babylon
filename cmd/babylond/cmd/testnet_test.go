@@ -17,7 +17,9 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/app"
+	"github.com/babylonlabs-io/babylon/v3/app"
+	"github.com/babylonlabs-io/babylon/v3/testutil/signer"
+	checkpointingtypes "github.com/babylonlabs-io/babylon/v3/x/checkpointing/types"
 )
 
 func Test_TestnetCmd(t *testing.T) {
@@ -26,14 +28,18 @@ func Test_TestnetCmd(t *testing.T) {
 	cfg, err := genutiltest.CreateDefaultCometConfig(home)
 	require.NoError(t, err)
 
-	signer, err := app.SetupTestPrivSigner()
+	tbs, err := signer.SetupTestBlsSigner()
 	require.NoError(t, err)
-	bbn := app.NewBabylonAppWithCustomOptions(t, false, signer, app.SetupOptions{
+	blsSigner := checkpointingtypes.BlsSigner(tbs)
+	appOpts, cleanup := app.TmpAppOptions()
+	defer cleanup()
+
+	bbn := app.NewBabylonAppWithCustomOptions(t, false, blsSigner, app.SetupOptions{
 		Logger:             logger,
 		DB:                 dbm.NewMemDB(),
 		InvCheckPeriod:     0,
 		SkipUpgradeHeights: map[int64]bool{},
-		AppOpts:            app.TmpAppOptions(),
+		AppOpts:            appOpts,
 	})
 	err = genutiltest.ExecInitCmd(bbn.BasicModuleManager, home, bbn.AppCodec())
 	require.NoError(t, err)

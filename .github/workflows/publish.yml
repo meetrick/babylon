@@ -3,10 +3,15 @@ name: docker_publish
 on:
   push:
     branches:
-    - 'main'
-    - 'dev'
+      - 'main'
+      - 'release/v1.x'
+      - 'release/v2.x'
+      - 'release/v3.x'
     tags:
-    - '*'
+      - '*'
+
+permissions:
+  contents: read
 
 jobs:
   lint_test:
@@ -20,10 +25,36 @@ jobs:
       run-lint: true
 
   docker_pipeline:
-    uses: babylonlabs-io/.github/.github/workflows/reusable_docker_pipeline.yml@v0.7.0
+    uses: babylonlabs-io/.github/.github/workflows/reusable_docker_pipeline.yml@v0.13.2
     needs: ["lint_test"]
     secrets: inherit
+    permissions:
+      # required for all workflows
+      security-events: write
+      # required to fetch internal or private CodeQL packs
+      packages: read
     with:
       publish: true
       dockerfile: ./contrib/images/babylond/Dockerfile
       repoName: babylond
+      docker_scan: true
+
+  docker_testnet_pipeline:
+    uses: babylonlabs-io/.github/.github/workflows/reusable_docker_pipeline.yml@v0.13.2
+    needs: ["lint_test"]
+    secrets: inherit
+    if: startsWith(github.ref, 'refs/tags/')  # Run only on tag push
+    permissions:
+      # required for all workflows
+      security-events: write
+      # required to fetch internal or private CodeQL packs
+      packages: read
+    with:
+      publish: true
+      dockerfile: ./contrib/images/babylond/Dockerfile
+      repoName: babylond
+      imageTag: ${{ github.ref_name }}-testnet  # Append '-testnet' to the tag name
+      buildArgs: |
+        BABYLON_BUILD_OPTIONS=testnet
+      docker_scan: true
+      buildArtifactPrefix: "testnet-"

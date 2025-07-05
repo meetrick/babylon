@@ -11,10 +11,10 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
-	keepertest "github.com/babylonlabs-io/babylon/testutil/keeper"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	"github.com/babylonlabs-io/babylon/x/finality/types"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
+	keepertest "github.com/babylonlabs-io/babylon/v3/testutil/keeper"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	"github.com/babylonlabs-io/babylon/v3/x/finality/types"
 )
 
 func benchmarkTallyBlocks(b *testing.B, numFPs int) {
@@ -30,7 +30,7 @@ func benchmarkTallyBlocks(b *testing.B, numFPs int) {
 	// activate BTC staking protocol at a random height
 	activatedHeight := uint64(1)
 	// add mock queries to GetBTCStakingActivatedHeight
-	ctx = datagen.WithCtxHeight(ctx, uint64(activatedHeight))
+	ctx = datagen.WithCtxHeight(ctx, activatedHeight)
 
 	// simulate fp set
 	fpSet := map[string]uint64{}
@@ -42,7 +42,7 @@ func benchmarkTallyBlocks(b *testing.B, numFPs int) {
 	}
 
 	// TODO: test incentive
-	iKeeper.EXPECT().RewardBTCStaking(gomock.Any(), gomock.Any(), gomock.Any()).Return().AnyTimes()
+	iKeeper.EXPECT().RewardBTCStaking(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return().AnyTimes()
 	// Start the CPU profiler
 	cpuProfileFile := fmt.Sprintf("/tmp/finality-tally-blocks-%d-cpu.pprof", numFPs)
 	f, err := os.Create(cpuProfileFile)
@@ -82,7 +82,7 @@ func benchmarkTallyBlocks(b *testing.B, numFPs int) {
 
 		b.StartTimer()
 
-		fKeeper.TallyBlocks(ctx)
+		fKeeper.TallyBlocks(ctx, uint64(10000))
 	}
 }
 

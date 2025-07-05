@@ -9,8 +9,9 @@ import (
 	"cosmossdk.io/errors"
 	txsigning "cosmossdk.io/x/tx/signing"
 	"github.com/avast/retry-go/v4"
-	btcctypes "github.com/babylonlabs-io/babylon/x/btccheckpoint/types"
-	btclctypes "github.com/babylonlabs-io/babylon/x/btclightclient/types"
+	"github.com/babylonlabs-io/babylon/v3/client/babylonclient"
+	btcctypes "github.com/babylonlabs-io/babylon/v3/x/btccheckpoint/types"
+	btclctypes "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
 	abci "github.com/cometbft/cometbft/abci/types"
 	coretypes "github.com/cometbft/cometbft/rpc/core/types"
 	"github.com/cosmos/cosmos-sdk/client"
@@ -21,16 +22,14 @@ import (
 	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
-	"github.com/cosmos/relayer/v2/relayer/chains/cosmos"
-	pv "github.com/cosmos/relayer/v2/relayer/provider"
 	"go.uber.org/zap"
 )
 
 // ToProviderMsgs converts a list of sdk.Msg to a list of provider.RelayerMessage
-func ToProviderMsgs(msgs []sdk.Msg) []pv.RelayerMessage {
-	relayerMsgs := []pv.RelayerMessage{}
+func ToProviderMsgs(msgs []sdk.Msg) []babylonclient.RelayerMessage {
+	relayerMsgs := make([]babylonclient.RelayerMessage, 0, len(msgs))
 	for _, m := range msgs {
-		relayerMsgs = append(relayerMsgs, cosmos.NewCosmosMessage(m, func(signer string) {}))
+		relayerMsgs = append(relayerMsgs, babylonclient.NewCosmosMessage(m, func(signer string) {}))
 	}
 	return relayerMsgs
 }
@@ -48,7 +47,7 @@ func (c *Client) SendMsgsToMempool(ctx context.Context, msgs []sdk.Msg) error {
 	if err := retry.Do(func() error {
 		var sendMsgErr error
 		krErr := c.accessKeyWithLock(func() {
-			sendMsgErr = c.provider.SendMessagesToMempool(ctx, relayerMsgs, "", ctx, []func(*pv.RelayerTxResponse, error){})
+			sendMsgErr = c.provider.SendMessagesToMempool(ctx, relayerMsgs, "", ctx, []func(*babylonclient.RelayerTxResponse, error){})
 		})
 		if krErr != nil {
 			c.logger.Error("unrecoverable err when submitting the tx, skip retrying", zap.Error(krErr))
@@ -64,24 +63,41 @@ func (c *Client) SendMsgsToMempool(ctx context.Context, msgs []sdk.Msg) error {
 	return nil
 }
 
+// SendMsg sends a message to the chain.
+func (c *Client) SendMsg(ctx context.Context, msg sdk.Msg, expectedErrors []*errors.Error, unrecoverableErrors []*errors.Error) (*babylonclient.RelayerTxResponse, error) {
+	return c.SendMsgs(ctx, []sdk.Msg{msg}, expectedErrors, unrecoverableErrors)
+}
+
+// SendMsgs sends a list of messages to the chain.
+func (c *Client) SendMsgs(ctx context.Context, msgs []sdk.Msg, expectedErrors []*errors.Error, unrecoverableErrors []*errors.Error) (*babylonclient.RelayerTxResponse, error) {
+	return c.ReliablySendMsgs(ctx, msgs, expectedErrors, unrecoverableErrors, 1)
+}
+
 // ReliablySendMsg reliable sends a message to the chain.
 // It utilizes a file lock as well as a keyring lock to ensure atomic access.
 // TODO: needs tests
-func (c *Client) ReliablySendMsg(ctx context.Context, msg sdk.Msg, expectedErrors []*errors.Error, unrecoverableErrors []*errors.Error) (*pv.RelayerTxResponse, error) {
-	return c.ReliablySendMsgs(ctx, []sdk.Msg{msg}, expectedErrors, unrecoverableErrors)
+func (c *Client) ReliablySendMsg(ctx context.Context, msg sdk.Msg, expectedErrors []*errors.Error, unrecoverableErrors []*errors.Error, retries ...uint) (*babylonclient.RelayerTxResponse, error) {
+	return c.ReliablySendMsgs(ctx, []sdk.Msg{msg}, expectedErrors, unrecoverableErrors, retries...)
 }
 
 // ReliablySendMsgs reliably sends a list of messages to the chain.
 // It utilizes a file lock as well as a keyring lock to ensure atomic access.
 // TODO: needs tests
-func (c *Client) ReliablySendMsgs(ctx context.Context, msgs []sdk.Msg, expectedErrors []*errors.Error, unrecoverableErrors []*errors.Error) (*pv.RelayerTxResponse, error) {
+func (c *Client) ReliablySendMsgs(ctx context.Context, msgs []sdk.Msg, expectedErrors []*errors.Error, unrecoverableErrors []*errors.Error, retries ...uint) (*babylonclient.RelayerTxResponse, error) {
 	var (
-		rlyResp     *pv.RelayerTxResponse
+		rlyResp     *babylonclient.RelayerTxResponse
 		callbackErr error
 		wg          sync.WaitGroup
 	)
 
-	callback := func(rtr *pv.RelayerTxResponse, err error) {
+	rty := rtyAttNum
+	rtyAttempts := rtyAtt
+	if len(retries) > 0 {
+		rty = retries[0]
+		rtyAttempts = retry.Attempts(rty)
+	}
+
+	callback := func(rtr *babylonclient.RelayerTxResponse, err error) {
 		rlyResp = rtr
 		callbackErr = err
 		wg.Done()
@@ -96,7 +112,7 @@ func (c *Client) ReliablySendMsgs(ctx context.Context, msgs []sdk.Msg, expectedE
 	if err := retry.Do(func() error {
 		var sendMsgErr error
 		krErr := c.accessKeyWithLock(func() {
-			sendMsgErr = c.provider.SendMessagesToMempool(ctx, relayerMsgs, "", ctx, []func(*pv.RelayerTxResponse, error){callback})
+			sendMsgErr = c.provider.SendMessagesToMempool(ctx, relayerMsgs, "", ctx, []func(*babylonclient.RelayerTxResponse, error){callback})
 		})
 		if krErr != nil {
 			c.logger.Error("unrecoverable err when submitting the tx, skip retrying", zap.Error(krErr))
@@ -118,8 +134,8 @@ func (c *Client) ReliablySendMsgs(ctx context.Context, msgs []sdk.Msg, expectedE
 			return sendMsgErr
 		}
 		return nil
-	}, retry.Context(ctx), rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-		c.logger.Debug("retrying", zap.Uint("attempt", n+1), zap.Uint("max_attempts", rtyAttNum), zap.Error(err))
+	}, retry.Context(ctx), rtyAttempts, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
+		c.logger.Debug("retrying", zap.Uint("attempt", n+1), zap.Uint("max_attempts", rty), zap.Error(err))
 	})); err != nil {
 		return nil, err
 	}
@@ -147,9 +163,9 @@ func (c *Client) ReliablySendMsgs(ctx context.Context, msgs []sdk.Msg, expectedE
 
 // ReliablySendMsgsWithSigner reliably sends a list of messages to the chain.
 // It utilizes the signer private key to sign all msgs
-func (c *Client) ReliablySendMsgsWithSigner(ctx context.Context, signerAddr sdk.AccAddress, signerPvKey *secp256k1.PrivKey, msgs []sdk.Msg, expectedErrors []*errors.Error, unrecoverableErrors []*errors.Error) (*pv.RelayerTxResponse, error) {
+func (c *Client) ReliablySendMsgsWithSigner(ctx context.Context, signerAddr sdk.AccAddress, signerPvKey *secp256k1.PrivKey, msgs []sdk.Msg, expectedErrors []*errors.Error, unrecoverableErrors []*errors.Error) (*babylonclient.RelayerTxResponse, error) {
 	var (
-		rlyResp     *pv.RelayerTxResponse
+		rlyResp     *babylonclient.RelayerTxResponse
 		callbackErr error
 		wg          sync.WaitGroup
 	)
@@ -209,9 +225,9 @@ func (c *Client) SendMessageWithSigner(
 	ctx context.Context,
 	signerAddr sdk.AccAddress,
 	signerPvKey *secp256k1.PrivKey,
-	relayerMsgs []pv.RelayerMessage,
+	relayerMsgs []babylonclient.RelayerMessage,
 ) (result *coretypes.ResultBroadcastTx, err error) {
-	cMsgs := cosmos.CosmosMsgs(relayerMsgs...)
+	cMsgs := babylonclient.CosmosMsgs(relayerMsgs...)
 	var (
 		num, seq uint64
 	)
@@ -220,10 +236,10 @@ func (c *Client) SendMessageWithSigner(
 	cliCtx := client.Context{}.WithClient(cc.RPCClient).
 		WithInterfaceRegistry(cc.Cdc.InterfaceRegistry).
 		WithChainID(cc.PCfg.ChainID).
-		WithCodec(cc.Cdc.Marshaler).
+		WithCodec(cc.Cdc.Codec).
 		WithFromAddress(signerAddr)
 
-	txf := cc.TxFactory()
+	txf := cc.NewTxFactory()
 	if err := retry.Do(func() error {
 		if err := txf.AccountRetriever().EnsureExists(cliCtx, signerAddr); err != nil {
 			return err
@@ -261,12 +277,8 @@ func (c *Client) SendMessageWithSigner(
 	if cc.PCfg.MaxGasAmount != 0 {
 		txf = txf.WithGas(cc.PCfg.MaxGasAmount)
 	}
-	txf, err = cc.SetWithExtensionOptions(txf)
-	if err != nil {
-		return nil, err
-	}
 
-	//txf ready
+	// txf ready
 	_, adjusted, err := c.CalculateGas(ctx, txf, signerPvKey.PubKey(), cMsgs...)
 	if err != nil {
 		return nil, err
@@ -285,7 +297,7 @@ func (c *Client) SendMessageWithSigner(
 	// c.LogFailedTx(nil, err, msgs)
 	// Force encoding in the chain specific address
 	for _, msg := range cMsgs {
-		cc.Cdc.Marshaler.MustMarshalJSON(msg)
+		cc.Cdc.Codec.MustMarshalJSON(msg)
 	}
 	if err := Sign(ctx, txf, signerPvKey, txb, cc.Cdc.TxConfig.SignModeHandler(), false); err != nil {
 		return nil, err
@@ -486,11 +498,11 @@ func Sign(
 // - we do not support cancellation of submitting messages
 // - the only timeout is the block inclusion timeout i.e block-timeout
 // TODO: To properly support cancellation we need to expose ctx in our client calls
-func (c *Client) InsertBTCSpvProof(ctx context.Context, msg *btcctypes.MsgInsertBTCSpvProof) (*pv.RelayerTxResponse, error) {
+func (c *Client) InsertBTCSpvProof(ctx context.Context, msg *btcctypes.MsgInsertBTCSpvProof) (*babylonclient.RelayerTxResponse, error) {
 	return c.ReliablySendMsg(ctx, msg, []*errors.Error{}, []*errors.Error{})
 }
 
-func (c *Client) InsertHeaders(ctx context.Context, msg *btclctypes.MsgInsertHeaders) (*pv.RelayerTxResponse, error) {
+func (c *Client) InsertHeaders(ctx context.Context, msg *btclctypes.MsgInsertHeaders) (*babylonclient.RelayerTxResponse, error) {
 	return c.ReliablySendMsg(ctx, msg, []*errors.Error{}, []*errors.Error{})
 }
 

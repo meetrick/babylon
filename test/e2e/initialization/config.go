@@ -7,15 +7,10 @@ import (
 	"time"
 
 	sdkmath "cosmossdk.io/math"
-
-	minttypes "github.com/babylonlabs-io/babylon/x/mint/types"
-	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
-	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
@@ -23,15 +18,14 @@ import (
 	staketypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/cosmos/gogoproto/proto"
 
-	"github.com/babylonlabs-io/babylon/privval"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	btccheckpointtypes "github.com/babylonlabs-io/babylon/x/btccheckpoint/types"
-	blctypes "github.com/babylonlabs-io/babylon/x/btclightclient/types"
-	btclighttypes "github.com/babylonlabs-io/babylon/x/btclightclient/types"
-	checkpointingtypes "github.com/babylonlabs-io/babylon/x/checkpointing/types"
-	finalitytypes "github.com/babylonlabs-io/babylon/x/finality/types"
-
-	"github.com/babylonlabs-io/babylon/test/e2e/util"
+	"github.com/babylonlabs-io/babylon/v3/test/e2e/util"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	btccheckpointtypes "github.com/babylonlabs-io/babylon/v3/x/btccheckpoint/types"
+	blctypes "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
+	btclighttypes "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
+	finalitytypes "github.com/babylonlabs-io/babylon/v3/x/finality/types"
+	minttypes "github.com/babylonlabs-io/babylon/v3/x/mint/types"
+	ratelimiter "github.com/cosmos/ibc-apps/modules/rate-limiting/v10/types"
 )
 
 // NodeConfig is a configuration for the node supplied from the test runner
@@ -46,6 +40,7 @@ type NodeConfig struct {
 	SnapshotInterval   uint64 // statesync snapshot every Nth block (0 to disable)
 	SnapshotKeepRecent uint32 // number of recent snapshots to keep and serve (0 to keep all)
 	IsValidator        bool   // flag indicating whether a node should be a validator
+	BtcNetwork         string // The Bitcoin network used
 }
 
 const (
@@ -65,9 +60,6 @@ const (
 	ChainBID        = "bbn-test-b"
 	BabylonBalanceB = 5000000000000
 	StakeAmountB    = 400000000000
-
-	EpochDuration         = time.Second * 60
-	TWAPPruningKeepPeriod = EpochDuration / 4
 )
 
 var (
@@ -240,17 +232,7 @@ func initGenesis(
 		return err
 	}
 
-	err = updateModuleGenesis(appGenState, crisistypes.ModuleName, &crisistypes.GenesisState{}, updateCrisisGenesis)
-	if err != nil {
-		return err
-	}
-
 	err = updateModuleGenesis(appGenState, genutiltypes.ModuleName, &genutiltypes.GenesisState{}, updateGenUtilGenesis(chain))
-	if err != nil {
-		return err
-	}
-
-	err = updateModuleGenesis(appGenState, checkpointingtypes.ModuleName, checkpointingtypes.DefaultGenesis(), updateCheckpointingGenesis(chain))
 	if err != nil {
 		return err
 	}
@@ -270,6 +252,11 @@ func initGenesis(
 		return err
 	}
 
+	err = updateModuleGenesis(appGenState, ratelimiter.ModuleName, &ratelimiter.GenesisState{}, applyRateLimitsToChainConfig)
+	if err != nil {
+		return fmt.Errorf("failed to update rate limiter genesis state: %w", err)
+	}
+
 	bz, err := json.MarshalIndent(appGenState, "", "  ")
 	if err != nil {
 		return err
@@ -286,7 +273,6 @@ func initGenesis(
 		if err = genutil.ExportGenesisFile(genDoc, path); err != nil {
 			return fmt.Errorf("failed to export app genesis state: %w", err)
 		}
-
 	}
 	return nil
 }
@@ -310,13 +296,14 @@ func updateBankGenesis(bankGenState *banktypes.GenesisState) {
 func updateGovGenesis(votingPeriod, expeditedVotingPeriod time.Duration) func(govGenState *govv1.GenesisState) {
 	return func(govGenState *govv1.GenesisState) {
 		govGenState.Params.MinDeposit = sdk.NewCoins(sdk.NewCoin(BabylonDenom, sdkmath.NewInt(100)))
+		govGenState.Params.ExpeditedMinDeposit = sdk.NewCoins(sdk.NewCoin(BabylonDenom, sdkmath.NewInt(1000)))
 		govGenState.Params.VotingPeriod = &votingPeriod
 		govGenState.Params.ExpeditedVotingPeriod = &expeditedVotingPeriod
 	}
 }
 
 func updateMintGenesis(mintGenState *minttypes.GenesisState) {
-	mintGenState.BondDenom = BabylonDenom
+	mintGenState.Minter.BondDenom = BabylonDenom
 }
 
 func updateStakeGenesis(stakeGenState *staketypes.GenesisState) {
@@ -328,10 +315,6 @@ func updateStakeGenesis(stakeGenState *staketypes.GenesisState) {
 		UnbondingTime:     staketypes.DefaultUnbondingTime,
 		MinCommissionRate: sdkmath.LegacyZeroDec(),
 	}
-}
-
-func updateCrisisGenesis(crisisGenState *crisistypes.GenesisState) {
-	crisisGenState.ConstantFee.Denom = BabylonDenom
 }
 
 func updateBtcLightClientGenesis(btcHeaders []*btclighttypes.BTCHeaderInfo) func(blcGenState *blctypes.GenesisState) {
@@ -361,6 +344,8 @@ func updateBtccheckpointGenesis(btccheckpointGenState *btccheckpointtypes.Genesi
 func updateFinalityGenesis(finalityGenState *finalitytypes.GenesisState) {
 	finalityGenState.Params = finalitytypes.DefaultParams()
 	finalityGenState.Params.FinalityActivationHeight = 0
+	finalityGenState.Params.FinalitySigTimeout = 4
+	finalityGenState.Params.SignedBlocksWindow = 300
 }
 
 func updateGenUtilGenesis(c *internalChain) func(*genutiltypes.GenesisState) {
@@ -376,7 +361,7 @@ func updateGenUtilGenesis(c *internalChain) func(*genutiltypes.GenesisState) {
 			if c.chainMeta.Id != ChainAID {
 				stakeAmountCoin = StakeAmountCoinB
 			}
-			createValmsg, err := node.buildCreateValidatorMsg(stakeAmountCoin)
+			createValmsg, err := node.buildCreateValidatorMsg(stakeAmountCoin, node.consensusKey)
 			if err != nil {
 				panic("genutil genesis setup failed: " + err.Error())
 			}
@@ -396,47 +381,27 @@ func updateGenUtilGenesis(c *internalChain) func(*genutiltypes.GenesisState) {
 	}
 }
 
-func updateCheckpointingGenesis(c *internalChain) func(*checkpointingtypes.GenesisState) {
-	return func(checkpointingGenState *checkpointingtypes.GenesisState) {
-		var genKeys []*checkpointingtypes.GenesisKey
-
-		for _, node := range c.nodes {
-			if !node.isValidator {
-				continue
-			}
-
-			proofOfPossession, err := privval.BuildPoP(node.consensusKey.PrivKey, node.consensusKey.BlsPrivKey)
-
-			if err != nil {
-				panic("It should be possible to build proof of possession from validator private keys")
-			}
-
-			valPubKey, err := cryptocodec.FromCmtPubKeyInterface(node.consensusKey.PubKey)
-
-			if err != nil {
-				panic("It should be possible to retrieve validator public key")
-			}
-
-			da, err := sdk.AccAddressFromBech32(node.consensusKey.DelegatorAddress)
-
-			if err != nil {
-				panic("It should be possible to get validator address from delegator address")
-			}
-
-			va := sdk.ValAddress(da)
-
-			genKey := &checkpointingtypes.GenesisKey{
-				ValidatorAddress: va.String(),
-				BlsKey: &checkpointingtypes.BlsKey{
-					Pubkey: &node.consensusKey.BlsPubKey,
-					Pop:    proofOfPossession,
-				},
-				ValPubkey: valPubKey.(*ed25519.PubKey),
-			}
-
-			genKeys = append(genKeys, genKey)
-		}
-
-		checkpointingGenState.GenesisKeys = genKeys
+func applyRateLimitsToChainConfig(rateLimiterGenState *ratelimiter.GenesisState) {
+	path := &ratelimiter.Path{
+		Denom:             "ubbn",
+		ChannelOrClientId: "channel-0",
 	}
+
+	quota := &ratelimiter.Quota{
+		MaxPercentSend: sdkmath.NewInt(90),
+		MaxPercentRecv: sdkmath.NewInt(90),
+		DurationHours:  24,
+	}
+
+	rateLimit := ratelimiter.RateLimit{
+		Path:  path,
+		Quota: quota,
+		Flow: &ratelimiter.Flow{
+			Inflow:       sdkmath.NewInt(0),
+			Outflow:      sdkmath.NewInt(0),
+			ChannelValue: sdkmath.NewInt(1_000_000),
+		},
+	}
+
+	rateLimiterGenState.RateLimits = append(rateLimiterGenState.RateLimits, rateLimit)
 }

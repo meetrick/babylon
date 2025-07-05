@@ -14,8 +14,8 @@ import (
 	coretypes "github.com/cometbft/cometbft/rpc/core/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/test/e2e/containers"
-	"github.com/babylonlabs-io/babylon/test/e2e/initialization"
+	"github.com/babylonlabs-io/babylon/v3/test/e2e/containers"
+	"github.com/babylonlabs-io/babylon/v3/test/e2e/initialization"
 )
 
 type NodeConfig struct {
@@ -120,9 +120,13 @@ func (n *NodeConfig) LatestBlockNumber() uint64 {
 }
 
 func (n *NodeConfig) WaitForCondition(doneCondition func() bool, errorMsg string) {
+	n.WaitForConditionWithPause(doneCondition, errorMsg, waitUntilRepeatPauseTime)
+}
+
+func (n *NodeConfig) WaitForConditionWithPause(doneCondition func() bool, errorMsg string, pause time.Duration) {
 	for i := 0; i < waitUntilrepeatMax; i++ {
 		if !doneCondition() {
-			time.Sleep(waitUntilRepeatPauseTime)
+			time.Sleep(pause)
 			continue
 		}
 		return
@@ -152,6 +156,15 @@ func (n *NodeConfig) WaitForNextBlocks(numberOfBlocks uint64) {
 		newLatest := n.LatestBlockNumber()
 		return newLatest > blockToWait
 	}, fmt.Sprintf("Timed out waiting for block %d. Current height is: %d", latest, blockToWait))
+}
+
+func (n *NodeConfig) WaitForNextBlockWithSleep50ms() {
+	latest := n.LatestBlockNumber()
+	blockToWait := latest + 1
+	n.WaitForConditionWithPause(func() bool {
+		newLatest := n.LatestBlockNumber()
+		return newLatest > blockToWait
+	}, fmt.Sprintf("Timed out waiting for block %d. Current height is: %d", latest, blockToWait), time.Millisecond*50)
 }
 
 func (n *NodeConfig) extractOperatorAddressIfValidator() error {
@@ -201,4 +214,8 @@ func (n *NodeConfig) Status() (*coretypes.ResultStatus, error) {
 	}
 
 	return &r, nil
+}
+
+func (n *NodeConfig) ChainID() string {
+	return n.chainId
 }

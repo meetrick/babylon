@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cometbft/cometbft/crypto/ed25519"
+
 	"cosmossdk.io/math"
 	cmtconfig "github.com/cometbft/cometbft/config"
-	cmted25519 "github.com/cometbft/cometbft/crypto/ed25519"
-	cmtos "github.com/cometbft/cometbft/libs/os"
 	"github.com/cometbft/cometbft/p2p"
 	cmttypes "github.com/cometbft/cometbft/types"
 	sdkcrypto "github.com/cosmos/cosmos-sdk/crypto"
@@ -31,13 +31,15 @@ import (
 	"github.com/cosmos/go-bip39"
 	"github.com/spf13/viper"
 
-	babylonApp "github.com/babylonlabs-io/babylon/app"
-	appparams "github.com/babylonlabs-io/babylon/app/params"
-	"github.com/babylonlabs-io/babylon/cmd/babylond/cmd"
-	"github.com/babylonlabs-io/babylon/crypto/bls12381"
-	"github.com/babylonlabs-io/babylon/privval"
-	"github.com/babylonlabs-io/babylon/test/e2e/util"
-	bbn "github.com/babylonlabs-io/babylon/types"
+	checkpointingtypes "github.com/babylonlabs-io/babylon/v3/x/checkpointing/types"
+
+	"github.com/cometbft/cometbft/privval"
+
+	babylonApp "github.com/babylonlabs-io/babylon/v3/app"
+	appparams "github.com/babylonlabs-io/babylon/v3/app/params"
+	appsigner "github.com/babylonlabs-io/babylon/v3/app/signer"
+	"github.com/babylonlabs-io/babylon/v3/cmd/babylond/cmd"
+	"github.com/babylonlabs-io/babylon/v3/test/e2e/util"
 )
 
 type internalNode struct {
@@ -46,7 +48,7 @@ type internalNode struct {
 	mnemonic     string
 	keyInfo      *keyring.Record
 	privateKey   cryptotypes.PrivKey
-	consensusKey privval.WrappedFilePVKey
+	consensusKey appsigner.ConsensusKey
 	nodeKey      p2p.NodeKey
 	peerId       string
 	isValidator  bool
@@ -80,7 +82,7 @@ func (n *internalNode) configDir() string {
 	return fmt.Sprintf("%s/%s", n.chain.chainMeta.configDir(), n.moniker)
 }
 
-func (n *internalNode) buildCreateValidatorMsg(amount sdk.Coin) (sdk.Msg, error) {
+func (n *internalNode) buildCreateValidatorMsg(amount sdk.Coin, consensusKey appsigner.ConsensusKey) (sdk.Msg, error) {
 	description := stakingtypes.NewDescription(n.moniker, "", "", "", "")
 	commissionRates := stakingtypes.CommissionRates{
 		Rate:          math.LegacyMustNewDecFromStr("0.1"),
@@ -91,18 +93,17 @@ func (n *internalNode) buildCreateValidatorMsg(amount sdk.Coin) (sdk.Msg, error)
 	// get the initial validator min self delegation
 	minSelfDelegation, _ := math.NewIntFromString("1")
 
-	valPubKey, err := cryptocodec.FromCmtPubKeyInterface(n.consensusKey.PubKey)
+	valPubKey, err := cryptocodec.FromCmtPubKeyInterface(n.consensusKey.Comet.PubKey)
 	if err != nil {
 		return nil, err
 	}
 
 	addr, err := n.keyInfo.GetAddress()
-
 	if err != nil {
 		return nil, err
 	}
 
-	return stakingtypes.NewMsgCreateValidator(
+	stkMsgCreateVal, err := stakingtypes.NewMsgCreateValidator(
 		sdk.ValAddress(addr).String(),
 		valPubKey,
 		amount,
@@ -110,6 +111,16 @@ func (n *internalNode) buildCreateValidatorMsg(amount sdk.Coin) (sdk.Msg, error)
 		commissionRates,
 		minSelfDelegation,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	proofOfPossession, err := appsigner.BuildPoP(consensusKey.Comet.PrivKey, consensusKey.Bls.PrivKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return checkpointingtypes.NewMsgWrappedCreateValidator(stkMsgCreateVal, &consensusKey.Bls.PubKey, proofOfPossession)
 }
 
 func (n *internalNode) createConfig() error {
@@ -131,7 +142,7 @@ func (n *internalNode) createAppConfig(nodeConfig *NodeConfig) {
 	appConfig.MinGasPrices = fmt.Sprintf("%s%s", MinGasPrice, BabylonDenom)
 	appConfig.StateSync.SnapshotInterval = nodeConfig.SnapshotInterval
 	appConfig.StateSync.SnapshotKeepRecent = nodeConfig.SnapshotKeepRecent
-	appConfig.BtcConfig.Network = string(bbn.BtcSimnet)
+	appConfig.BtcConfig.Network = nodeConfig.BtcNetwork
 	appConfig.GRPC.Enable = true
 	appConfig.GRPC.Address = "0.0.0.0:9090"
 
@@ -160,30 +171,36 @@ func (n *internalNode) createNodeKey() error {
 func (n *internalNode) createConsensusKey() error {
 	serverCtx := server.NewDefaultContext()
 	config := serverCtx.Config
-
 	config.SetRoot(n.configDir())
 	config.Moniker = n.moniker
 
 	pvKeyFile := config.PrivValidatorKeyFile()
-	if err := cmtos.EnsureDir(filepath.Dir(pvKeyFile), 0o777); err != nil {
-		return err
-	}
-
 	pvStateFile := config.PrivValidatorStateFile()
-	if err := cmtos.EnsureDir(filepath.Dir(pvStateFile), 0o777); err != nil {
-		return err
+	blsKeyFile := appsigner.DefaultBlsKeyFile(n.configDir())
+	blsPasswordFile := appsigner.DefaultBlsPasswordFile(n.configDir())
+
+	if err := appsigner.EnsureDirs(pvKeyFile, pvStateFile, blsKeyFile, blsPasswordFile); err != nil {
+		return fmt.Errorf("failed to ensure dirs: %w", err)
 	}
 
-	privKey := cmted25519.GenPrivKeyFromSecret([]byte(n.mnemonic))
-	blsPrivKey := bls12381.GenPrivKeyFromSecret([]byte(n.mnemonic))
-	filePV := privval.NewWrappedFilePV(privKey, blsPrivKey, pvKeyFile, pvStateFile)
+	// create file pv
+	var privKey ed25519.PrivKey
+	if n.mnemonic == "" {
+		privKey = ed25519.GenPrivKey()
+	} else {
+		privKey = ed25519.GenPrivKeyFromSecret([]byte(n.mnemonic))
+	}
+	filePV := privval.NewFilePV(privKey, pvKeyFile, pvStateFile)
+	filePV.Key.Save()
+	filePV.LastSignState.Save()
 
-	accAddress, _ := n.keyInfo.GetAddress()
-	filePV.Save()
-	filePV.SetAccAddress(accAddress)
+	// create bls pv
+	bls := appsigner.GenBls(blsKeyFile, blsPasswordFile, "password")
 
-	n.consensusKey = filePV.Key
-
+	n.consensusKey = appsigner.ConsensusKey{
+		Comet: &filePV.Key,
+		Bls:   &bls.Key,
+	}
 	return nil
 }
 
@@ -250,8 +267,10 @@ func (n *internalNode) export() *Node {
 		PublicAddress: addr.String(),
 		WalletName:    n.keyInfo.Name,
 		PublicKey:     pub.Bytes(),
+		PrivateKey:    n.privateKey.Bytes(),
 		PeerId:        n.peerId,
 		IsValidator:   n.isValidator,
+		CometPrivKey:  n.consensusKey.Comet.PrivKey.Bytes(),
 	}
 }
 
@@ -363,30 +382,6 @@ func (n *internalNode) initNodeConfigs(persistentPeers []string) error {
 	return nil
 }
 
-func (n *internalNode) initStateSyncConfig(trustHeight int64, trustHash string, stateSyncRPCServers []string) error {
-	cmtCfgPath := filepath.Join(n.configDir(), "config", "config.toml")
-
-	vpr := viper.New()
-	vpr.SetConfigFile(cmtCfgPath)
-	if err := vpr.ReadInConfig(); err != nil {
-		return err
-	}
-
-	valConfig := cmtconfig.DefaultConfig()
-	if err := vpr.Unmarshal(valConfig); err != nil {
-		return err
-	}
-
-	valConfig.StateSync = cmtconfig.DefaultStateSyncConfig()
-	valConfig.StateSync.Enable = true
-	valConfig.StateSync.TrustHeight = trustHeight
-	valConfig.StateSync.TrustHash = trustHash
-	valConfig.StateSync.RPCServers = stateSyncRPCServers
-
-	cmtconfig.WriteConfigFile(cmtCfgPath, valConfig)
-	return nil
-}
-
 // signMsg returns a signed tx of the provided messages,
 // signed by the validator, using 0 fees, a high gas limit, and a common memo.
 func (n *internalNode) signMsg(msgs ...sdk.Msg) (*sdktx.Tx, error) {
@@ -398,7 +393,6 @@ func (n *internalNode) signMsg(msgs ...sdk.Msg) (*sdktx.Tx, error) {
 
 	txBuilder.SetMemo(fmt.Sprintf("%s@%s:26656", n.nodeKey.ID(), n.moniker))
 	txBuilder.SetFeeAmount(sdk.NewCoins(sdk.NewCoin(appparams.DefaultBondDenom, math.NewInt(20000))))
-	txBuilder.SetGasLimit(uint64(200000 * len(msgs)))
 
 	addr, err := n.keyInfo.GetAddress()
 	if err != nil {

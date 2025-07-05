@@ -8,7 +8,7 @@ import (
 
 	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/store/prefix"
-	"github.com/babylonlabs-io/babylon/x/zoneconcierge/types"
+	"github.com/babylonlabs-io/babylon/v3/x/zoneconcierge/types"
 )
 
 func (k Keeper) setChainInfo(ctx context.Context, chainInfo *types.ChainInfo) {
@@ -65,8 +65,8 @@ func (k Keeper) GetChainInfo(ctx context.Context, consumerId string) (*types.Cha
 // - replace the old latest header with the given one
 // - increment the number of timestamped headers
 // Note that this function is triggered only upon receiving headers from the relayer,
-// and only a subset of headers in CZ are relayed. Thus TimestampedHeadersCount is not
-// equal to the total number of headers in CZ.
+// and only a subset of headers in the Consumer are relayed. Thus TimestampedHeadersCount is not
+// equal to the total number of headers in the Consumer.
 func (k Keeper) updateLatestHeader(ctx context.Context, consumerId string, header *types.IndexedHeader) error {
 	if header == nil {
 		return errorsmod.Wrapf(types.ErrInvalidHeader, "header is nil")
@@ -98,18 +98,19 @@ func (k Keeper) tryToUpdateLatestForkHeader(ctx context.Context, consumerId stri
 		return errorsmod.Wrapf(types.ErrChainInfoNotFound, "cannot insert fork header when chain info is not initialized")
 	}
 
-	if len(chainInfo.LatestForks.Headers) == 0 {
+	switch {
+	case len(chainInfo.LatestForks.Headers) == 0:
 		// no fork at the moment, add this fork header as the latest one
 		chainInfo.LatestForks.Headers = append(chainInfo.LatestForks.Headers, header)
-	} else if chainInfo.LatestForks.Headers[0].Height == header.Height {
+	case chainInfo.LatestForks.Headers[0].Height == header.Height:
 		// there exists fork headers at the same height, add this fork header to the set of latest fork headers
 		chainInfo.LatestForks.Headers = append(chainInfo.LatestForks.Headers, header)
-	} else if chainInfo.LatestForks.Headers[0].Height < header.Height {
+	case chainInfo.LatestForks.Headers[0].Height < header.Height:
 		// this fork header is newer than the previous one, replace the old fork headers with this fork header
 		chainInfo.LatestForks = &types.Forks{
 			Headers: []*types.IndexedHeader{header},
 		}
-	} else {
+	default:
 		// this fork header is older than the current latest fork, don't record this fork header in chain info
 		return nil
 	}
@@ -132,7 +133,7 @@ func (k Keeper) GetAllConsumerIDs(ctx context.Context) []string {
 	return consumerIds
 }
 
-// msgChainInfoStore stores the information of canonical chains and forks for CZs
+// msgChainInfoStore stores the information of canonical chains and forks for Consumers
 // prefix: ChainInfoKey
 // key: consumerId
 // value: ChainInfo

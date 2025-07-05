@@ -11,9 +11,10 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 
-	bbn "github.com/babylonlabs-io/babylon/types"
-	bstypes "github.com/babylonlabs-io/babylon/x/btcstaking/types"
-	"github.com/babylonlabs-io/babylon/x/finality/types"
+	"github.com/babylonlabs-io/babylon/v3/app/signingcontext"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	bstypes "github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
+	"github.com/babylonlabs-io/babylon/v3/x/finality/types"
 )
 
 type msgServer struct {
@@ -45,6 +46,20 @@ func (ms msgServer) UpdateParams(goCtx context.Context, req *types.MsgUpdatePara
 	return &types.MsgUpdateParamsResponse{}, nil
 }
 
+// ResumeFinalityProposal handles the proposal for resuming finality from halting
+func (ms msgServer) ResumeFinalityProposal(goCtx context.Context, req *types.MsgResumeFinalityProposal) (*types.MsgResumeFinalityProposalResponse, error) {
+	if ms.authority != req.Authority {
+		return nil, errorsmod.Wrapf(govtypes.ErrInvalidSigner, "invalid authority; expected %s, got %s", ms.authority, req.Authority)
+	}
+
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	if err := ms.HandleResumeFinalityProposal(ctx, req.FpPksHex, req.HaltingHeight); err != nil {
+		return nil, govtypes.ErrInvalidProposalMsg.Wrapf("failed to handle resume finality proposal: %v", err)
+	}
+
+	return &types.MsgResumeFinalityProposalResponse{}, nil
+}
+
 // AddFinalitySig adds a new vote to a given block
 func (ms msgServer) AddFinalitySig(goCtx context.Context, req *types.MsgAddFinalitySig) (*types.MsgAddFinalitySigResponse, error) {
 	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), types.MetricsKeyAddFinalitySig)
@@ -57,6 +72,18 @@ func (ms msgServer) AddFinalitySig(goCtx context.Context, req *types.MsgAddFinal
 	activationHeight, errMod := ms.validateActivationHeight(ctx, req.BlockHeight)
 	if errMod != nil {
 		return nil, errMod.Wrapf("finality block height: %d is lower than activation height %d", req.BlockHeight, activationHeight)
+	}
+
+	indexedBlock, err := ms.GetBlock(ctx, req.BlockHeight)
+	if err != nil {
+		return nil, err
+	}
+	should, err := ms.ShouldAcceptSigForHeight(ctx, indexedBlock)
+	if err != nil {
+		return nil, err
+	}
+	if !should {
+		return nil, types.ErrSigHeightOutdated.Wrapf("height: %d", req.BlockHeight)
 	}
 
 	fpPK := req.FpBtcPk
@@ -110,19 +137,17 @@ func (ms msgServer) AddFinalitySig(goCtx context.Context, req *types.MsgAddFinal
 		return nil, err
 	}
 
+	signingContext := signingcontext.FpFinVoteContextV0(ctx.ChainID(), ms.finalityModuleAddress)
+
 	// verify the finality signature message w.r.t. the public randomness commitment
 	// including the public randomness inclusion proof and the finality signature
-	if err := types.VerifyFinalitySig(req, prCommit); err != nil {
+	if err := types.VerifyFinalitySig(req, prCommit, signingContext); err != nil {
 		return nil, err
 	}
 	// the public randomness is good, set the public randomness
 	ms.SetPubRand(ctx, req.FpBtcPk, req.BlockHeight, *req.PubRand)
 
 	// verify whether the voted block is a fork or not
-	indexedBlock, err := ms.GetBlock(ctx, req.BlockHeight)
-	if err != nil {
-		return nil, err
-	}
 	if !bytes.Equal(indexedBlock.AppHash, req.BlockAppHash) {
 		// the finality provider votes for a fork!
 
@@ -135,6 +160,7 @@ func (ms msgServer) AddFinalitySig(goCtx context.Context, req *types.MsgAddFinal
 			CanonicalFinalitySig: nil,
 			ForkAppHash:          req.BlockAppHash,
 			ForkFinalitySig:      req.FinalitySig,
+			SigningContext:       signingContext,
 		}
 
 		// if this finality provider has also signed canonical block, slash it
@@ -144,7 +170,9 @@ func (ms msgServer) AddFinalitySig(goCtx context.Context, req *types.MsgAddFinal
 			evidence.CanonicalFinalitySig = canonicalSig
 			// slash this finality provider, including setting its voting power to
 			// zero, extracting its BTC SK, and emit an event
-			ms.slashFinalityProvider(ctx, req.FpBtcPk, evidence)
+			if err := ms.slashFinalityProvider(ctx, req.FpBtcPk, evidence); err != nil {
+				return nil, err
+			}
 		}
 
 		// save evidence
@@ -157,6 +185,15 @@ func (ms msgServer) AddFinalitySig(goCtx context.Context, req *types.MsgAddFinal
 
 	// this signature is good, add vote to DB
 	ms.SetSig(ctx, req.BlockHeight, fpPK, req.FinalitySig)
+
+	// update `HighestVotedHeight` if needed
+	if fp.HighestVotedHeight < uint32(req.BlockHeight) {
+		fp.HighestVotedHeight = uint32(req.BlockHeight)
+		err := ms.BTCStakingKeeper.UpdateFinalityProvider(ctx, fp)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update the finality provider: %w", err)
+		}
+	}
 
 	// if this finality provider has signed the canonical block before,
 	// slash it via extracting its secret key, and emit an event
@@ -176,7 +213,13 @@ func (ms msgServer) AddFinalitySig(goCtx context.Context, req *types.MsgAddFinal
 
 		// slash this finality provider, including setting its voting power to
 		// zero, extracting its BTC SK, and emit an event
-		ms.slashFinalityProvider(ctx, req.FpBtcPk, evidence)
+		if err := ms.slashFinalityProvider(ctx, req.FpBtcPk, evidence); err != nil {
+			return nil, err
+		}
+
+		// NOTE: we should NOT return error here, otherwise the state change triggered in this tx
+		// (including the evidence and slashing) will be rolled back
+		return &types.MsgAddFinalitySigResponse{}, nil
 	}
 
 	// at this point, the finality signature is 1) valid, 2) over a canonical block,
@@ -187,11 +230,32 @@ func (ms msgServer) AddFinalitySig(goCtx context.Context, req *types.MsgAddFinal
 	return &types.MsgAddFinalitySigResponse{}, nil
 }
 
+func (ms msgServer) ShouldAcceptSigForHeight(ctx context.Context, block *types.IndexedBlock) (bool, error) {
+	epochNum := ms.CheckpointingKeeper.GetEpochByHeight(ctx, block.Height)
+	lastFinalizedEpoch := ms.GetLastFinalizedEpoch(ctx)
+	timestamped := lastFinalizedEpoch >= epochNum
+
+	// should NOT accept sig for height is the block is already and finalized by the BTC-timestamping
+	// protocol
+	should := !(block.Finalized && timestamped)
+
+	return should, nil
+}
+
 // CommitPubRandList commits a list of EOTS public randomness
 func (ms msgServer) CommitPubRandList(goCtx context.Context, req *types.MsgCommitPubRandList) (*types.MsgCommitPubRandListResponse, error) {
 	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), types.MetricsKeyCommitPubRandList)
 
+	if err := req.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
 	ctx := sdk.UnwrapSDKContext(goCtx)
+	// check the commit start height is not too far into the future
+	if req.StartHeight >= uint64(ctx.BlockHeader().Height)+types.MaxPubRandCommitOffset {
+		return nil, types.ErrInvalidPubRand.Wrapf("start height %d is too far into the future. Current height is %d and max offset is %d", req.StartHeight, ctx.BlockHeader().Height, types.MaxPubRandCommitOffset)
+	}
+
 	activationHeight, errMod := ms.validateActivationHeight(ctx, req.StartHeight)
 	if errMod != nil {
 		return nil, types.ErrFinalityNotActivated.Wrapf(
@@ -217,8 +281,10 @@ func (ms msgServer) CommitPubRandList(goCtx context.Context, req *types.MsgCommi
 		return nil, bstypes.ErrFpNotFound.Wrapf("the finality provider with BTC PK %v is not registered", fpBTCPKBytes)
 	}
 
+	signingContext := signingcontext.FpRandCommitContextV0(ctx.ChainID(), ms.finalityModuleAddress)
+
 	// verify signature over the public randomness commitment
-	if err := req.VerifySig(); err != nil {
+	if err := req.VerifySig(signingContext); err != nil {
 		return nil, types.ErrInvalidPubRand.Wrapf("invalid signature over the public randomness list: %v", err)
 	}
 
@@ -236,7 +302,9 @@ func (ms msgServer) CommitPubRandList(goCtx context.Context, req *types.MsgCommi
 	// this finality provider has not commit any public randomness,
 	// commit the given public randomness list and return
 	if lastPrCommit == nil {
-		ms.SetPubRandCommit(ctx, req.FpBtcPk, prCommit)
+		if err := ms.SetPubRandCommit(ctx, req.FpBtcPk, prCommit); err != nil {
+			return nil, err
+		}
 		return &types.MsgCommitPubRandListResponse{}, nil
 	}
 
@@ -247,7 +315,9 @@ func (ms msgServer) CommitPubRandList(goCtx context.Context, req *types.MsgCommi
 	}
 
 	// all good, commit the given public randomness list
-	ms.SetPubRandCommit(ctx, req.FpBtcPk, prCommit)
+	if err := ms.SetPubRandCommit(ctx, req.FpBtcPk, prCommit); err != nil {
+		return nil, err
+	}
 	return &types.MsgCommitPubRandListResponse{}, nil
 }
 
@@ -293,7 +363,7 @@ func (ms msgServer) UnjailFinalityProvider(ctx context.Context, req *types.MsgUn
 		return nil, fmt.Errorf("failed to unjail finality provider %s: %w", fpPk.MarshalHex(), err)
 	}
 
-	types.DecrementJailedFinalityProviderCounter()
+	types.IncrementUnjailedFinalityProviderCounter()
 
 	return &types.MsgUnjailFinalityProviderResponse{}, nil
 }
@@ -301,22 +371,24 @@ func (ms msgServer) UnjailFinalityProvider(ctx context.Context, req *types.MsgUn
 // slashFinalityProvider slashes a finality provider with the given evidence
 // including setting its voting power to zero, extracting its BTC SK,
 // and emit an event
-func (k Keeper) slashFinalityProvider(ctx context.Context, fpBtcPk *bbn.BIP340PubKey, evidence *types.Evidence) {
+func (k Keeper) slashFinalityProvider(ctx context.Context, fpBtcPk *bbn.BIP340PubKey, evidence *types.Evidence) error {
 	// slash this finality provider, i.e., set its voting power to zero
 	if err := k.BTCStakingKeeper.SlashFinalityProvider(ctx, fpBtcPk.MustMarshal()); err != nil {
-		panic(fmt.Errorf("failed to slash finality provider: %v", err))
+		return fmt.Errorf("failed to slash finality provider: %v", err)
 	}
 
 	// Propagate slashing information to consumer chains
 	if err := k.BTCStakingKeeper.PropagateFPSlashingToConsumers(ctx, fpBtcPk); err != nil {
-		panic(fmt.Errorf("failed to propagate finality provider slashing to consumers: %w", err))
+		return fmt.Errorf("failed to propagate finality provider slashing to consumers: %w", err)
 	}
 
 	// emit slashing event
 	eventSlashing := types.NewEventSlashedFinalityProvider(evidence)
 	if err := sdk.UnwrapSDKContext(ctx).EventManager().EmitTypedEvent(eventSlashing); err != nil {
-		panic(fmt.Errorf("failed to emit EventSlashedFinalityProvider event: %w", err))
+		return fmt.Errorf("failed to emit EventSlashedFinalityProvider event: %w", err)
 	}
+
+	return nil
 }
 
 // validateActivationHeight returns error if the height received is lower than the finality
@@ -336,53 +408,5 @@ func (ms msgServer) validateActivationHeight(ctx sdk.Context, height uint64) (ui
 
 // EquivocationEvidence handles the evidence of equivocation message sent from the finality gadget cw contract
 func (ms msgServer) EquivocationEvidence(goCtx context.Context, req *types.MsgEquivocationEvidence) (*types.MsgEquivocationEvidenceResponse, error) {
-	ctx := sdk.UnwrapSDKContext(goCtx)
-
-	// validate the evidence
-	if err := validateEvidence(req); err != nil {
-		return &types.MsgEquivocationEvidenceResponse{}, err
-	}
-
-	// construct the evidence
-	evidence := &types.Evidence{
-		FpBtcPk:              req.FpBtcPk,
-		BlockHeight:          req.BlockHeight,
-		PubRand:              req.PubRand,
-		CanonicalAppHash:     req.CanonicalAppHash,
-		CanonicalFinalitySig: req.CanonicalFinalitySig,
-		ForkAppHash:          req.ForkAppHash,
-		ForkFinalitySig:      req.ForkFinalitySig,
-	}
-
-	// slash this finality provider, including setting its voting power to
-	// zero, extracting its BTC SK, and emit an event
-	ms.slashFinalityProvider(ctx, evidence.FpBtcPk, evidence)
-
-	// save evidence
-	ms.SetEvidence(ctx, evidence)
-
-	return &types.MsgEquivocationEvidenceResponse{}, nil
-}
-
-// Helper function
-func validateEvidence(req *types.MsgEquivocationEvidence) error {
-	if req.FpBtcPk == nil {
-		return fmt.Errorf("empty FpBtcPk")
-	}
-	if req.PubRand == nil {
-		return fmt.Errorf("empty PubRand")
-	}
-	if len(req.CanonicalAppHash) != 32 {
-		return fmt.Errorf("malformed CanonicalAppHash")
-	}
-	if len(req.ForkAppHash) != 32 {
-		return fmt.Errorf("malformed ForkAppHash")
-	}
-	if req.ForkFinalitySig == nil {
-		return fmt.Errorf("empty ForkFinalitySig")
-	}
-	if req.CanonicalFinalitySig == nil {
-		return fmt.Errorf("empty CanonicalFinalitySig")
-	}
-	return nil
+	return ms.HandleEquivocationEvidence(goCtx, req)
 }

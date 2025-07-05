@@ -2,7 +2,8 @@ package keeper
 
 import (
 	"context"
-	"github.com/babylonlabs-io/babylon/x/btclightclient/types"
+
+	"github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
 )
 
 // Implements BTCLightClientHooks interface
@@ -16,9 +17,9 @@ func (k Keeper) AfterBTCHeaderInserted(ctx context.Context, headerInfo *types.BT
 }
 
 // AfterBTCRollBack - call hook if registered
-func (k Keeper) AfterBTCRollBack(ctx context.Context, headerInfo *types.BTCHeaderInfo) {
+func (k Keeper) AfterBTCRollBack(ctx context.Context, rollbackFrom, rollbackTo *types.BTCHeaderInfo) {
 	if k.hooks != nil {
-		k.hooks.AfterBTCRollBack(ctx, headerInfo)
+		k.hooks.AfterBTCRollBack(ctx, rollbackFrom, rollbackTo)
 	}
 }
 

@@ -2,13 +2,17 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
+	"github.com/cosmos/evm/crypto/hd"
 	"io"
 	"os"
+	"strings"
 
+	"cosmossdk.io/client/v2/autocli"
 	confixcmd "cosmossdk.io/tools/confix/cmd"
 	"github.com/CosmWasm/wasmd/x/wasm"
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
-	appkeepers "github.com/babylonlabs-io/babylon/app/keepers"
+	appparams "github.com/babylonlabs-io/babylon/v3/app/params"
 	cmtcfg "github.com/cometbft/cometbft/config"
 	cmtcli "github.com/cometbft/cometbft/libs/cli"
 	dbm "github.com/cosmos/cosmos-db"
@@ -20,29 +24,33 @@ import (
 	authtxconfig "github.com/cosmos/cosmos-sdk/x/auth/tx/config"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
+	evmkeyring "github.com/cosmos/evm/crypto/keyring"
+	evmserver "github.com/cosmos/evm/server"
+	srvflags "github.com/cosmos/evm/server/flags"
+
+	appsigner "github.com/babylonlabs-io/babylon/v3/app/signer"
 
 	"cosmossdk.io/log"
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/debug"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
-	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/server"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	"github.com/cosmos/cosmos-sdk/x/crisis"
 	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
 
-	"github.com/babylonlabs-io/babylon/app"
-	"github.com/babylonlabs-io/babylon/app/params"
-	"github.com/babylonlabs-io/babylon/cmd/babylond/cmd/genhelpers"
+	"github.com/babylonlabs-io/babylon/v3/app"
+	"github.com/babylonlabs-io/babylon/v3/app/params"
+	"github.com/babylonlabs-io/babylon/v3/cmd/babylond/cmd/genhelpers"
+	checkpointingtypes "github.com/babylonlabs-io/babylon/v3/x/checkpointing/types"
+	evmcmd "github.com/cosmos/evm/client"
+	evmtypes "github.com/cosmos/evm/types"
 )
 
 // NewRootCmd creates a new root command for babylond. It is called once in the
@@ -60,7 +68,15 @@ func NewRootCmd() *cobra.Command {
 		WithInput(os.Stdin).
 		WithAccountRetriever(types.AccountRetriever{}).
 		WithHomeDir(app.DefaultNodeHome).
-		WithViper("") // In app, we don't use any prefix for env variables.
+		WithViper(""). // In app, we don't use any prefix for env variables.
+		WithBroadcastMode(flags.FlagBroadcastMode).
+		WithKeyringOptions(evmkeyring.Option(), hd.EthSecp256k1Option()).
+		WithLedgerHasProtobuf(true)
+
+	cfg := sdk.GetConfig()
+	cfg.SetCoinType(evmtypes.Bip44CoinType)
+	cfg.SetPurpose(sdk.Purpose)
+	cfg.Seal()
 
 	rootCmd := &cobra.Command{
 		Use:   "babylond",
@@ -73,18 +89,21 @@ func NewRootCmd() *cobra.Command {
 			initClientCtx = initClientCtx.WithCmdContext(cmd.Context())
 			initClientCtx, err := client.ReadPersistentCommandFlags(initClientCtx, cmd.Flags())
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to read command flags: %w", err)
 			}
 
 			initClientCtx, err = config.ReadFromClientConfig(initClientCtx)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to read client config: %w", err)
 			}
 
 			if !initClientCtx.Offline {
-				enabledSignModes := append(tx.DefaultSignModes, signing.SignMode_SIGN_MODE_TEXTUAL)
+				var modes []signing.SignMode
+				modes = append(modes, tx.DefaultSignModes...)
+				modes = append(modes, signing.SignMode_SIGN_MODE_TEXTUAL)
+
 				txConfigOpts := tx.ConfigOptions{
-					EnabledSignModes:           enabledSignModes,
+					EnabledSignModes:           modes,
 					TextualCoinMetadataQueryFn: authtxconfig.NewGRPCCoinMetadataQueryFn(initClientCtx),
 				}
 				txConfig, err := tx.NewTxConfigWithOptions(
@@ -92,14 +111,14 @@ func NewRootCmd() *cobra.Command {
 					txConfigOpts,
 				)
 				if err != nil {
-					return err
+					return fmt.Errorf("failed to create tx config: %w", err)
 				}
 
 				initClientCtx = initClientCtx.WithTxConfig(txConfig)
 			}
 
 			if err := client.SetCmdClientContextHandler(initClientCtx, cmd); err != nil {
-				return err
+				return fmt.Errorf("failed to set cmd client context handler: %w", err)
 			}
 
 			customAppTemplate, customAppConfig := initAppConfig()
@@ -108,7 +127,7 @@ func NewRootCmd() *cobra.Command {
 			err = server.InterceptConfigsPreRunHandler(cmd, customAppTemplate, customAppConfig, customCometConfig)
 
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to intercept configs: %w", err)
 			}
 
 			return nil
@@ -117,21 +136,56 @@ func NewRootCmd() *cobra.Command {
 
 	initRootCmd(rootCmd, tempApp.TxConfig(), tempApp.BasicModuleManager)
 
-	// add keyring to autocli opts
-	autoCliOpts := tempApp.AutoCliOpts()
-	initClientCtx, _ = config.ReadFromClientConfig(initClientCtx)
-	autoCliOpts.Keyring, _ = keyring.NewAutoCLIKeyring(initClientCtx.Keyring)
-	autoCliOpts.ClientCtx = initClientCtx
-	autoCliOpts.TxConfigOpts = tx.ConfigOptions{
-		EnabledSignModes:           tx.DefaultSignModes,
-		TextualCoinMetadataQueryFn: authtxconfig.NewGRPCCoinMetadataQueryFn(initClientCtx),
-	}
-
-	if err := autoCliOpts.EnhanceRootCommand(rootCmd); err != nil {
+	// If the regular chain id set, ensure we also set an EVM specific chain id.
+	if err := app.EVMAppOptions(appparams.EVMChainID); err != nil {
 		panic(err)
 	}
 
+	// add keyring to autocli opts
+	autoCliOpts := tempApp.AutoCliOpts()
+	initClientCtx, _ = config.ReadFromClientConfig(initClientCtx)
+	autoCliOpts.ClientCtx = initClientCtx
+
+	EnhanceRootCommandWithoutTxStaking(autoCliOpts, rootCmd)
+
 	return rootCmd
+}
+
+// EnhanceRootCommandWithoutTxStaking excludes staking tx commands
+func EnhanceRootCommandWithoutTxStaking(autoCliOpts autocli.AppOptions, rootCmd *cobra.Command) {
+	if err := autoCliOpts.EnhanceRootCommand(rootCmd); err != nil {
+		panic(fmt.Errorf("failed to enhance root command: %w", err))
+	}
+
+	txCmd := FindSubCommand(rootCmd, "tx")
+	if txCmd == nil {
+		panic("failed to find tx subcommand")
+	}
+
+	stkTxCmd := FindSubCommand(txCmd, "staking")
+	if stkTxCmd == nil {
+		panic("failed to find tx staking subcommand")
+	}
+	txCmd.RemoveCommand(stkTxCmd)
+}
+
+// FindSubCommand finds a sub-command of the provided command whose Use
+// string is or begins with the provided subCmdName.
+// It verifies the command's aliases as well.
+func FindSubCommand(cmd *cobra.Command, subCmdName string) *cobra.Command {
+	for _, subCmd := range cmd.Commands() {
+		use := subCmd.Use
+		if use == subCmdName || strings.HasPrefix(use, subCmdName+" ") {
+			return subCmd
+		}
+
+		for _, alias := range subCmd.Aliases {
+			if alias == subCmdName || strings.HasPrefix(alias, subCmdName+" ") {
+				return subCmd
+			}
+		}
+	}
+	return nil
 }
 
 // initCometConfig helps to override default Comet Config values.
@@ -165,10 +219,10 @@ func initRootCmd(rootCmd *cobra.Command, txConfig client.TxEncodingConfig, basic
 	gentxModule := basicManager[genutiltypes.ModuleName].(genutil.AppModuleBasic)
 
 	rootCmd.AddCommand(
-		genutilcli.InitCmd(basicManager, app.DefaultNodeHome),
-		genutilcli.CollectGenTxsCmd(banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome, gentxModule.GenTxValidator, authcodec.NewBech32Codec(params.Bech32PrefixValAddr)),
+		InitCmd(basicManager, app.DefaultNodeHome),
+		genhelpers.CollectGenTxsCmd(banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome, gentxModule.GenTxValidator, authcodec.NewBech32Codec(params.Bech32PrefixValAddr)),
 		genutilcli.MigrateGenesisCmd(genutilcli.MigrationMap),
-		genutilcli.GenTxCmd(basicManager, txConfig, banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome, authcodec.NewBech32Codec(params.Bech32PrefixValAddr)),
+		genhelpers.GenTxCmd(basicManager, txConfig, banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome, authcodec.NewBech32Codec(params.Bech32PrefixValAddr)),
 		ValidateGenesisCmd(basicManager, gentxModule.GenTxValidator),
 		PrepareGenesisCmd(app.DefaultNodeHome, basicManager),
 		AddGenesisAccountCmd(app.DefaultNodeHome),
@@ -176,28 +230,44 @@ func initRootCmd(rootCmd *cobra.Command, txConfig client.TxEncodingConfig, basic
 		TestnetCmd(basicManager, banktypes.GenesisBalancesIterator{}),
 		genhelpers.CmdGenHelpers(gentxModule.GenTxValidator),
 		CreateBlsKeyCmd(),
+		UpdateBlsPasswordCmd(),
+		ShowBlsKeyCmd(),
+		VerifyValidatorBlsKey(),
+		GenerateBlsPopCmd(),
 		ModuleSizeCmd(),
-		debug.Cmd(),
+		DebugCmd(),
 		confixcmd.ConfigCommand(),
 	)
 
-	server.AddCommands(rootCmd, app.DefaultNodeHome, newApp, appExport, addModuleInitFlags)
+	evmserver.AddCommands(
+		rootCmd,
+		evmserver.NewDefaultStartOptions(newApp, app.DefaultNodeHome),
+		appExport,
+		addModuleInitFlags,
+	)
 
 	// add keybase, auxiliary RPC, query, and tx child commands
 	rootCmd.AddCommand(
 		server.StatusCommand(),
 		queryCommand(),
 		txCommand(),
-		keys.Commands(),
+		evmcmd.KeyCommands(app.DefaultNodeHome, false),
 	)
+
+	var err error
+	_, err = srvflags.AddTxFlags(rootCmd)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func addModuleInitFlags(startCmd *cobra.Command) {
-	crisis.AddModuleInitFlags(startCmd)
 	wasm.AddModuleInitFlags(startCmd)
 
 	startCmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|kwallet|pass|test)")
 	startCmd.Flags().String(flags.FlagChainID, "", "genesis file chain-id, if left blank will be randomly created")
+	startCmd.Flags().Bool(flagNoBlsPassword, false, "Generate BLS key without password protection (suitable for RPC nodes)")
+	startCmd.Flags().String(flagBlsPasswordFile, "", "Load a custom file path to the bls password (not recommended)")
 }
 
 func queryCommand() *cobra.Command {
@@ -261,9 +331,23 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, appOpts serverty
 	}
 
 	homeDir := cast.ToString(appOpts.Get(flags.FlagHome))
-	privSigner, err := appkeepers.InitPrivSigner(homeDir)
+
+	noBlsPassword := cast.ToBool(appOpts.Get(flagNoBlsPassword))
+	fileBlsPassword := cast.ToString(appOpts.Get(flagBlsPasswordFile))
+
+	if err := appsigner.ValidatePasswordMethods(noBlsPassword, fileBlsPassword); err != nil {
+		panic(fmt.Errorf("more than one password sources detected: %w", err))
+	}
+
+	// Load or generate BLS signer with potential custom path from app.toml
+	blsSigner, err := appsigner.LoadOrGenBlsKey(
+		homeDir,
+		noBlsPassword,
+		cast.ToString(appOpts.Get(flagBlsPasswordFile)),
+		cast.ToString(appOpts.Get("bls-config.bls-key-file")),
+	)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed to load or generate BLS signer: %w", err))
 	}
 
 	var wasmOpts []wasmkeeper.Option
@@ -274,8 +358,10 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, appOpts serverty
 	return app.NewBabylonApp(
 		logger, db, traceStore, true, skipUpgradeHeights,
 		cast.ToUint(appOpts.Get(server.FlagInvCheckPeriod)),
-		privSigner,
+		&blsSigner,
 		appOpts,
+		appparams.EVMChainID,
+		app.EVMAppOptions,
 		wasmOpts,
 		baseappOptions...,
 	)
@@ -293,25 +379,27 @@ func appExport(
 	appOpts servertypes.AppOptions,
 	modulesToExport []string,
 ) (servertypes.ExportedApp, error) {
-
 	var babylonApp *app.BabylonApp
 	homePath, ok := appOpts.Get(flags.FlagHome).(string)
 	if !ok || homePath == "" {
 		return servertypes.ExportedApp{}, errors.New("application home not set")
 	}
 
-	privSigner, err := appkeepers.InitPrivSigner(homePath)
+	ck, err := appsigner.LoadConsensusKey(homePath)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed to initialize priv signer: %w", err))
 	}
+
+	blsSigner := checkpointingtypes.BlsSigner(ck.Bls)
+
 	if height != -1 {
-		babylonApp = app.NewBabylonApp(logger, db, traceStore, false, map[int64]bool{}, uint(1), privSigner, appOpts, app.EmptyWasmOpts)
+		babylonApp = app.NewBabylonApp(logger, db, traceStore, false, map[int64]bool{}, uint(1), &blsSigner, appOpts, appparams.EVMChainID, app.EVMAppOptions, app.EmptyWasmOpts)
 
 		if err = babylonApp.LoadHeight(height); err != nil {
-			return servertypes.ExportedApp{}, err
+			return servertypes.ExportedApp{}, fmt.Errorf("failed to load height: %w", err)
 		}
 	} else {
-		babylonApp = app.NewBabylonApp(logger, db, traceStore, true, map[int64]bool{}, uint(1), privSigner, appOpts, app.EmptyWasmOpts)
+		babylonApp = app.NewBabylonApp(logger, db, traceStore, true, map[int64]bool{}, uint(1), &blsSigner, appOpts, appparams.EVMChainID, app.EVMAppOptions, app.EmptyWasmOpts)
 	}
 
 	return babylonApp.ExportAppStateAndValidators(forZeroHeight, jailAllowedAddrs, modulesToExport)

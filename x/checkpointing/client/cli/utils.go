@@ -10,8 +10,6 @@ import (
 	"cosmossdk.io/core/address"
 	errorsmod "cosmossdk.io/errors"
 	sdkmath "cosmossdk.io/math"
-	cmtconfig "github.com/cometbft/cometbft/config"
-	cmtos "github.com/cometbft/cometbft/libs/os"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
@@ -23,8 +21,9 @@ import (
 	staketypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	flag "github.com/spf13/pflag"
 
-	"github.com/babylonlabs-io/babylon/privval"
-	"github.com/babylonlabs-io/babylon/x/checkpointing/types"
+	appsigner "github.com/babylonlabs-io/babylon/v3/app/signer"
+	"github.com/babylonlabs-io/babylon/v3/crypto/bls12381"
+	"github.com/babylonlabs-io/babylon/v3/x/checkpointing/types"
 )
 
 // validator struct to define the fields of the validator
@@ -157,20 +156,40 @@ func newBuildCreateValidatorMsg(clientCtx client.Context, txf tx.Factory, fs *fl
 func buildWrappedCreateValidatorMsg(clientCtx client.Context, txf tx.Factory, fs *flag.FlagSet, val validator, valAc address.Codec) (tx.Factory, *types.MsgWrappedCreateValidator, error) {
 	txf, msg, err := newBuildCreateValidatorMsg(clientCtx, txf, fs, val, valAc)
 	if err != nil {
-		return txf, nil, err
+		return txf, nil, fmt.Errorf("failed to build create validator message: %w", err)
 	}
 
-	home, _ := fs.GetString(flags.FlagHome)
-	valKey, err := getValKeyFromFile(home)
-	if err != nil {
-		return txf, nil, err
+	var blsPK *bls12381.PublicKey
+	var pop *types.ProofOfPossession
+
+	blsPopFilePath, _ := fs.GetString(FlagBlsPopFilePath)
+	if blsPopFilePath != "" {
+		// if blsPopFilePath is not empty, load bls key from the provided path
+		blsPop, err := appsigner.LoadBlsPop(blsPopFilePath)
+		if err != nil {
+			return txf, nil, fmt.Errorf("failed to load bls pop from provided path: %w", err)
+		}
+		blsPK = &blsPop.BlsPubkey
+		pop = blsPop.Pop
+	} else {
+		// if blsPopFilePath is empty, load bls key from the node directory
+		// both priv_validator_key.json and bls_key.json are required
+		// to be present in the node directory
+		home, _ := fs.GetString(flags.FlagHome)
+		valKey, err := getValKeyFromFile(home)
+		if err != nil {
+			return txf, nil, fmt.Errorf("failed to load bls key from node directory: %w", err)
+		}
+		blsPK = &valKey.BlsPubkey
+		pop = valKey.PoP
 	}
-	wrappedMsg, err := types.NewMsgWrappedCreateValidator(msg, &valKey.BlsPubkey, valKey.PoP)
+
+	wrappedMsg, err := types.NewMsgWrappedCreateValidator(msg, blsPK, pop)
 	if err != nil {
-		return txf, nil, err
+		return txf, nil, fmt.Errorf("failed to create wrapped create validator message: %w", err)
 	}
 	if err := wrappedMsg.ValidateBasic(); err != nil {
-		return txf, nil, err
+		return txf, nil, fmt.Errorf("failed to validate wrapped create validator message: %w", err)
 	}
 
 	return txf, wrappedMsg, nil
@@ -202,14 +221,14 @@ func buildCommissionRates(rateStr, maxRateStr, maxChangeRateStr string) (commiss
 	return commission, nil
 }
 
-func getValKeyFromFile(homeDir string) (*privval.ValidatorKeys, error) {
-	nodeCfg := cmtconfig.DefaultConfig()
-	keyPath := filepath.Join(homeDir, nodeCfg.PrivValidatorKeyFile())
-	statePath := filepath.Join(homeDir, nodeCfg.PrivValidatorStateFile())
-	if !cmtos.FileExists(keyPath) {
-		return nil, errors.New("validator key file does not exist")
+// getValKeyFromFile loads the validator key from the node directory
+// Both FilePV from priv_validator_key.json and Bls should be present in the node directory
+// befor function is called.
+func getValKeyFromFile(homeDir string) (*appsigner.ValidatorKeys, error) {
+	ck, err := appsigner.LoadConsensusKey(homeDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load consensus key: %w", err)
 	}
-	wrappedPV := privval.LoadWrappedFilePV(keyPath, statePath)
 
-	return privval.NewValidatorKeys(wrappedPV.GetValPrivKey(), wrappedPV.GetBlsPrivKey())
+	return appsigner.NewValidatorKeys(ck.Comet.PrivKey, ck.Bls.PrivKey)
 }

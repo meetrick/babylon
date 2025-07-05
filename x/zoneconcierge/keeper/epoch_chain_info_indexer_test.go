@@ -4,11 +4,11 @@ import (
 	"math/rand"
 	"testing"
 
-	ibctmtypes "github.com/cosmos/ibc-go/v8/modules/light-clients/07-tendermint"
+	ibctmtypes "github.com/cosmos/ibc-go/v10/modules/light-clients/07-tendermint"
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/app"
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
+	"github.com/babylonlabs-io/babylon/v3/app"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
 )
 
 func FuzzEpochChainInfoIndexer(f *testing.F) {
@@ -20,7 +20,6 @@ func FuzzEpochChainInfoIndexer(f *testing.F) {
 		babylonApp := app.Setup(t, false)
 		zcKeeper := babylonApp.ZoneConciergeKeeper
 		ctx := babylonApp.NewContext(false)
-		consumerID := "test-consumerid"
 
 		hooks := zcKeeper.Hooks()
 
@@ -57,7 +56,6 @@ func FuzzGetEpochHeaders(f *testing.F) {
 		babylonApp := app.Setup(t, false)
 		zcKeeper := babylonApp.ZoneConciergeKeeper
 		ctx := babylonApp.NewContext(false)
-		consumerID := "test-consumerid"
 
 		hooks := zcKeeper.Hooks()
 

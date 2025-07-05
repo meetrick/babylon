@@ -1,14 +1,49 @@
 package keeper
 
 import (
+	"bytes"
 	"context"
 
 	"cosmossdk.io/store/prefix"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	"github.com/babylonlabs-io/babylon/x/finality/types"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	"github.com/babylonlabs-io/babylon/v3/x/finality/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
+
+// HandleEquivocationEvidence handles the evidence of equivocation message sent from the finality gadget cw contract
+// It performs basic verification, constructs the evidence, slashes the finality provider, and saves the evidence
+func (k Keeper) HandleEquivocationEvidence(ctx context.Context, req *types.MsgEquivocationEvidence) (*types.MsgEquivocationEvidenceResponse, error) {
+	// parse the evidence from the message
+	evidence, err := req.ParseToEvidence()
+	if err != nil {
+		return nil, err
+	}
+
+	// Try to extract secret key
+	sk, err := evidence.ExtractBTCSK()
+	if err != nil {
+		return nil, err
+	}
+	// extract the public key from the secret key
+	pk := bbn.NewBIP340PubKeyFromBTCPK(sk.PubKey())
+	// Verify that the extracted public key matches the one in the evidence
+	if !bytes.Equal(pk.MustMarshal(), evidence.FpBtcPk.MustMarshal()) {
+		return nil, types.ErrInvalidEquivocationEvidence.Wrap("extracted public key does not match the one in evidence")
+	}
+
+	// slash this finality provider, including setting its voting power to
+	// zero, extracting its BTC SK, and emit an event
+	// NOTE: this function checks if the finality provider exists and is not slashed
+	if err := k.slashFinalityProvider(ctx, evidence.FpBtcPk, evidence); err != nil {
+		return nil, err
+	}
+
+	// save evidence
+	k.SetEvidence(ctx, evidence)
+
+	return &types.MsgEquivocationEvidenceResponse{}, nil
+}
 
 func (k Keeper) SetEvidence(ctx context.Context, evidence *types.Evidence) {
 	store := k.evidenceFpStore(ctx, evidence.FpBtcPk)

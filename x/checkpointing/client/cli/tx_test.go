@@ -4,14 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"path/filepath"
 	"testing"
 
 	sdkmath "cosmossdk.io/math"
 	abci "github.com/cometbft/cometbft/abci/types"
 	cmtconfig "github.com/cometbft/cometbft/config"
 	cmtbytes "github.com/cometbft/cometbft/libs/bytes"
-	cmtos "github.com/cometbft/cometbft/libs/os"
 	rpcclient "github.com/cometbft/cometbft/rpc/client"
 	rpcclientmock "github.com/cometbft/cometbft/rpc/client/mock"
 	coretypes "github.com/cometbft/cometbft/rpc/core/types"
@@ -26,11 +24,13 @@ import (
 	authcodec "github.com/cosmos/cosmos-sdk/x/auth/codec"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/babylonlabs-io/babylon/app"
-	"github.com/babylonlabs-io/babylon/app/params"
-	"github.com/babylonlabs-io/babylon/privval"
-	testutilcli "github.com/babylonlabs-io/babylon/testutil/cli"
-	checkpointcli "github.com/babylonlabs-io/babylon/x/checkpointing/client/cli"
+	"github.com/babylonlabs-io/babylon/v3/app"
+	"github.com/babylonlabs-io/babylon/v3/app/params"
+	appparams "github.com/babylonlabs-io/babylon/v3/app/params"
+	appsigner "github.com/babylonlabs-io/babylon/v3/app/signer"
+	testutilcli "github.com/babylonlabs-io/babylon/v3/testutil/cli"
+	checkpointcli "github.com/babylonlabs-io/babylon/v3/x/checkpointing/client/cli"
+	"github.com/cometbft/cometbft/privval"
 )
 
 type mockCometRPC struct {
@@ -103,22 +103,40 @@ func (s *CLITestSuite) SetupSuite() {
 func (s *CLITestSuite) TestCmdWrappedCreateValidator() {
 	require := s.Require()
 	homeDir := s.T().TempDir()
-	nodeCfg := cmtconfig.DefaultConfig()
-	pvKeyFile := filepath.Join(homeDir, nodeCfg.PrivValidatorKeyFile())
-	err := cmtos.EnsureDir(filepath.Dir(pvKeyFile), 0777)
-	require.NoError(err)
-	pvStateFile := filepath.Join(homeDir, nodeCfg.PrivValidatorStateFile())
-	err = cmtos.EnsureDir(filepath.Dir(pvStateFile), 0777)
-	require.NoError(err)
-	wrappedPV := privval.LoadOrGenWrappedFilePV(pvKeyFile, pvStateFile)
-	cmd := checkpointcli.CmdWrappedCreateValidator(authcodec.NewBech32Codec("cosmosvaloper"))
 
-	consPrivKey := wrappedPV.GetValPrivKey()
+	// create BLS keys
+	nodeCfg := cmtconfig.DefaultConfig()
+	nodeCfg.SetRoot(homeDir)
+
+	cmtKeyPath := nodeCfg.PrivValidatorKeyFile()
+	cmtStatePath := nodeCfg.PrivValidatorStateFile()
+	blsKeyFile := appsigner.DefaultBlsKeyFile(homeDir)
+	blsPasswordFile := appsigner.DefaultBlsPasswordFile(homeDir)
+
+	err := appsigner.EnsureDirs(cmtKeyPath, cmtStatePath, blsKeyFile, blsPasswordFile)
+	require.NoError(err)
+
+	filePV := privval.GenFilePV(cmtKeyPath, cmtStatePath)
+	filePV.Key.Save()
+	filePV.LastSignState.Save()
+
+	appsigner.GenBls(blsKeyFile, blsPasswordFile, "password")
+	cmd := checkpointcli.CmdWrappedCreateValidator(authcodec.NewBech32Codec(appparams.Bech32PrefixValAddr))
+
+	consPrivKey := filePV.Key.PrivKey
 	consPubKey, err := cryptocodec.FromCmtPubKeyInterface(consPrivKey.PubKey())
 	require.NoError(err)
 	consPubKeyBz, err := s.clientCtx.Codec.MarshalInterfaceJSON(consPubKey)
 	require.NoError(err)
 	require.NotNil(consPubKeyBz)
+
+	// generate-bls-pop cmd logic
+	ck, err := appsigner.LoadConsensusKey(homeDir)
+	require.NoError(err)
+	pop, err := appsigner.BuildPoP(ck.Comet.PrivKey, ck.Bls.PrivKey)
+	require.NoError(err)
+	err = appsigner.SaveBlsPop(appsigner.DefaultBlsPopFile(homeDir), ck.Bls.PrivKey.PubKey(), pop)
+	require.NoError(err)
 
 	validJSON := fmt.Sprintf(`
 	{
@@ -250,6 +268,45 @@ func (s *CLITestSuite) TestCmdWrappedCreateValidator() {
 				fmt.Sprintf("--%s=%s", flags.FlagHome, homeDir),
 			},
 			"",
+		},
+		{
+			"valid transaction with all fields (with bls-pop flag)",
+			[]string{
+				validJSONFile.Name(),
+				fmt.Sprintf("--%s=%s", flags.FlagFrom, s.addrs[0]),
+				fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
+				fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastSync),
+				fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdkmath.NewInt(10))).String()),
+				fmt.Sprintf("--%s=%s", flags.FlagHome, homeDir),
+				fmt.Sprintf("--%s=%s", checkpointcli.FlagBlsPopFilePath, appsigner.DefaultBlsPopFile(homeDir)),
+			},
+			"",
+		},
+		{
+			"valid transaction without optional fields (with bls-pop flag)",
+			[]string{
+				validJSONWOOptionalFile.Name(),
+				fmt.Sprintf("--%s=%s", flags.FlagFrom, s.addrs[0]),
+				fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
+				fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastSync),
+				fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdkmath.NewInt(10))).String()),
+				fmt.Sprintf("--%s=%s", flags.FlagHome, homeDir),
+				fmt.Sprintf("--%s=%s", checkpointcli.FlagBlsPopFilePath, appsigner.DefaultBlsPopFile(homeDir)),
+			},
+			"",
+		},
+		{
+			"invalid transaction (wrong bls-pop file path)",
+			[]string{
+				validJSONFile.Name(),
+				fmt.Sprintf("--%s=%s", flags.FlagFrom, s.addrs[0]),
+				fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
+				fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastSync),
+				fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdkmath.NewInt(10))).String()),
+				fmt.Sprintf("--%s=%s", flags.FlagHome, homeDir),
+				fmt.Sprintf("--%s=%s", checkpointcli.FlagBlsPopFilePath, appsigner.DefaultBlsPopFile(homeDir)+"_invalid"),
+			},
+			"failed to load bls pop from provided path",
 		},
 	}
 

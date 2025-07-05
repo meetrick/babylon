@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/babylonlabs-io/babylon/btcstaking"
+	"github.com/babylonlabs-io/babylon/v3/btcstaking"
 
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/btcsuite/btcd/btcutil"
@@ -13,22 +13,23 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
 )
 
 func generateTxFromOutputs(r *rand.Rand, info *btcstaking.IdentifiableStakingInfo) (*wire.MsgTx, int, int) {
 	numOutputs := r.Int31n(18) + 2
 
 	stakingOutputIdx := int(r.Int31n(numOutputs))
-	opReturnOutputIdx := int(datagen.RandomIntOtherThan(r, int(stakingOutputIdx), int(numOutputs)))
+	opReturnOutputIdx := int(datagen.RandomIntOtherThan(r, stakingOutputIdx, int(numOutputs)))
 
 	tx := wire.NewMsgTx(2)
 	for i := 0; i < int(numOutputs); i++ {
-		if i == stakingOutputIdx {
+		switch {
+		case i == stakingOutputIdx:
 			tx.AddTxOut(info.StakingOutput)
-		} else if i == opReturnOutputIdx {
+		case i == opReturnOutputIdx:
 			tx.AddTxOut(info.OpReturnOutput)
-		} else {
+		default:
 			tx.AddTxOut(wire.NewTxOut((r.Int63n(1000000000) + 10000), datagen.GenRandomByteArray(r, 32)))
 		}
 	}

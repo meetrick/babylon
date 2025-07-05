@@ -2,9 +2,10 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
 	errorsmod "cosmossdk.io/errors"
-	"github.com/babylonlabs-io/babylon/x/btcstkconsumer/types"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstkconsumer/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 )
@@ -22,10 +23,10 @@ func NewMsgServerImpl(keeper Keeper) types.MsgServer {
 var _ types.MsgServer = msgServer{}
 
 // RegisterConsumer registers a consumer
-func (ms msgServer) RegisterConsumer(ctx context.Context, req *types.MsgRegisterConsumer) (*types.MsgRegisterConsumerResponse, error) {
+func (ms msgServer) RegisterConsumer(goCtx context.Context, req *types.MsgRegisterConsumer) (*types.MsgRegisterConsumerResponse, error) {
 	// if the permissioned integration is enabled and the signer is not the authority
 	// then this is not an authorised registration request, reject
-	if ms.GetParams(ctx).PermissionedIntegration && ms.authority != req.Signer {
+	if ms.GetParams(goCtx).PermissionedIntegration && ms.authority != req.Signer {
 		return nil, errorsmod.Wrapf(govtypes.ErrInvalidSigner, "invalid authority; expected %s, got %s", ms.authority, req.Signer)
 	}
 
@@ -33,34 +34,35 @@ func (ms msgServer) RegisterConsumer(ctx context.Context, req *types.MsgRegister
 		return nil, err
 	}
 
-	if len(req.EthL2FinalityContractAddress) > 0 {
-		// this is a ETH L2 consumer
-
-		// ensure the ETH L2 finality contract exists
-		contractAddr, err := sdk.AccAddressFromBech32(req.EthL2FinalityContractAddress)
+	var consumerType types.ConsumerType
+	if len(req.RollupFinalityContractAddress) > 0 {
+		// this is a rollup consumer
+		consumerType = types.ConsumerType_ROLLUP
+		// ensure the rollup finality contract exists
+		contractAddr, err := sdk.AccAddressFromBech32(req.RollupFinalityContractAddress)
 		if err != nil {
-			return nil, types.ErrInvalidETHL2ConsumerRequest.Wrapf("%s", err.Error())
+			return nil, types.ErrInvalidRollupConsumerRequest.Wrapf("%s", err.Error())
 		}
-		contractInfo := ms.wasmKeeper.GetContractInfo(ctx, contractAddr)
+		contractInfo := ms.wasmKeeper.GetContractInfo(goCtx, contractAddr)
 		if contractInfo == nil {
-			return nil, types.ErrInvalidETHL2ConsumerRequest.Wrapf("ETH L2 finality contract does not exist")
+			return nil, types.ErrInvalidRollupConsumerRequest.Wrapf("rollup finality contract does not exist")
 		}
 
-		// all good, register this ETH L2 consumer
-		consumerRegister := types.NewETHL2ConsumerRegister(
+		// all good, register this rollup consumer
+		consumerRegister := types.NewRollupConsumerRegister(
 			req.ConsumerId,
 			req.ConsumerName,
 			req.ConsumerDescription,
-			req.EthL2FinalityContractAddress,
+			req.RollupFinalityContractAddress,
 		)
-		if err := ms.Keeper.RegisterConsumer(ctx, consumerRegister); err != nil {
+		if err := ms.Keeper.RegisterConsumer(goCtx, consumerRegister); err != nil {
 			return nil, err
 		}
 	} else {
 		// this is a Cosmos consumer
-
+		consumerType = types.ConsumerType_COSMOS
 		// ensure the IBC light client exists
-		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		sdkCtx := sdk.UnwrapSDKContext(goCtx)
 		_, exist := ms.clientKeeper.GetClientState(sdkCtx, req.ConsumerId)
 		if !exist {
 			return nil, types.ErrInvalidCosmosConsumerRequest.Wrapf("IBC light client does not exist")
@@ -72,9 +74,20 @@ func (ms msgServer) RegisterConsumer(ctx context.Context, req *types.MsgRegister
 			req.ConsumerName,
 			req.ConsumerDescription,
 		)
-		if err := ms.Keeper.RegisterConsumer(ctx, consumerRegister); err != nil {
+		if err := ms.Keeper.RegisterConsumer(goCtx, consumerRegister); err != nil {
 			return nil, err
 		}
+	}
+
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	if err := ctx.EventManager().EmitTypedEvent(
+		types.NewConsumerRegisteredEvent(
+			req.ConsumerId,
+			req.ConsumerName,
+			req.ConsumerDescription,
+			consumerType,
+			req.RollupFinalityContractAddress)); err != nil {
+		panic(fmt.Errorf("failed to emit NewConsumerRegisteredEvent event: %w", err))
 	}
 
 	return &types.MsgRegisterConsumerResponse{}, nil

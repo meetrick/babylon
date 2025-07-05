@@ -17,11 +17,10 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	capabilitykeeper "github.com/cosmos/ibc-go/modules/capability/keeper"
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/x/zoneconcierge/keeper"
-	"github.com/babylonlabs-io/babylon/x/zoneconcierge/types"
+	"github.com/babylonlabs-io/babylon/v3/x/zoneconcierge/keeper"
+	"github.com/babylonlabs-io/babylon/v3/x/zoneconcierge/types"
 )
 
 type zoneconciergeStoreQuerier struct{}
@@ -39,7 +38,30 @@ func (zoneconciergeStoreQuerier) Query(req *storetypes.RequestQuery) (*storetype
 func ZoneConciergeKeeper(
 	t testing.TB,
 	channelKeeper types.ChannelKeeper,
-	portKeeper types.PortKeeper,
+	btclcKeeper types.BTCLightClientKeeper,
+	checkpointingKeeper types.CheckpointingKeeper,
+	btccKeeper types.BtcCheckpointKeeper,
+	epochingKeeper types.EpochingKeeper,
+	bsKeeper types.BTCStakingKeeper,
+	btcStkKeeper types.BTCStkConsumerKeeper,
+) (*keeper.Keeper, sdk.Context) {
+	return ZoneConciergeKeeperWithStoreKey(
+		t,
+		nil,
+		channelKeeper,
+		btclcKeeper,
+		checkpointingKeeper,
+		btccKeeper,
+		epochingKeeper,
+		bsKeeper,
+		btcStkKeeper,
+	)
+}
+
+func ZoneConciergeKeeperWithStoreKey(
+	t testing.TB,
+	storeKey *storetypes.KVStoreKey,
+	channelKeeper types.ChannelKeeper,
 	btclcKeeper types.BTCLightClientKeeper,
 	checkpointingKeeper types.CheckpointingKeeper,
 	btccKeeper types.BtcCheckpointKeeper,
@@ -48,7 +70,9 @@ func ZoneConciergeKeeper(
 	btcStkKeeper types.BTCStkConsumerKeeper,
 ) (*keeper.Keeper, sdk.Context) {
 	logger := log.NewTestLogger(t)
-	storeKey := storetypes.NewKVStoreKey(types.StoreKey)
+	if storeKey == nil {
+		storeKey = storetypes.NewKVStoreKey(types.StoreKey)
+	}
 	memStoreKey := storetypes.NewMemoryStoreKey(types.MemStoreKey)
 
 	db := dbm.NewMemDB()
@@ -59,7 +83,6 @@ func ZoneConciergeKeeper(
 
 	registry := codectypes.NewInterfaceRegistry()
 	appCodec := codec.NewProtoCodec(registry)
-	capabilityKeeper := capabilitykeeper.NewKeeper(appCodec, storeKey, memStoreKey)
 	k := keeper.NewKeeper(
 		appCodec,
 		runtime.NewKVStoreService(storeKey),
@@ -67,7 +90,6 @@ func ZoneConciergeKeeper(
 		nil, // TODO: mock this keeper
 		nil, // TODO: mock this keeper
 		channelKeeper,
-		portKeeper,
 		nil, // TODO: mock this keeper
 		nil, // TODO: mock this keeper
 		btclcKeeper,
@@ -77,7 +99,6 @@ func ZoneConciergeKeeper(
 		zoneconciergeStoreQuerier{},
 		bsKeeper,
 		btcStkKeeper,
-		capabilityKeeper.ScopeToModule("ZoneconciergeScopedKeeper"),
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 

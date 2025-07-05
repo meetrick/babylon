@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	sdkmath "cosmossdk.io/math"
-	asig "github.com/babylonlabs-io/babylon/crypto/schnorr-adaptor-signature"
+	asig "github.com/babylonlabs-io/babylon/v3/crypto/schnorr-adaptor-signature"
 	"github.com/btcsuite/btcd/blockchain"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
@@ -54,7 +54,7 @@ func buildSlashingTxFromOutpoint(
 	}
 
 	// Validate slashing rate
-	if !IsRateValid(slashingRate) {
+	if !IsSlashingRateValid(slashingRate) {
 		return nil, ErrInvalidSlashingRate
 	}
 
@@ -94,6 +94,10 @@ func buildSlashingTxFromOutpoint(
 
 	// Verify that the none of the outputs is a dust output.
 	for _, out := range tx.TxOut {
+		if isOPReturn(out.PkScript) {
+			continue
+		}
+
 		if mempool.IsDust(out, mempool.DefaultMinRelayTxFee) {
 			return nil, ErrDustOutputFound
 		}
@@ -130,21 +134,15 @@ func getPossibleStakingOutput(
 // Parameters:
 //   - stakingTx: The staking transaction from which the staking output is to be used for slashing.
 //   - stakingOutputIdx: The index of the staking output in the staking transaction.
-//   - slashingAddress: The Bitcoin address to which the slashed funds will be sent.
 //   - stakerPk: public key of the staker i.e the btc holder who can spend staking output after lock time
-//   - slashingChangeLockTime: lock time which will be used on slashing transaction change output
+//   - slashChangeLockTime: lock time for change output in slashing transaction
 //   - fee: The transaction fee to be paid.
 //   - slashingRate: The rate at which the staked funds will be slashed, expressed as a decimal.
-//   - script: The staking script to which the staking output should commit.
 //   - net: The network on which transactions should take place (e.g., mainnet, testnet).
 //
 // Returns:
 //   - *wire.MsgTx: The constructed slashing transaction without script signature or witness.
 //   - error: An error if any validation or construction step fails.
-//
-// This function validates the same conditions as BuildSlashingTxFromStakingTx and additionally checks whether the
-// staking output at the specified index commits to the provided script and whether the provided script is a valid
-// staking script for the given network. If any of these additional validations fail, an error is returned.
 func BuildSlashingTxFromStakingTxStrict(
 	stakingTx *wire.MsgTx,
 	stakingOutputIdx uint32,
@@ -229,14 +227,14 @@ func IsSimpleTransfer(tx *wire.MsgTx) error {
 // - the transaction has exactly numInputs inputs.
 // - the transaction has exactly numOutputs outputs.
 // - the transaction lock time is 0.
-// - the transaction version is between 1 and maxTxVersion.
+// - the transaction version is between minTxVersion and maxTxVersion.
 // - each input has a sequence number equal to MaxTxInSequenceNum.
 // - each input has an empty signature script.
 // - each input has an empty witness.
 func CheckPreSignedTxSanity(
 	tx *wire.MsgTx,
 	numInputs, numOutputs uint32,
-	maxTxVersion int32,
+	minTxVersion, maxTxVersion int32,
 ) error {
 	if tx == nil {
 		return fmt.Errorf("tx must not be nil")
@@ -261,8 +259,8 @@ func CheckPreSignedTxSanity(
 		return fmt.Errorf("pre-signed tx must not have locktime")
 	}
 
-	if tx.Version > maxTxVersion || tx.Version < 1 {
-		return fmt.Errorf("tx version must be between 1 and %d", maxTxVersion)
+	if tx.Version > maxTxVersion || tx.Version < minTxVersion {
+		return fmt.Errorf("tx version must be between %d and %d", minTxVersion, maxTxVersion)
 	}
 
 	txWeight := blockchain.GetTransactionWeight(transaction)
@@ -293,6 +291,8 @@ func CheckPreSignedUnbondingTxSanity(tx *wire.MsgTx) error {
 		tx,
 		1,
 		1,
+		// Unbonding tx is always version 2
+		MaxTxVersion,
 		MaxTxVersion,
 	)
 }
@@ -302,8 +302,14 @@ func CheckPreSignedSlashingTxSanity(tx *wire.MsgTx) error {
 		tx,
 		1,
 		2,
+		// slashing tx version can be between 1 and 2
+		1,
 		MaxTxVersion,
 	)
+}
+
+func isOPReturn(script []byte) bool {
+	return len(script) > 0 && script[0] == txscript.OP_RETURN
 }
 
 // validateSlashingTx performs basic checks on a slashing transaction:
@@ -326,7 +332,6 @@ func validateSlashingTx(
 	slashingChangeLockTime uint16,
 	net *chaincfg.Params,
 ) error {
-
 	if err := CheckPreSignedSlashingTxSanity(slashingTx); err != nil {
 		return fmt.Errorf("invalid slashing tx: %w", err)
 	}
@@ -363,6 +368,11 @@ func validateSlashingTx(
 
 	// Verify that the none of the outputs is a dust output.
 	for _, out := range slashingTx.TxOut {
+		// OP_RETURN outputs can be dust and considered standard
+		if isOPReturn(out.PkScript) {
+			continue
+		}
+
 		if mempool.IsDust(out, mempool.DefaultMinRelayTxFee) {
 			return ErrDustOutputFound
 		}
@@ -397,7 +407,6 @@ func validateSlashingTx(
 
 // CheckSlashingTxMatchFundingTx validates all relevant data of slashing and funding transaction.
 // - both transactions are valid from pov of BTC rules
-// - funding transaction has output committing to the provided script
 // - slashing transaction is valid
 // - slashing transaction input hash is pointing to funding transaction hash
 // - slashing transaction input index is pointing to funding transaction output committing to the script
@@ -426,7 +435,7 @@ func CheckSlashingTxMatchFundingTx(
 	}
 
 	// Check if slashing rate is in the valid range (0,1)
-	if !IsRateValid(slashingRate) {
+	if !IsSlashingRateValid(slashingRate) {
 		return ErrInvalidSlashingRate
 	}
 
@@ -466,7 +475,6 @@ func signTxWithOneScriptSpendInputFromTapLeafInternal(
 	fundingOutput *wire.TxOut,
 	privKey *btcec.PrivateKey,
 	tapLeaf txscript.TapLeaf) (*schnorr.Signature, error) {
-
 	inputFetcher := txscript.NewCannedPrevOutputFetcher(
 		fundingOutput.PkScript,
 		fundingOutput.Value,
@@ -554,7 +562,6 @@ func SignTxWithOneScriptSpendInputStrict(
 	signedScriptPath []byte,
 	privKey *btcec.PrivateKey,
 ) (*schnorr.Signature, error) {
-
 	if err := checkTxBeforeSigning(txToSign, fundingTx, fundingOutputIdx); err != nil {
 		return nil, fmt.Errorf("invalid tx: %w", err)
 	}
@@ -575,7 +582,6 @@ func EncSignTxWithOneScriptSpendInputStrict(
 	privKey *btcec.PrivateKey,
 	encKey *asig.EncryptionKey,
 ) (*asig.AdaptorSignature, error) {
-
 	if err := checkTxBeforeSigning(txToSign, fundingTx, fundingOutputIdx); err != nil {
 		return nil, fmt.Errorf("invalid tx: %w", err)
 	}
@@ -646,7 +652,6 @@ func VerifyTransactionSigWithOutput(
 	script []byte,
 	pubKey *btcec.PublicKey,
 	signature []byte) error {
-
 	if fundingOutput == nil {
 		return fmt.Errorf("funding output must not be nil")
 	}

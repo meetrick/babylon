@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	sdkmath "cosmossdk.io/math"
-	"github.com/babylonlabs-io/babylon/x/btclightclient/keeper"
-	"github.com/babylonlabs-io/babylon/x/btclightclient/types"
+	"github.com/babylonlabs-io/babylon/v3/x/btclightclient/keeper"
+	"github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
 	"github.com/btcsuite/btcd/blockchain"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/stretchr/testify/require"
@@ -39,8 +39,8 @@ func (m *MockHooks) AfterBTCRollForward(_ context.Context, headerInfo *types.BTC
 	m.AfterBTCRollForwardStore = append(m.AfterBTCRollForwardStore, headerInfo)
 }
 
-func (m *MockHooks) AfterBTCRollBack(_ context.Context, headerInfo *types.BTCHeaderInfo) {
-	m.AfterBTCRollBackStore = append(m.AfterBTCRollBackStore, headerInfo)
+func (m *MockHooks) AfterBTCRollBack(_ context.Context, _, rollbackTo *types.BTCHeaderInfo) {
+	m.AfterBTCRollBackStore = append(m.AfterBTCRollBackStore, rollbackTo)
 }
 
 func (m *MockHooks) AfterBTCHeaderInserted(_ context.Context, headerInfo *types.BTCHeaderInfo) {
@@ -58,10 +58,10 @@ func checkTip(
 	expectedWork sdkmath.Uint,
 	expectedHeight uint32,
 	expectedTipHeader *wire.BlockHeader) {
-
 	currentTip := blcKeeper.GetTipInfo(ctx)
 	blockByHeight := blcKeeper.GetHeaderByHeight(ctx, currentTip.Height)
-	blockByHash := blcKeeper.GetHeaderByHash(ctx, currentTip.Hash)
+	blockByHash, err := blcKeeper.GetHeaderByHash(ctx, currentTip.Hash)
+	require.NoError(t, err)
 
 	// Consistency check between tip and block by height and block by hash
 	require.NotNil(t, blockByHeight)

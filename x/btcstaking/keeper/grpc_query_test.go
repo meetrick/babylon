@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/rand"
 	"testing"
+	"time"
 
 	sdkmath "cosmossdk.io/math"
 
@@ -15,13 +16,13 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
-	testkeeper "github.com/babylonlabs-io/babylon/testutil/keeper"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	btcctypes "github.com/babylonlabs-io/babylon/x/btccheckpoint/types"
-	btclctypes "github.com/babylonlabs-io/babylon/x/btclightclient/types"
-	btcstakingkeeper "github.com/babylonlabs-io/babylon/x/btcstaking/keeper"
-	"github.com/babylonlabs-io/babylon/x/btcstaking/types"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
+	testkeeper "github.com/babylonlabs-io/babylon/v3/testutil/keeper"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	btcctypes "github.com/babylonlabs-io/babylon/v3/x/btccheckpoint/types"
+	btclctypes "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
+	btcstakingkeeper "github.com/babylonlabs-io/babylon/v3/x/btcstaking/keeper"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
 )
 
 var net = &chaincfg.SimNetParams
@@ -38,7 +39,7 @@ func FuzzFinalityProviders(f *testing.F) {
 		// Generate random finality providers and add them to kv store
 		fpsMap := make(map[string]*types.FinalityProvider)
 		for i := 0; i < int(datagen.RandomInt(r, 10)+1); i++ {
-			fp, err := datagen.GenRandomFinalityProvider(r)
+			fp, err := datagen.GenRandomFinalityProvider(r, "")
 			require.NoError(t, err)
 
 			AddFinalityProvider(t, ctx, *keeper, fp)
@@ -103,10 +104,12 @@ func FuzzFinalityProvider(f *testing.F) {
 		// Generate random finality providers and add them to kv store
 		fpsMap := make(map[string]*types.FinalityProvider)
 		for i := 0; i < int(datagen.RandomInt(r, 10)+1); i++ {
-			fp, err := datagen.GenRandomFinalityProvider(r)
+			fp, err := datagen.GenRandomFinalityProvider(r, "")
 			require.NoError(t, err)
-
 			AddFinalityProvider(t, ctx, *keeper, fp)
+			fp.HighestVotedHeight = uint32(datagen.RandomInt(r, 1000) + 1)
+			err = keeper.UpdateFinalityProvider(ctx, fp)
+			require.NoError(t, err)
 			fpsMap[fp.BtcPk.MarshalHex()] = fp
 		}
 
@@ -127,12 +130,23 @@ func FuzzFinalityProvider(f *testing.F) {
 			}
 
 			// check keys from map matches those in returned response
+			require.Equal(t, v.Description, resp.FinalityProvider.Description)
+			require.Equal(t, v.Commission, resp.FinalityProvider.Commission)
 			require.Equal(t, v.BtcPk.MarshalHex(), resp.FinalityProvider.BtcPk.MarshalHex())
 			require.Equal(t, v.Addr, resp.FinalityProvider.Addr)
+			require.Equal(t, v.HighestVotedHeight, resp.FinalityProvider.HighestVotedHeight)
+			require.Equal(t, v.Pop, resp.FinalityProvider.Pop)
+			require.Equal(t, v.SlashedBabylonHeight, resp.FinalityProvider.SlashedBabylonHeight)
+			require.Equal(t, v.SlashedBtcHeight, resp.FinalityProvider.SlashedBtcHeight)
+			require.Equal(t, v.Jailed, resp.FinalityProvider.Jailed)
+			require.Equal(t, v.HighestVotedHeight, resp.FinalityProvider.HighestVotedHeight)
+			require.Equal(t, v.CommissionInfo.MaxRate, resp.FinalityProvider.CommissionInfo.MaxRate)
+			require.Equal(t, v.CommissionInfo.MaxChangeRate, resp.FinalityProvider.CommissionInfo.MaxChangeRate)
+			require.Equal(t, v.ConsumerId, resp.FinalityProvider.ConsumerId)
 		}
 
 		// check some random non-existing guy
-		fp, err := datagen.GenRandomFinalityProvider(r)
+		fp, err := datagen.GenRandomFinalityProvider(r, "")
 		require.NoError(t, err)
 		req := types.QueryFinalityProviderRequest{FpBtcPkHex: fp.BtcPk.MarshalHex()}
 		respNonExists, err := keeper.FinalityProvider(ctx, &req)
@@ -171,7 +185,7 @@ func FuzzFinalityProviderDelegations(f *testing.F) {
 		slashingRate := sdkmath.LegacyNewDecWithPrec(int64(datagen.RandomInt(r, 41)+10), 2)
 
 		// Generate a finality provider
-		fp, err := datagen.GenRandomFinalityProvider(r)
+		fp, err := datagen.GenRandomFinalityProvider(r, "")
 		require.NoError(t, err)
 		AddFinalityProvider(t, ctx, *keeper, fp)
 
@@ -191,6 +205,7 @@ func FuzzFinalityProviderDelegations(f *testing.F) {
 				net,
 				[]bbn.BIP340PubKey{*fp.BtcPk},
 				delSK,
+				"",
 				covenantSKs,
 				covenantPKs,
 				covenantQuorum,
@@ -201,7 +216,7 @@ func FuzzFinalityProviderDelegations(f *testing.F) {
 			)
 			require.NoError(t, err)
 			expectedBtcDelsMap[btcDel.BtcPk.MarshalHex()] = btcDel
-			err = keeper.AddBTCDelegation(ctx, btcDel, btcDel.UnbondingTime-1)
+			err = keeper.AddBTCDelegation(ctx, btcDel)
 			require.NoError(t, err)
 		}
 
@@ -254,7 +269,6 @@ func FuzzFinalityProviderDelegations(f *testing.F) {
 			}
 		}
 		require.Equal(t, len(btcDelsFound), len(expectedBtcDelsMap))
-
 	})
 }
 
@@ -290,7 +304,7 @@ func FuzzPendingBTCDelegations(f *testing.F) {
 		numFps := datagen.RandomInt(r, 5) + 1
 		fps := []*types.FinalityProvider{}
 		for i := uint64(0); i < numFps; i++ {
-			fp, err := datagen.GenRandomFinalityProvider(r)
+			fp, err := datagen.GenRandomFinalityProvider(r, "")
 			require.NoError(t, err)
 			AddFinalityProvider(t, ctx, *keeper, fp)
 			fps = append(fps, fp)
@@ -318,6 +332,7 @@ func FuzzPendingBTCDelegations(f *testing.F) {
 					net,
 					[]bbn.BIP340PubKey{*fp.BtcPk},
 					delSK,
+					"",
 					covenantSKs,
 					covenantPKs,
 					covenantQuorum,
@@ -332,7 +347,7 @@ func FuzzPendingBTCDelegations(f *testing.F) {
 					btcDel.CovenantSigs = nil
 					pendingBtcDelsMap[btcDel.BtcPk.MarshalHex()] = btcDel
 				}
-				err = keeper.AddBTCDelegation(ctx, btcDel, btcDel.UnbondingTime-1)
+				err = keeper.AddBTCDelegation(ctx, btcDel)
 				require.NoError(t, err)
 
 				txHash := btcDel.MustGetStakingTxHash().String()
@@ -392,13 +407,197 @@ func constructRequestWithLimit(r *rand.Rand, limit uint64) *query.PageRequest {
 	return constructRequestWithKeyAndLimit(r, nil, limit)
 }
 
-func AddFinalityProvider(t *testing.T, goCtx context.Context, k btcstakingkeeper.Keeper, fp *types.FinalityProvider) {
+func AddFinalityProvider(
+	t *testing.T,
+	goCtx context.Context,
+	k btcstakingkeeper.Keeper,
+	fp *types.FinalityProvider,
+) {
 	err := k.AddFinalityProvider(goCtx, &types.MsgCreateFinalityProvider{
 		Addr:        fp.Addr,
 		Description: fp.Description,
-		Commission:  fp.Commission,
-		BtcPk:       fp.BtcPk,
-		Pop:         fp.Pop,
+		Commission: types.NewCommissionRates(
+			*fp.Commission,
+			fp.CommissionInfo.MaxRate,
+			fp.CommissionInfo.MaxChangeRate,
+		),
+		BtcPk:      fp.BtcPk,
+		Pop:        fp.Pop,
+		ConsumerId: fp.ConsumerId,
 	})
 	require.NoError(t, err)
+}
+
+func TestCorrectParamsVersionIsUsed(t *testing.T) {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	btclcKeeper := types.NewMockBTCLightClientKeeper(ctrl)
+	btccKeeper := types.NewMockBtcCheckpointKeeper(ctrl)
+	btccKeeper.EXPECT().GetParams(gomock.Any()).Return(btcctypes.DefaultParams()).AnyTimes()
+	keeper, ctx := testkeeper.BTCStakingKeeper(t, btclcKeeper, btccKeeper, nil)
+
+	// covenant and slashing addr
+	covenantSKs, covenantPKs, covenantQuorum := datagen.GenCovenantCommittee(r)
+	slashingAddress, err := datagen.GenRandomBTCAddress(r, net)
+	require.NoError(t, err)
+	slashingPkScript, err := txscript.PayToAddrScript(slashingAddress)
+	require.NoError(t, err)
+	slashingChangeLockTime := uint16(101)
+
+	// Generate a slashing rate in the range [0.1, 0.50] i.e., 10-50%.
+	// NOTE - if the rate is higher or lower, it may produce slashing or change outputs
+	// with value below the dust threshold, causing test failure.
+	// Our goal is not to test failure due to such extreme cases here;
+	// this is already covered in FuzzGeneratingValidStakingSlashingTx
+	slashingRate := sdkmath.LegacyNewDecWithPrec(int64(datagen.RandomInt(r, 41)+10), 2)
+
+	fp, err := datagen.GenRandomFinalityProvider(r, "")
+	require.NoError(t, err)
+	AddFinalityProvider(t, ctx, *keeper, fp)
+
+	startHeight := uint32(datagen.RandomInt(r, 100)) + 1
+	btclcKeeper.EXPECT().GetTipInfo(gomock.Any()).Return(&btclctypes.BTCHeaderInfo{Height: startHeight}).AnyTimes()
+
+	endHeight := uint32(datagen.RandomInt(r, 1000)) + startHeight + btcctypes.DefaultParams().CheckpointFinalizationTimeout + 1
+	stakingTime := endHeight - startHeight
+	delSK, _, err := datagen.GenRandomBTCKeyPair(r)
+	require.NoError(t, err)
+	btcDel, err := datagen.GenRandomBTCDelegation(
+		r,
+		t,
+		net,
+		[]bbn.BIP340PubKey{*fp.BtcPk},
+		delSK,
+		"",
+		covenantSKs,
+		covenantPKs,
+		covenantQuorum,
+		slashingPkScript,
+		stakingTime, startHeight, endHeight, 10000,
+		slashingRate,
+		slashingChangeLockTime,
+	)
+	require.NoError(t, err)
+
+	err = keeper.AddBTCDelegation(ctx, btcDel)
+	require.NoError(t, err)
+
+	// delegation is active as it have all covenant sigs
+	txHash := btcDel.MustGetStakingTxHash().String()
+	delView, err := keeper.BTCDelegation(ctx, &types.QueryBTCDelegationRequest{
+		StakingTxHashHex: txHash,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, delView)
+
+	require.True(t, delView.BtcDelegation.Active)
+
+	dp := types.DefaultParams()
+
+	// Generate 3 new key pairs and increase keys and quorum size in params, this
+	// will mean new delegations will require more signatures to be active
+	_, pk1, err := datagen.GenRandomBTCKeyPair(r)
+	require.NoError(t, err)
+	_, pk2, err := datagen.GenRandomBTCKeyPair(r)
+	require.NoError(t, err)
+	_, pk3, err := datagen.GenRandomBTCKeyPair(r)
+	require.NoError(t, err)
+
+	// Convert public keys to BIP340 format
+	bip340pk1 := bbn.NewBIP340PubKeyFromBTCPK(pk1)
+	bip340pk2 := bbn.NewBIP340PubKeyFromBTCPK(pk2)
+	bip340pk3 := bbn.NewBIP340PubKeyFromBTCPK(pk3)
+
+	dp.BtcActivationHeight = 10
+	dp.CovenantPks = append(dp.CovenantPks, *bip340pk1, *bip340pk2, *bip340pk3)
+	dp.CovenantQuorum += 3
+
+	err = keeper.SetParams(ctx, dp)
+	require.NoError(t, err)
+
+	// check delegation is still active in every endpoint
+	delView, err = keeper.BTCDelegation(ctx, &types.QueryBTCDelegationRequest{
+		StakingTxHashHex: txHash,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, delView)
+
+	require.True(t, delView.BtcDelegation.Active)
+
+	delegationsView, err := keeper.BTCDelegations(ctx, &types.QueryBTCDelegationsRequest{
+		Status: types.BTCDelegationStatus_ACTIVE,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, delegationsView)
+	require.Len(t, delegationsView.BtcDelegations, 1)
+
+	pagination := constructRequestWithLimit(r, 10)
+	// Generate the initial query
+	req := types.QueryFinalityProviderDelegationsRequest{
+		FpBtcPkHex: fp.BtcPk.MarshalHex(),
+		Pagination: pagination,
+	}
+
+	fpView, err := keeper.FinalityProviderDelegations(ctx, &req)
+	require.NoError(t, err)
+	require.NotNil(t, fpView)
+	require.Len(t, fpView.BtcDelegatorDelegations, 1)
+	require.Len(t, fpView.BtcDelegatorDelegations[0].Dels, 1)
+	require.True(t, fpView.BtcDelegatorDelegations[0].Dels[0].Active)
+}
+
+func FuzzParamsVersions(f *testing.F) {
+	datagen.AddRandomSeedsToFuzzer(f, 10)
+	f.Fuzz(func(t *testing.T, seed int64) {
+		t.Parallel()
+		r := rand.New(rand.NewSource(seed))
+		k, ctx := testkeeper.BTCStakingKeeper(t, nil, nil, nil)
+
+		qntParams := datagen.RandomInt(r, 120) + 1
+
+		paramsToSet := k.GetParams(ctx)
+		for i := uint32(0); i < uint32(qntParams); i++ {
+			paramsToSet.BtcActivationHeight += 1 + i
+			err := k.SetParams(ctx, paramsToSet)
+			require.NoError(t, err)
+		}
+
+		limit := (qntParams / 2) + 1
+		pagination := constructRequestWithLimit(r, limit)
+		req := types.QueryParamsVersionsRequest{
+			Pagination: pagination,
+		}
+
+		var (
+			err  error
+			resp *types.QueryParamsVersionsResponse
+		)
+
+		paramsFromQuery := make([]types.Params, 0)
+		for {
+			resp, err = k.ParamsVersions(ctx, &req)
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+
+			for _, storedParams := range resp.Params {
+				paramsFromQuery = append(paramsFromQuery, storedParams.Params)
+			}
+
+			if len(resp.Params) != int(limit) || len(resp.Pagination.NextKey) == 0 {
+				break
+			}
+
+			pagination = constructRequestWithKeyAndLimit(r, resp.Pagination.NextKey, limit)
+			req = types.QueryParamsVersionsRequest{Pagination: pagination}
+		}
+
+		allParams := k.GetAllParams(ctx)
+
+		require.Equal(t, len(allParams), len(paramsFromQuery))
+		for i, paramFromQuery := range paramsFromQuery {
+			require.EqualValues(t, *allParams[i], paramFromQuery)
+		}
+	})
 }

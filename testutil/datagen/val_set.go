@@ -5,9 +5,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/babylonlabs-io/babylon/crypto/bls12381"
-	checkpointingtypes "github.com/babylonlabs-io/babylon/x/checkpointing/types"
-	epochingtypes "github.com/babylonlabs-io/babylon/x/epoching/types"
+	"github.com/babylonlabs-io/babylon/v3/crypto/bls12381"
+	checkpointingtypes "github.com/babylonlabs-io/babylon/v3/x/checkpointing/types"
+	epochingtypes "github.com/babylonlabs-io/babylon/v3/x/epoching/types"
 )
 
 func GenRandomValSet(n int) epochingtypes.ValidatorSet {
@@ -29,6 +29,7 @@ func GenRandomValidatorAddress() sdk.ValAddress {
 	return sdk.ValAddress(ed25519.GenPrivKey().PubKey().Address())
 }
 
+// FIXME? Rename to GenRandomEd25519Address
 func GenRandomAddress() sdk.AccAddress {
 	return sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
 }

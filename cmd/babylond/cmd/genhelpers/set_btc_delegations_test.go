@@ -16,12 +16,12 @@ import (
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/cmd/babylond/cmd/genhelpers"
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
-	"github.com/babylonlabs-io/babylon/testutil/helper"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	btcctypes "github.com/babylonlabs-io/babylon/x/btccheckpoint/types"
-	btcstktypes "github.com/babylonlabs-io/babylon/x/btcstaking/types"
+	"github.com/babylonlabs-io/babylon/v3/cmd/babylond/cmd/genhelpers"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
+	"github.com/babylonlabs-io/babylon/v3/testutil/helper"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	btcctypes "github.com/babylonlabs-io/babylon/v3/x/btccheckpoint/types"
+	btcstktypes "github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
 )
 
 func FuzzCmdSetBtcDels(f *testing.F) {
@@ -45,7 +45,7 @@ func FuzzCmdSetBtcDels(f *testing.F) {
 		qntBtcDels := int(datagen.RandomInt(r, 10)) + 1
 		btcDelsToAdd := make([]*btcstktypes.BTCDelegation, qntBtcDels)
 
-		fp, err := datagen.GenRandomFinalityProvider(r)
+		fp, err := datagen.GenRandomFinalityProvider(r, "")
 		require.NoError(t, err)
 
 		// write fp to genesis
@@ -84,6 +84,7 @@ func FuzzCmdSetBtcDels(f *testing.F) {
 				&chaincfg.RegressionNetParams,
 				[]bbn.BIP340PubKey{*fp.BtcPk},
 				delSK,
+				"",
 				covenantSKs,
 				covenantPKs,
 				covenantQuorum,
@@ -141,7 +142,7 @@ func FuzzCmdSetBtcDels(f *testing.F) {
 		require.EqualError(t, err, fmt.Errorf("error: btc delegation: %+v\nwas already set on genesis, or contains the same staking tx hash %s than another btc delegation", btcDel, key).Error())
 
 		// checks trying to insert a new btc delegation with an finality provider that is not present in genesis. It should error out
-		notInGenFp, err := datagen.GenRandomFinalityProvider(r)
+		notInGenFp, err := datagen.GenRandomFinalityProvider(r, "")
 		require.NoError(t, err)
 
 		delSK, _, err := datagen.GenRandomBTCKeyPair(r)
@@ -153,6 +154,7 @@ func FuzzCmdSetBtcDels(f *testing.F) {
 			&chaincfg.RegressionNetParams,
 			[]bbn.BIP340PubKey{*notInGenFp.BtcPk},
 			delSK,
+			"",
 			covenantSKs,
 			covenantPKs,
 			covenantQuorum,

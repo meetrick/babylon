@@ -3,6 +3,7 @@ package v1_test
 import (
 	_ "embed"
 	"fmt"
+	"slices"
 	"testing"
 	"time"
 
@@ -16,25 +17,25 @@ import (
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	wasmvm "github.com/CosmWasm/wasmvm/v2"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/v2/types"
-	appparams "github.com/babylonlabs-io/babylon/app/params"
-	"github.com/babylonlabs-io/babylon/app/upgrades"
-	"github.com/babylonlabs-io/babylon/test/e2e/util"
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
-	minttypes "github.com/babylonlabs-io/babylon/x/mint/types"
+	appparams "github.com/babylonlabs-io/babylon/v3/app/params"
+	"github.com/babylonlabs-io/babylon/v3/app/upgrades"
+	"github.com/babylonlabs-io/babylon/v3/test/e2e/util"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
+	"github.com/babylonlabs-io/babylon/v3/testutil/sample"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	minttypes "github.com/babylonlabs-io/babylon/v3/x/mint/types"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/babylonlabs-io/babylon/app"
-	v1 "github.com/babylonlabs-io/babylon/app/upgrades/v1"
-	mainnetdata "github.com/babylonlabs-io/babylon/app/upgrades/v1/mainnet"
-	testnetdata "github.com/babylonlabs-io/babylon/app/upgrades/v1/testnet"
-	"github.com/babylonlabs-io/babylon/x/btclightclient"
-	btclighttypes "github.com/babylonlabs-io/babylon/x/btclightclient/types"
+	"github.com/babylonlabs-io/babylon/v3/app"
+	v1 "github.com/babylonlabs-io/babylon/v3/app/upgrades/v1"
+	mainnetdata "github.com/babylonlabs-io/babylon/v3/app/upgrades/v1/mainnet"
+	testnetdata "github.com/babylonlabs-io/babylon/v3/app/upgrades/v1/testnet"
+	"github.com/babylonlabs-io/babylon/v3/x/btclightclient"
+	btclighttypes "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
 )
 
 const (
@@ -46,7 +47,7 @@ var (
 	wasmContract []byte
 
 	UpgradeV1DataTestnet = v1.UpgradeDataString{
-		BtcStakingParamStr:        testnetdata.BtcStakingParamStr,
+		BtcStakingParamsStr:       testnetdata.BtcStakingParamsStr,
 		FinalityParamStr:          testnetdata.FinalityParamStr,
 		IncentiveParamStr:         testnetdata.IncentiveParamStr,
 		CosmWasmParamStr:          testnetdata.CosmWasmParamStr,
@@ -55,7 +56,7 @@ var (
 		AllowedStakingTxHashesStr: testnetdata.AllowedStakingTxHashesStr,
 	}
 	UpgradeV1DataMainnet = v1.UpgradeDataString{
-		BtcStakingParamStr:        mainnetdata.BtcStakingParamStr,
+		BtcStakingParamsStr:       mainnetdata.BtcStakingParamsStr,
 		FinalityParamStr:          mainnetdata.FinalityParamStr,
 		IncentiveParamStr:         mainnetdata.IncentiveParamStr,
 		CosmWasmParamStr:          mainnetdata.CosmWasmParamStr,
@@ -91,14 +92,18 @@ func (s *UpgradeTestSuite) TestUpgrade() {
 
 	testCases := []struct {
 		msg            string
+		baseBtcHeader  *btclighttypes.BTCHeaderInfo
 		upgradeDataStr v1.UpgradeDataString
+		upgradeParams  v1.ParamUpgradeFn
 		preUpgrade     func()
 		upgrade        func()
 		postUpgrade    func()
 	}{
 		{
 			"Test launch software upgrade v1 mainnet",
+			sample.MainnetBtcHeader854784(s.T()),
 			UpgradeV1DataMainnet,
+			mainnetdata.ParamUpgrade,
 			s.PreUpgrade,
 			s.Upgrade,
 			func() {
@@ -116,7 +121,7 @@ func (s *UpgradeTestSuite) TestUpgrade() {
 
 				// onlu gov account can store new contracts
 				respFromGov, err := wasmMsgServer.StoreCode(s.ctx, &wasmtypes.MsgStoreCode{
-					Sender:       authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+					Sender:       appparams.AccGov.String(),
 					WASMByteCode: wasmContract,
 				})
 				s.NoError(err)
@@ -137,7 +142,9 @@ func (s *UpgradeTestSuite) TestUpgrade() {
 		},
 		{
 			"Test launch software upgrade v1 testnet",
+			sample.SignetBtcHeader195552(s.T()),
 			UpgradeV1DataTestnet,
+			testnetdata.ParamUpgrade,
 			s.PreUpgrade,
 			s.Upgrade,
 			func() {
@@ -152,13 +159,44 @@ func (s *UpgradeTestSuite) TestUpgrade() {
 				s.NoError(err)
 				s.EqualValues(resp.CodeID, 1)
 				s.Equal(stakingWasmChecksum[:], wasmvmtypes.Checksum(resp.Checksum))
+
+				// check that the gov params were updated
+				govParams, err := s.app.GovKeeper.Params.Get(s.ctx)
+				s.NoError(err)
+				s.EqualValues(testnetdata.VotingPeriod, *govParams.VotingPeriod)
+				s.EqualValues(testnetdata.ExpeditedVotingPeriod, *govParams.ExpeditedVotingPeriod)
+				s.EqualValues([]sdk.Coin{testnetdata.MinDeposit}, govParams.MinDeposit)
+				s.EqualValues([]sdk.Coin{testnetdata.ExpeditedMinDeposit}, govParams.ExpeditedMinDeposit)
+
+				// check that the consensus params were updated
+				consensusParams, err := s.app.ConsensusParamsKeeper.ParamsStore.Get(s.ctx)
+				s.NoError(err)
+				s.EqualValues(testnetdata.BlockGasLimit, consensusParams.Block.MaxGas)
+
+				// check that the staking params were updated
+				stakingParams, err := s.app.StakingKeeper.GetParams(s.ctx)
+				s.NoError(err)
+				s.EqualValues(testnetdata.MinCommissionRate, stakingParams.MinCommissionRate)
+
+				// check that the distribution params were updated
+				distributionParams, err := s.app.DistrKeeper.Params.Get(s.ctx)
+				s.NoError(err)
+				s.EqualValues(testnetdata.CommunityTax, distributionParams.CommunityTax)
+
+				// check that the btc checkpoint params were updated
+				btcCheckpointParams := s.app.BtcCheckpointKeeper.GetParams(s.ctx)
+				s.EqualValues(testnetdata.BTCCheckpointTag, btcCheckpointParams.CheckpointTag)
+
+				// check that the btc light client params were updated
+				btcLCParams := s.app.BTCLightClientKeeper.GetParams(s.ctx)
+				s.True(slices.Contains(btcLCParams.InsertHeadersAllowList, testnetdata.ReporterAllowAddress))
 			},
 		},
 	}
 
 	for _, tc := range testCases {
 		s.Run(fmt.Sprintf("Case %s", tc.msg), func() {
-			s.SetupTest(tc.upgradeDataStr) // reset
+			s.SetupTest(tc.upgradeDataStr, tc.upgradeParams, tc.baseBtcHeader) // reset
 
 			tc.preUpgrade()
 			tc.upgrade()
@@ -167,24 +205,21 @@ func (s *UpgradeTestSuite) TestUpgrade() {
 	}
 }
 
-func (s *UpgradeTestSuite) SetupTest(upgradeDataStr v1.UpgradeDataString) {
+func (s *UpgradeTestSuite) SetupTest(upgradeDataStr v1.UpgradeDataString, upgradeParams v1.ParamUpgradeFn, baseBtcHeader *btclighttypes.BTCHeaderInfo) {
 	s.upgradeDataStr = upgradeDataStr
 
 	// add the upgrade plan
-	app.Upgrades = []upgrades.Upgrade{v1.CreateUpgrade(upgradeDataStr)}
+	app.Upgrades = []upgrades.Upgrade{v1.CreateUpgrade(upgradeDataStr, upgradeParams)}
 
 	// set up app
-	s.app = app.Setup(s.T(), false)
+	s.app = app.SetupWithBitcoinConf(s.T(), false, bbn.BtcSignet)
 	s.ctx = s.app.BaseApp.NewContextLegacy(false, tmproto.Header{Height: 1, ChainID: "babylon-1", Time: time.Now().UTC()})
 	s.preModule = upgrade.NewAppModule(s.app.UpgradeKeeper, s.app.AccountKeeper.AddressCodec())
 
-	btcHeaderGenesis, err := app.SignetBtcHeaderGenesis(s.app.EncodingConfig().Codec)
-	s.NoError(err)
-
-	k := s.app.BTCLightClientKeeper
+	btcLightK := s.app.BTCLightClientKeeper
 	btclightclient.InitGenesis(s.ctx, s.app.BTCLightClientKeeper, btclighttypes.GenesisState{
-		Params:     k.GetParams(s.ctx),
-		BtcHeaders: []*btclighttypes.BTCHeaderInfo{btcHeaderGenesis},
+		Params:     btcLightK.GetParams(s.ctx),
+		BtcHeaders: []*btclighttypes.BTCHeaderInfo{baseBtcHeader},
 	})
 
 	tokenDistData, err := v1.LoadTokenDistributionFromData(upgradeDataStr.TokensDistributionStr)
@@ -203,7 +238,7 @@ func (s *UpgradeTestSuite) PreUpgrade() {
 	s.btcHeadersLenPreUpgrade = len(allBtcHeaders)
 
 	// Before upgrade, the params should be different
-	bsParamsFromUpgrade, err := v1.LoadBtcStakingParamsFromData(s.app.AppCodec(), s.upgradeDataStr.BtcStakingParamStr)
+	bsParamsFromUpgrade, err := v1.LoadBtcStakingParamsFromData(s.upgradeDataStr.BtcStakingParamsStr)
 	s.NoError(err)
 	bsModuleParams := s.app.BTCStakingKeeper.GetParams(s.ctx)
 	s.NotEqualValues(bsModuleParams, bsParamsFromUpgrade)
@@ -248,7 +283,7 @@ func (s *UpgradeTestSuite) Upgrade() {
 	s.ctx = s.ctx.WithHeaderInfo(header.Info{Height: DummyUpgradeHeight, Time: s.ctx.BlockTime().Add(time.Second)}).WithBlockHeight(DummyUpgradeHeight)
 	s.NotPanics(func() {
 		_, err := s.preModule.PreBlock(s.ctx)
-		s.NoError(err)
+		s.Require().NoError(err)
 	})
 }
 
@@ -277,10 +312,20 @@ func (s *UpgradeTestSuite) PostUpgrade() {
 	}
 
 	// After upgrade, the params should be the same
-	bsParamsFromUpgrade, err := v1.LoadBtcStakingParamsFromData(s.app.AppCodec(), s.upgradeDataStr.BtcStakingParamStr)
+	bsParamsFromUpgrade, err := v1.LoadBtcStakingParamsFromData(s.upgradeDataStr.BtcStakingParamsStr)
 	s.NoError(err)
+
 	bsModuleParams := s.app.BTCStakingKeeper.GetParams(s.ctx)
-	s.EqualValues(bsModuleParams, bsParamsFromUpgrade)
+	lastParamInUpgradeData := bsParamsFromUpgrade[len(bsParamsFromUpgrade)-1]
+	s.EqualValues(bsModuleParams, lastParamInUpgradeData)
+
+	for expVersion, paramsInUpgradeData := range bsParamsFromUpgrade {
+		bsParamsAtBtcHeight, version, err := s.app.BTCStakingKeeper.GetParamsForBtcHeight(s.ctx, uint64(paramsInUpgradeData.BtcActivationHeight))
+		s.NoError(err)
+		s.Equal(uint32(expVersion), version)
+		s.Equal(*bsParamsAtBtcHeight, paramsInUpgradeData)
+	}
+
 	fParamsFromUpgrade, err := v1.LoadFinalityParamsFromData(s.app.AppCodec(), s.upgradeDataStr.FinalityParamStr)
 	s.NoError(err)
 	fModuleParams := s.app.FinalityKeeper.GetParams(s.ctx)

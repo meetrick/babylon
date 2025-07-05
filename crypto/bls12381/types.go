@@ -3,6 +3,8 @@ package bls12381
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
+
 	blst "github.com/supranational/blst/bindings/go"
 )
 
@@ -24,6 +26,9 @@ type BlsMultiPubKey = blst.P2Aggregate
 // Domain Separation Tag for signatures on G1 (minimal-signature-size)
 var DST = []byte("BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_NUL_")
 
+// Domain Separation Tag specified for the PoP ciphersuite
+var DST_POP = []byte("BLS_POP_BLS12381G1_XMD:SHA-256_SSWU_RO_POP_")
+
 type Signature []byte
 type PublicKey []byte
 type PrivateKey []byte
@@ -31,6 +36,8 @@ type PrivateKey []byte
 const (
 	// SignatureSize is the size, in bytes, of a compressed BLS signature
 	SignatureSize = 48
+	// PrivKeySize is the size, in bytes, of a BLS private key
+	PrivKeySize = 32
 	// PubKeySize is the size, in bytes, of a compressed BLS public key
 	PubKeySize = 96
 	// SeedSize is the size, in bytes, of private key seeds
@@ -39,10 +46,10 @@ const (
 
 func (sig Signature) ValidateBasic() error {
 	if sig == nil {
-		return errors.New("invalid BLS signature")
+		return errors.New("empty BLS signature")
 	}
 	if len(sig) != SignatureSize {
-		return errors.New("invalid BLS signature")
+		return fmt.Errorf("invalid BLS signature length, got %d, expected %d", len(sig), SignatureSize)
 	}
 
 	return nil
@@ -73,7 +80,7 @@ func (sig Signature) Size() int {
 
 func (sig *Signature) Unmarshal(data []byte) error {
 	if len(data) != SignatureSize {
-		return errors.New("Invalid signature length")
+		return fmt.Errorf("invalid BLS signature length, got %d, expected %d", len(data), SignatureSize)
 	}
 
 	*sig = data
@@ -134,10 +141,27 @@ func (pk PublicKey) Size() int {
 
 func (pk *PublicKey) Unmarshal(data []byte) error {
 	if len(data) != PubKeySize {
-		return errors.New("Invalid public key length")
+		return fmt.Errorf("invalid BLS public key length, got %d, expected %d", len(data), PubKeySize)
 	}
 
 	*pk = data
+	return nil
+}
+
+func (pk *PublicKey) ValidateBasic() error {
+	if len(*pk) != PubKeySize {
+		return fmt.Errorf("invalid BLS public key length, got %d, expected %d", len(*pk), PubKeySize)
+	}
+
+	// uncompress will validate the BLS public key including
+	// 1. The point is on the curve
+	// 2. The point is in the correct subgroup
+	// 3. The point is not at infinity
+	BlsPk := new(BlsPubKey).Uncompress(*pk)
+	if BlsPk == nil {
+		return fmt.Errorf("invalid BLS public key point on the bls12-381 curve")
+	}
+
 	return nil
 }
 
@@ -147,6 +171,14 @@ func (pk PublicKey) Equal(k PublicKey) bool {
 
 func (pk PublicKey) Bytes() []byte {
 	return pk
+}
+
+func (sk PrivateKey) ValidateBasic() error {
+	if len(sk) != PrivKeySize {
+		return fmt.Errorf("invalid BLS private key length, got %d, expected %d", len(sk), PrivKeySize)
+	}
+
+	return nil
 }
 
 func (sk PrivateKey) PubKey() PublicKey {

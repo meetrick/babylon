@@ -2,9 +2,12 @@ package types
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"strconv"
 
 	"cosmossdk.io/store/rootmulti"
+	"github.com/babylonlabs-io/babylon/v3/types"
 	"github.com/cometbft/cometbft/crypto/merkle"
 	cmtcrypto "github.com/cometbft/cometbft/proto/tendermint/crypto"
 )
@@ -33,19 +36,20 @@ func VerifyStore(root []byte, moduleStoreKey string, key []byte, value []byte, p
 }
 
 func (p *ProofEpochSealed) ValidateBasic() error {
-	if p.ValidatorSet == nil {
+	switch {
+	case p.ValidatorSet == nil:
 		return ErrInvalidProofEpochSealed.Wrap("ValidatorSet is nil")
-	} else if len(p.ValidatorSet) == 0 {
+	case len(p.ValidatorSet) == 0:
 		return ErrInvalidProofEpochSealed.Wrap("ValidatorSet is empty")
-	} else if p.ProofEpochInfo == nil {
+	case p.ProofEpochInfo == nil:
 		return ErrInvalidProofEpochSealed.Wrap("ProofEpochInfo is nil")
-	} else if p.ProofEpochValSet == nil {
+	case p.ProofEpochValSet == nil:
 		return ErrInvalidProofEpochSealed.Wrap("ProofEpochValSet is nil")
 	}
 	return nil
 }
 
-func (ih *IndexedHeader) ValidateBasic() error {
+func (ih *IndexedHeader) Validate() error {
 	if len(ih.ConsumerId) == 0 {
 		return fmt.Errorf("empty ConsumerID")
 	}
@@ -62,7 +66,7 @@ func (ih *IndexedHeader) ValidateBasic() error {
 }
 
 func (ih *IndexedHeader) Equal(ih2 *IndexedHeader) bool {
-	if ih.ValidateBasic() != nil || ih2.ValidateBasic() != nil {
+	if ih.Validate() != nil || ih2.Validate() != nil {
 		return false
 	}
 
@@ -88,7 +92,7 @@ func (ih *IndexedHeader) Equal(ih2 *IndexedHeader) bool {
 }
 
 func (ci *ChainInfo) Equal(ci2 *ChainInfo) bool {
-	if ci.ValidateBasic() != nil || ci2.ValidateBasic() != nil {
+	if ci.Validate() != nil || ci2.Validate() != nil {
 		return false
 	}
 
@@ -109,19 +113,20 @@ func (ci *ChainInfo) Equal(ci2 *ChainInfo) bool {
 	return ci.TimestampedHeadersCount == ci2.TimestampedHeadersCount
 }
 
-func (ci *ChainInfo) ValidateBasic() error {
-	if len(ci.ConsumerId) == 0 {
+func (ci *ChainInfo) Validate() error {
+	switch {
+	case len(ci.ConsumerId) == 0:
 		return ErrInvalidChainInfo.Wrap("ConsumerId is empty")
-	} else if ci.LatestHeader == nil {
+	case ci.LatestHeader == nil:
 		return ErrInvalidChainInfo.Wrap("LatestHeader is nil")
-	} else if ci.LatestForks == nil {
+	case ci.LatestForks == nil:
 		return ErrInvalidChainInfo.Wrap("LatestForks is nil")
 	}
-	if err := ci.LatestHeader.ValidateBasic(); err != nil {
+	if err := ci.LatestHeader.Validate(); err != nil {
 		return err
 	}
 	for _, forkHeader := range ci.LatestForks.Headers {
-		if err := forkHeader.ValidateBasic(); err != nil {
+		if err := forkHeader.Validate(); err != nil {
 			return err
 		}
 	}
@@ -129,10 +134,55 @@ func (ci *ChainInfo) ValidateBasic() error {
 	return nil
 }
 
-func NewBTCTimestampPacketData(btcTimestamp *BTCTimestamp) *ZoneconciergePacketData {
-	return &ZoneconciergePacketData{
-		Packet: &ZoneconciergePacketData_BtcTimestamp{
+func (f *Forks) Validate() error {
+	if len(f.Headers) == 0 {
+		return errors.New("invalid forks. empty headers")
+	}
+	if err := types.ValidateEntries(
+		f.Headers,
+		func(ih *IndexedHeader) string {
+			// unique key is consumer id + epoch number
+			return ih.ConsumerId + strconv.FormatUint(ih.BabylonEpoch, 10)
+		}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (cip ChainInfoWithProof) Validate() error {
+	if cip.ChainInfo == nil {
+		return errors.New("invalid chain info with proof. empty chain info")
+	}
+	if cip.ProofHeaderInEpoch == nil {
+		return errors.New("invalid chain info with proof. empty proof")
+	}
+	return cip.ChainInfo.Validate()
+}
+
+func (bcs BTCChainSegment) Validate() error {
+	if len(bcs.BtcHeaders) == 0 {
+		return errors.New("invalid BTC chain segment. empty headers")
+	}
+	for _, h := range bcs.BtcHeaders {
+		if err := h.Validate(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func NewBTCTimestampPacketData(btcTimestamp *BTCTimestamp) *OutboundPacket {
+	return &OutboundPacket{
+		Packet: &OutboundPacket_BtcTimestamp{
 			BtcTimestamp: btcTimestamp,
+		},
+	}
+}
+
+func NewBTCHeadersPacketData(btcHeaders *BTCHeaders) *OutboundPacket {
+	return &OutboundPacket{
+		Packet: &OutboundPacket_BtcHeaders{
+			BtcHeaders: btcHeaders,
 		},
 	}
 }

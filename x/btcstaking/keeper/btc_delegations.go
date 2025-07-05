@@ -3,15 +3,16 @@ package keeper
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"cosmossdk.io/store/prefix"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	asig "github.com/babylonlabs-io/babylon/crypto/schnorr-adaptor-signature"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	"github.com/babylonlabs-io/babylon/x/btcstaking/types"
+	asig "github.com/babylonlabs-io/babylon/v3/crypto/schnorr-adaptor-signature"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
 )
 
 // AddBTCDelegation adds a BTC delegation post verification to the system, including
@@ -21,12 +22,7 @@ import (
 func (k Keeper) AddBTCDelegation(
 	ctx sdk.Context,
 	btcDel *types.BTCDelegation,
-	minUnbondingTime uint32,
 ) error {
-	if err := btcDel.ValidateBasic(); err != nil {
-		return err
-	}
-
 	// get staking tx hash
 	stakingTxHash, err := btcDel.GetStakingTxHash()
 	if err != nil {
@@ -71,16 +67,16 @@ func (k Keeper) AddBTCDelegation(
 			panic(fmt.Errorf("failed to emit EventBTCDelegationInclusionProofReceived for the new pending BTC delegation: %w", err))
 		}
 
-		// record event that the BTC delegation will become unbonded at endHeight-w
+		// record event that the BTC delegation will become expired (unbonded) at EndHeight-w
 		// This event will be generated to subscribers as block event, when the
 		// btc light client block height will reach btcDel.EndHeight-wValue
-		unbondedEvent := types.NewEventPowerDistUpdateWithBTCDel(&types.EventBTCDelegationStateUpdate{
+		expiredEvent := types.NewEventPowerDistUpdateWithBTCDel(&types.EventBTCDelegationStateUpdate{
 			StakingTxHash: stakingTxHash.String(),
-			NewState:      types.BTCDelegationStatus_UNBONDED,
+			NewState:      types.BTCDelegationStatus_EXPIRED,
 		})
 
-		// NOTE: we should have verified that EndHeight > btcTip.Height + max(w, min_unbonding_time)
-		k.addPowerDistUpdateEvent(ctx, btcDel.EndHeight-minUnbondingTime, unbondedEvent)
+		// NOTE: we should have verified that EndHeight > btcTip.Height + unbonding_time
+		k.addPowerDistUpdateEvent(ctx, btcDel.EndHeight-btcDel.UnbondingTime, expiredEvent)
 	}
 
 	return nil
@@ -96,6 +92,7 @@ func (k Keeper) addCovenantSigsToBTCDelegation(
 	unbondingTxSig *bbn.BIP340Signature,
 	parsedUnbondingSlashingAdaptorSignatures []asig.AdaptorSignature,
 	params *types.Params,
+	btcTipHeight uint32,
 ) {
 	hadQuorum := btcDel.HasCovenantQuorums(params.CovenantQuorum)
 
@@ -139,8 +136,7 @@ func (k Keeper) addCovenantSigsToBTCDelegation(
 					NewState:      types.BTCDelegationStatus_ACTIVE,
 				},
 			)
-			btcTip := k.btclcKeeper.GetTipInfo(ctx)
-			k.addPowerDistUpdateEvent(ctx, btcTip.Height, activeEvent)
+			k.addPowerDistUpdateEvent(ctx, btcTipHeight, activeEvent)
 
 			// notify consumer chains about the active BTC delegation
 			k.notifyConsumersOnActiveBTCDel(ctx, btcDel)
@@ -266,6 +262,7 @@ func (k Keeper) validateRestakedFPs(ctx context.Context, fpBTCPKs []bbn.BIP340Pu
 }
 
 // restakedFPConsumerIDs returns the unique consumer IDs of non-Babylon finality providers
+// The returned list is sorted in order to make sure the function is deterministic
 func (k Keeper) restakedFPConsumerIDs(ctx context.Context, fpBTCPKs []bbn.BIP340PubKey) ([]string, error) {
 	consumerIDMap := make(map[string]struct{})
 
@@ -284,6 +281,9 @@ func (k Keeper) restakedFPConsumerIDs(ctx context.Context, fpBTCPKs []bbn.BIP340
 	for consumerID := range consumerIDMap {
 		uniqueConsumerIDs = append(uniqueConsumerIDs, consumerID)
 	}
+
+	// Sort consumer IDs for deterministic ordering
+	slices.Sort(uniqueConsumerIDs)
 
 	return uniqueConsumerIDs, nil
 }

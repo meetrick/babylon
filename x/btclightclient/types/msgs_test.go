@@ -7,9 +7,9 @@ import (
 
 	sdkmath "cosmossdk.io/math"
 
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	"github.com/babylonlabs-io/babylon/x/btclightclient/types"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	"github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 )
@@ -21,8 +21,6 @@ func FuzzMsgInsertHeader(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, seed int64) {
 		r := rand.New(rand.NewSource(seed))
-		errorKind := 0
-
 		addressBytes := datagen.GenRandomByteArray(r, 1+uint64(r.Intn(255)))
 		headerBytes := datagen.GenRandomBTCHeaderInfo(r).Header
 		headerHex := headerBytes.MarshalHex()
@@ -33,7 +31,7 @@ func FuzzMsgInsertHeader(f *testing.F) {
 		require.NoError(t, err)
 
 		// Perform modifications on the header
-		errorKind = r.Intn(2)
+		errorKind := r.Intn(2)
 		var bitsBig sdkmath.Uint
 		switch errorKind {
 		case 0:

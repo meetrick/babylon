@@ -5,7 +5,7 @@ import (
 
 	errors "cosmossdk.io/errors"
 	sdkmath "cosmossdk.io/math"
-	appparams "github.com/babylonlabs-io/babylon/app/params"
+	appparams "github.com/babylonlabs-io/babylon/v3/app/params"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerror "github.com/cosmos/cosmos-sdk/types/errors"
 )
@@ -50,6 +50,10 @@ func CheckTxFeeWithGlobalMinGasPrices(ctx sdk.Context, tx sdk.Tx) (sdk.Coins, in
 // provided in a transaction.
 // NOTE: This implementation should not be used for txs with multiple coins.
 func getTxPriority(fee sdk.Coins, gas int64) int64 {
+	if gas == 0 {
+		return 0
+	}
+
 	var priority int64
 	for _, c := range fee {
 		p := c.Amount.Mul(sdkmath.NewInt(priorityScalingFactor)).QuoRaw(gas)

@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/babylonlabs-io/babylon/crypto/bip322"
-	"github.com/babylonlabs-io/babylon/crypto/ecdsa"
-	bbn "github.com/babylonlabs-io/babylon/types"
+	"github.com/babylonlabs-io/babylon/v3/crypto/bip322"
+	"github.com/babylonlabs-io/babylon/v3/crypto/ecdsa"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/btcsuite/btcd/btcutil"
@@ -19,106 +19,6 @@ import (
 )
 
 type checkStakerKey func(stakerKey *bbn.BIP340PubKey) error
-
-type bip322Sign[A btcutil.Address] func(sg []byte,
-	privKey *btcec.PrivateKey,
-	net *chaincfg.Params) (A, []byte, error)
-
-// NewPoPBTC generates a new proof of possession that sk_BTC and the address are held by the same person
-// a proof of possession contains only one signature
-// - pop.BtcSig = schnorr_sign(sk_BTC, bbnAddress)
-func NewPoPBTC(addr sdk.AccAddress, btcSK *btcec.PrivateKey) (*ProofOfPossessionBTC, error) {
-	pop := ProofOfPossessionBTC{
-		BtcSigType: BTCSigType_BIP340, // by default, we use BIP-340 encoding for BTC signature
-	}
-
-	// generate pop.BtcSig = schnorr_sign(sk_BTC, hash(bbnAddress))
-	// NOTE: *schnorr.Sign has to take the hash of the message.
-	// So we have to hash the address before signing
-	hash := tmhash.Sum(addr.Bytes())
-	btcSig, err := schnorr.Sign(btcSK, hash)
-	if err != nil {
-		return nil, err
-	}
-	bip340Sig := bbn.NewBIP340SignatureFromBTCSig(btcSig)
-	pop.BtcSig = bip340Sig.MustMarshal()
-
-	return &pop, nil
-}
-
-// NewPoPWithECDSABTCSig generates a new proof of possession where Bitcoin signature is in ECDSA format
-// a proof of possession contains two signatures:
-// - pop.BtcSig = ecdsa_sign(sk_BTC, addr)
-func NewPoPBTCWithECDSABTCSig(addr sdk.AccAddress, btcSK *btcec.PrivateKey) (*ProofOfPossessionBTC, error) {
-	pop := ProofOfPossessionBTC{
-		BtcSigType: BTCSigType_ECDSA,
-	}
-
-	// generate pop.BtcSig = ecdsa_sign(sk_BTC, pop.BabylonSig)
-	// NOTE: ecdsa.Sign has to take the message as string.
-	// So we have to hex addr before signing
-	addrHex := hex.EncodeToString(addr.Bytes())
-	btcSig, err := ecdsa.Sign(btcSK, addrHex)
-	if err != nil {
-		return nil, err
-	}
-	pop.BtcSig = btcSig
-
-	return &pop, nil
-}
-
-func newPoPBTCWithBIP322Sig[A btcutil.Address](
-	addressToSign sdk.AccAddress,
-	btcSK *btcec.PrivateKey,
-	net *chaincfg.Params,
-	bip322SignFn bip322Sign[A],
-) (*ProofOfPossessionBTC, error) {
-	pop := ProofOfPossessionBTC{
-		BtcSigType: BTCSigType_BIP322,
-	}
-
-	bip322SigEncoded, err := newBIP322Sig(tmhash.Sum(addressToSign.Bytes()), btcSK, net, bip322SignFn)
-	if err != nil {
-		return nil, err
-	}
-	pop.BtcSig = bip322SigEncoded
-
-	return &pop, nil
-}
-
-func newBIP322Sig[A btcutil.Address](
-	msgToSign []byte,
-	btcSK *btcec.PrivateKey,
-	net *chaincfg.Params,
-	bip322SignFn bip322Sign[A],
-) ([]byte, error) {
-
-	address, witnessSignture, err := bip322SignFn(
-		msgToSign,
-		btcSK,
-		net,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	bip322Sig := BIP322Sig{
-		Address: address.EncodeAddress(),
-		Sig:     witnessSignture,
-	}
-
-	return bip322Sig.Marshal()
-}
-
-// NewPoPBTCWithBIP322P2WPKHSig creates a proof of possession of type BIP322
-// that signs the address with the BTC secret key.
-func NewPoPBTCWithBIP322P2WPKHSig(
-	addr sdk.AccAddress,
-	btcSK *btcec.PrivateKey,
-	net *chaincfg.Params,
-) (*ProofOfPossessionBTC, error) {
-	return newPoPBTCWithBIP322Sig(addr, btcSK, net, bip322.SignWithP2WPKHAddress)
-}
 
 func NewPoPBTCFromHex(popHex string) (*ProofOfPossessionBTC, error) {
 	popBytes, err := hex.DecodeString(popHex)
@@ -141,14 +41,20 @@ func (pop *ProofOfPossessionBTC) ToHexStr() (string, error) {
 }
 
 // Verify that the BTC private key corresponding to the bip340PK signed the staker address
-func (pop *ProofOfPossessionBTC) Verify(staker sdk.AccAddress, bip340PK *bbn.BIP340PubKey, net *chaincfg.Params) error {
+func (pop *ProofOfPossessionBTC) Verify(
+	signingContext string,
+	address sdk.AccAddress,
+	bip340PK *bbn.BIP340PubKey,
+	net *chaincfg.Params,
+) error {
+	stakerBech32Addr := address.String()
 	switch pop.BtcSigType {
 	case BTCSigType_BIP340:
-		return pop.VerifyBIP340(staker, bip340PK)
+		return pop.VerifyBIP340(signingContext, address, bip340PK)
 	case BTCSigType_BIP322:
-		return pop.VerifyBIP322(staker, bip340PK, net)
+		return pop.VerifyBIP322(signingContext, address, bip340PK, net)
 	case BTCSigType_ECDSA:
-		return pop.VerifyECDSA(staker, bip340PK)
+		return pop.VerifyECDSA(signingContext, stakerBech32Addr, bip340PK)
 	default:
 		return fmt.Errorf("invalid BTC signature type")
 	}
@@ -185,16 +91,10 @@ func VerifyBIP340(sigType BTCSigType, btcSigRaw []byte, bip340PK *bbn.BIP340PubK
 
 // VerifyBIP340 verifies the validity of PoP where Bitcoin signature is in BIP-340
 // 1. verify(sig=sig_btc, pubkey=pk_btc, msg=staker_addr)?
-func (pop *ProofOfPossessionBTC) VerifyBIP340(stakerAddr sdk.AccAddress, bip340PK *bbn.BIP340PubKey) error {
-	return VerifyBIP340(pop.BtcSigType, pop.BtcSig, bip340PK, stakerAddr.Bytes())
-}
-
-func NewPoPBTCWithBIP322P2TRBIP86Sig(
-	addrToSign sdk.AccAddress,
-	btcSK *btcec.PrivateKey,
-	net *chaincfg.Params,
-) (*ProofOfPossessionBTC, error) {
-	return newPoPBTCWithBIP322Sig(addrToSign, btcSK, net, bip322.SignWithP2TrSpendAddress)
+func (pop *ProofOfPossessionBTC) VerifyBIP340(contextString string, stakerAddr sdk.AccAddress, bip340PK *bbn.BIP340PubKey) error {
+	msgToSign := []byte(contextString)
+	msgToSign = append(msgToSign, stakerAddr.Bytes()...)
+	return VerifyBIP340(pop.BtcSigType, pop.BtcSig, bip340PK, msgToSign)
 }
 
 // isSupportedAddressAndWitness checks whether provided address and witness are
@@ -259,7 +159,6 @@ func isSupportedAddressAndWitness(
 			}
 
 			return nil
-
 		}, nil
 	}
 
@@ -338,7 +237,7 @@ func VerifyBIP322(sigType BTCSigType, btcSigRaw []byte, bip340PK *bbn.BIP340PubK
 	// unmarshal pop.BtcSig to bip322Sig
 	var bip322Sig BIP322Sig
 	if err := bip322Sig.Unmarshal(btcSigRaw); err != nil {
-		return nil
+		return err
 	}
 
 	btcKeyBytes, err := bip340PK.Marshal()
@@ -364,17 +263,25 @@ func VerifyBIP322(sigType BTCSigType, btcSigRaw []byte, bip340PK *bbn.BIP340PubK
 // after decoding pop.BtcSig to bip322Sig which contains sig and address,
 // 1. verify whether bip322 pop signature where msg=pop.BabylonSig
 // 2. verify(sig=pop.BabylonSig, pubkey=babylonPK, msg=bip340PK)?
-func (pop *ProofOfPossessionBTC) VerifyBIP322(addr sdk.AccAddress, bip340PK *bbn.BIP340PubKey, net *chaincfg.Params) error {
-	msg := tmhash.Sum(addr.Bytes())
-	if err := VerifyBIP322(pop.BtcSigType, pop.BtcSig, bip340PK, msg, net); err != nil {
+func (pop *ProofOfPossessionBTC) VerifyBIP322(contextString string, addr sdk.AccAddress, bip340PK *bbn.BIP340PubKey, net *chaincfg.Params) error {
+	msgToSign := MsgToSignBIP322(contextString, addr)
+	if err := VerifyBIP322(pop.BtcSigType, pop.BtcSig, bip340PK, msgToSign, net); err != nil {
 		return fmt.Errorf("failed to verify possession of babylon sig by the BTC key: %w", err)
 	}
 	return nil
 }
 
+// MsgToSignBIP322 gets the address as bech32 string and just parses it to bytes
+// This is necessary due to wallet extensions only allow to sign string messages and
+// convert those to bytes before signing.
+func MsgToSignBIP322(contextString string, addr sdk.AccAddress) []byte {
+	bech32AddrStr := addr.String()
+	return []byte(contextString + bech32AddrStr)
+}
+
 // VerifyECDSA verifies the validity of PoP where Bitcoin signature is in ECDSA encoding
 // 1. verify(sig=sig_btc, pubkey=pk_btc, msg=msg)?
-func VerifyECDSA(sigType BTCSigType, btcSigRaw []byte, bip340PK *bbn.BIP340PubKey, msg []byte) error {
+func VerifyECDSA(sigType BTCSigType, btcSigRaw []byte, bip340PK *bbn.BIP340PubKey, signingContext string, msg string) error {
 	if sigType != BTCSigType_ECDSA {
 		return fmt.Errorf("the Bitcoin signature in this proof of possession is not using ECDSA encoding")
 	}
@@ -384,11 +291,25 @@ func VerifyECDSA(sigType BTCSigType, btcSigRaw []byte, bip340PK *bbn.BIP340PubKe
 	if err != nil {
 		return err
 	}
-	// NOTE: ecdsa.Verify has to take message as a string
-	// So we have to hex BabylonSig before verifying the signature
-	bbnSigHex := hex.EncodeToString(msg)
-	if err := ecdsa.Verify(btcPK, bbnSigHex, btcSigRaw); err != nil {
-		return fmt.Errorf("failed to verify btcSigRaw")
+
+	// we ignore ignore is compressed flag as we only care about comparing X coordinates
+	recoveredPK, _, err := ecdsa.RecoverPublicKey(signingContext+msg, btcSigRaw)
+	if err != nil {
+		return fmt.Errorf("failed to recover btc public key when verifying ECDSA PoP: %w", err)
+	}
+
+	btcPKBytes := schnorr.SerializePubKey(btcPK)
+
+	recoveredPKBytes := schnorr.SerializePubKey(recoveredPK)
+
+	// We only compare X coordinates, as both stakers and fp providers
+	// are identified by 32byte public key compliant with BIP-340 spec that
+	// assumes Y coordinate is even.
+	// This should be safe to do, as except of the ECDSA pop verification, both
+	// both parties will also sign other data with BIP-340 schnorr signature for
+	// which 32bytes key is enough.
+	if !bytes.Equal(btcPKBytes, recoveredPKBytes) {
+		return fmt.Errorf("the recovered PK does not match the given PK")
 	}
 
 	return nil
@@ -396,8 +317,8 @@ func VerifyECDSA(sigType BTCSigType, btcSigRaw []byte, bip340PK *bbn.BIP340PubKe
 
 // VerifyECDSA verifies the validity of PoP where Bitcoin signature is in ECDSA encoding
 // 1. verify(sig=sig_btc, pubkey=pk_btc, msg=addr)?
-func (pop *ProofOfPossessionBTC) VerifyECDSA(addr sdk.AccAddress, bip340PK *bbn.BIP340PubKey) error {
-	return VerifyECDSA(pop.BtcSigType, pop.BtcSig, bip340PK, addr.Bytes())
+func (pop *ProofOfPossessionBTC) VerifyECDSA(signingContext string, msg string, bip340PK *bbn.BIP340PubKey) error {
+	return VerifyECDSA(pop.BtcSigType, pop.BtcSig, bip340PK, signingContext, msg)
 }
 
 // ValidateBasic checks if there is a BTC Signature.

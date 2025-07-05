@@ -7,9 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/babylonlabs-io/babylon/app"
-	v1 "github.com/babylonlabs-io/babylon/app/upgrades/v1"
-	"github.com/babylonlabs-io/babylon/test/e2e/configurer/config"
+	v2 "github.com/babylonlabs-io/babylon/v3/app/upgrades/v2"
+
+	"github.com/babylonlabs-io/babylon/v3/app"
+	"github.com/babylonlabs-io/babylon/v3/test/e2e/configurer/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,12 +19,12 @@ func TestParseGovPropFromFile(t *testing.T) {
 
 	pwd, err := os.Getwd()
 	require.NoError(t, err)
-	upgradePath := filepath.Join(pwd, "../", config.UpgradeSignetLaunchFilePath)
+	upgradePath := filepath.Join(pwd, "../", config.UpgradeV2FilePath)
 
 	_, msgProp, err := parseGovPropFromFile(cdc, upgradePath)
 	require.NoError(t, err)
 
-	require.Equal(t, msgProp.Plan.Name, v1.UpgradeName)
+	require.Equal(t, msgProp.Plan.Name, v2.UpgradeName)
 }
 
 func TestWriteGovPropToFile(t *testing.T) {
@@ -31,16 +32,16 @@ func TestWriteGovPropToFile(t *testing.T) {
 
 	pwd, err := os.Getwd()
 	require.NoError(t, err)
-	upgradePath := filepath.Join(pwd, "../", config.UpgradeSignetLaunchFilePath)
+	upgradePath := filepath.Join(pwd, "../", config.UpgradeV2FilePath)
 
 	prop, msgProp, err := parseGovPropFromFile(cdc, upgradePath)
 	require.NoError(t, err)
 
 	r := rand.New(rand.NewSource(time.Now().Unix()))
-	newPropHeight := int64(r.Int63())
+	newPropHeight := r.Int63()
 	msgProp.Plan.Height = newPropHeight
 
-	tempFilePath := filepath.Join(t.TempDir(), filepath.Base(config.UpgradeSignetLaunchFilePath))
+	tempFilePath := filepath.Join(t.TempDir(), filepath.Base(config.UpgradeV2FilePath))
 
 	err = writeGovPropToFile(cdc, tempFilePath, *prop, *msgProp)
 	require.NoError(t, err)

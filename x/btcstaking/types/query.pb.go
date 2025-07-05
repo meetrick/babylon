@@ -7,7 +7,8 @@ import (
 	context "context"
 	cosmossdk_io_math "cosmossdk.io/math"
 	fmt "fmt"
-	github_com_babylonlabs_io_babylon_types "github.com/babylonlabs-io/babylon/types"
+	github_com_babylonlabs_io_babylon_v3_types "github.com/babylonlabs-io/babylon/v3/types"
+	types1 "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
 	_ "github.com/cosmos/cosmos-proto"
 	query "github.com/cosmos/cosmos-sdk/types/query"
 	types "github.com/cosmos/cosmos-sdk/x/staking/types"
@@ -208,6 +209,108 @@ func (m *QueryParamsByVersionResponse) GetParams() Params {
 	return Params{}
 }
 
+// QueryParamsByBTCHeightRequest is request type for the Query/ParamsByBTCHeight
+// RPC method.
+type QueryParamsByBTCHeightRequest struct {
+	BtcHeight uint32 `protobuf:"varint,1,opt,name=btc_height,json=btcHeight,proto3" json:"btc_height,omitempty"`
+}
+
+func (m *QueryParamsByBTCHeightRequest) Reset()         { *m = QueryParamsByBTCHeightRequest{} }
+func (m *QueryParamsByBTCHeightRequest) String() string { return proto.CompactTextString(m) }
+func (*QueryParamsByBTCHeightRequest) ProtoMessage()    {}
+func (*QueryParamsByBTCHeightRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_74d49d26f7429697, []int{4}
+}
+func (m *QueryParamsByBTCHeightRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryParamsByBTCHeightRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryParamsByBTCHeightRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryParamsByBTCHeightRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryParamsByBTCHeightRequest.Merge(m, src)
+}
+func (m *QueryParamsByBTCHeightRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryParamsByBTCHeightRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryParamsByBTCHeightRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryParamsByBTCHeightRequest proto.InternalMessageInfo
+
+func (m *QueryParamsByBTCHeightRequest) GetBtcHeight() uint32 {
+	if m != nil {
+		return m.BtcHeight
+	}
+	return 0
+}
+
+// QueryParamsByBTCHeightResponse is response type for the
+// Query/QueryParamsByBTCHeightResponse RPC method.
+type QueryParamsByBTCHeightResponse struct {
+	// params holds all the parameters of this module.
+	Params Params `protobuf:"bytes,1,opt,name=params,proto3" json:"params"`
+	// version is the version of the params for the given BTC height
+	Version uint32 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+}
+
+func (m *QueryParamsByBTCHeightResponse) Reset()         { *m = QueryParamsByBTCHeightResponse{} }
+func (m *QueryParamsByBTCHeightResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryParamsByBTCHeightResponse) ProtoMessage()    {}
+func (*QueryParamsByBTCHeightResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_74d49d26f7429697, []int{5}
+}
+func (m *QueryParamsByBTCHeightResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryParamsByBTCHeightResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryParamsByBTCHeightResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryParamsByBTCHeightResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryParamsByBTCHeightResponse.Merge(m, src)
+}
+func (m *QueryParamsByBTCHeightResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryParamsByBTCHeightResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryParamsByBTCHeightResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryParamsByBTCHeightResponse proto.InternalMessageInfo
+
+func (m *QueryParamsByBTCHeightResponse) GetParams() Params {
+	if m != nil {
+		return m.Params
+	}
+	return Params{}
+}
+
+func (m *QueryParamsByBTCHeightResponse) GetVersion() uint32 {
+	if m != nil {
+		return m.Version
+	}
+	return 0
+}
+
 // QueryFinalityProvidersRequest is the request type for the
 // Query/FinalityProviders RPC method.
 type QueryFinalityProvidersRequest struct {
@@ -219,7 +322,7 @@ func (m *QueryFinalityProvidersRequest) Reset()         { *m = QueryFinalityProv
 func (m *QueryFinalityProvidersRequest) String() string { return proto.CompactTextString(m) }
 func (*QueryFinalityProvidersRequest) ProtoMessage()    {}
 func (*QueryFinalityProvidersRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_74d49d26f7429697, []int{4}
+	return fileDescriptor_74d49d26f7429697, []int{6}
 }
 func (m *QueryFinalityProvidersRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -268,7 +371,7 @@ func (m *QueryFinalityProvidersResponse) Reset()         { *m = QueryFinalityPro
 func (m *QueryFinalityProvidersResponse) String() string { return proto.CompactTextString(m) }
 func (*QueryFinalityProvidersResponse) ProtoMessage()    {}
 func (*QueryFinalityProvidersResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_74d49d26f7429697, []int{5}
+	return fileDescriptor_74d49d26f7429697, []int{7}
 }
 func (m *QueryFinalityProvidersResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -313,7 +416,8 @@ func (m *QueryFinalityProvidersResponse) GetPagination() *query.PageResponse {
 
 // QueryFinalityProviderRequest requests information about a finality provider
 type QueryFinalityProviderRequest struct {
-	// fp_btc_pk_hex is the hex str of Bitcoin secp256k1 PK of the finality provider
+	// fp_btc_pk_hex is the hex str of Bitcoin secp256k1 PK of the finality
+	// provider
 	FpBtcPkHex string `protobuf:"bytes,1,opt,name=fp_btc_pk_hex,json=fpBtcPkHex,proto3" json:"fp_btc_pk_hex,omitempty"`
 }
 
@@ -321,7 +425,7 @@ func (m *QueryFinalityProviderRequest) Reset()         { *m = QueryFinalityProvi
 func (m *QueryFinalityProviderRequest) String() string { return proto.CompactTextString(m) }
 func (*QueryFinalityProviderRequest) ProtoMessage()    {}
 func (*QueryFinalityProviderRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_74d49d26f7429697, []int{6}
+	return fileDescriptor_74d49d26f7429697, []int{8}
 }
 func (m *QueryFinalityProviderRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -367,7 +471,7 @@ func (m *QueryFinalityProviderResponse) Reset()         { *m = QueryFinalityProv
 func (m *QueryFinalityProviderResponse) String() string { return proto.CompactTextString(m) }
 func (*QueryFinalityProviderResponse) ProtoMessage()    {}
 func (*QueryFinalityProviderResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_74d49d26f7429697, []int{7}
+	return fileDescriptor_74d49d26f7429697, []int{9}
 }
 func (m *QueryFinalityProviderResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -416,7 +520,7 @@ func (m *QueryBTCDelegationsRequest) Reset()         { *m = QueryBTCDelegationsR
 func (m *QueryBTCDelegationsRequest) String() string { return proto.CompactTextString(m) }
 func (*QueryBTCDelegationsRequest) ProtoMessage()    {}
 func (*QueryBTCDelegationsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_74d49d26f7429697, []int{8}
+	return fileDescriptor_74d49d26f7429697, []int{10}
 }
 func (m *QueryBTCDelegationsRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -462,7 +566,8 @@ func (m *QueryBTCDelegationsRequest) GetPagination() *query.PageRequest {
 // QueryBTCDelegationsResponse is the response type for the
 // Query/BTCDelegations RPC method.
 type QueryBTCDelegationsResponse struct {
-	// btc_delegations contains all the queried BTC delegations under the given status
+	// btc_delegations contains all the queried BTC delegations under the given
+	// status
 	BtcDelegations []*BTCDelegationResponse `protobuf:"bytes,1,rep,name=btc_delegations,json=btcDelegations,proto3" json:"btc_delegations,omitempty"`
 	// pagination defines the pagination in the response.
 	Pagination *query.PageResponse `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
@@ -472,7 +577,7 @@ func (m *QueryBTCDelegationsResponse) Reset()         { *m = QueryBTCDelegations
 func (m *QueryBTCDelegationsResponse) String() string { return proto.CompactTextString(m) }
 func (*QueryBTCDelegationsResponse) ProtoMessage()    {}
 func (*QueryBTCDelegationsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_74d49d26f7429697, []int{9}
+	return fileDescriptor_74d49d26f7429697, []int{11}
 }
 func (m *QueryBTCDelegationsResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -518,9 +623,9 @@ func (m *QueryBTCDelegationsResponse) GetPagination() *query.PageResponse {
 // QueryFinalityProviderDelegationsRequest is the request type for the
 // Query/FinalityProviderDelegations RPC method.
 type QueryFinalityProviderDelegationsRequest struct {
-	// fp_btc_pk_hex is the hex str of Bitcoin secp256k1 PK of the finality providerthat
-	// this BTC delegation delegates to
-	// the PK follows encoding in BIP-340 spec
+	// fp_btc_pk_hex is the hex str of Bitcoin secp256k1 PK of the finality
+	// providerthat this BTC delegation delegates to the PK follows encoding in
+	// BIP-340 spec
 	FpBtcPkHex string `protobuf:"bytes,1,opt,name=fp_btc_pk_hex,json=fpBtcPkHex,proto3" json:"fp_btc_pk_hex,omitempty"`
 	// pagination defines an optional pagination for the request.
 	Pagination *query.PageRequest `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
@@ -532,7 +637,7 @@ func (m *QueryFinalityProviderDelegationsRequest) Reset() {
 func (m *QueryFinalityProviderDelegationsRequest) String() string { return proto.CompactTextString(m) }
 func (*QueryFinalityProviderDelegationsRequest) ProtoMessage()    {}
 func (*QueryFinalityProviderDelegationsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_74d49d26f7429697, []int{10}
+	return fileDescriptor_74d49d26f7429697, []int{12}
 }
 func (m *QueryFinalityProviderDelegationsRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -590,7 +695,7 @@ func (m *QueryFinalityProviderDelegationsResponse) Reset() {
 func (m *QueryFinalityProviderDelegationsResponse) String() string { return proto.CompactTextString(m) }
 func (*QueryFinalityProviderDelegationsResponse) ProtoMessage()    {}
 func (*QueryFinalityProviderDelegationsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_74d49d26f7429697, []int{11}
+	return fileDescriptor_74d49d26f7429697, []int{13}
 }
 func (m *QueryFinalityProviderDelegationsResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -644,7 +749,7 @@ func (m *QueryBTCDelegationRequest) Reset()         { *m = QueryBTCDelegationReq
 func (m *QueryBTCDelegationRequest) String() string { return proto.CompactTextString(m) }
 func (*QueryBTCDelegationRequest) ProtoMessage()    {}
 func (*QueryBTCDelegationRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_74d49d26f7429697, []int{12}
+	return fileDescriptor_74d49d26f7429697, []int{14}
 }
 func (m *QueryBTCDelegationRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -680,8 +785,8 @@ func (m *QueryBTCDelegationRequest) GetStakingTxHashHex() string {
 	return ""
 }
 
-// QueryBTCDelegationResponse is response type matching QueryBTCDelegationRequest
-// and containing BTC delegation information
+// QueryBTCDelegationResponse is response type matching
+// QueryBTCDelegationRequest and containing BTC delegation information
 type QueryBTCDelegationResponse struct {
 	// BTCDelegation represents the client needed information of an BTCDelegation.
 	BtcDelegation *BTCDelegationResponse `protobuf:"bytes,1,opt,name=btc_delegation,json=btcDelegation,proto3" json:"btc_delegation,omitempty"`
@@ -691,7 +796,7 @@ func (m *QueryBTCDelegationResponse) Reset()         { *m = QueryBTCDelegationRe
 func (m *QueryBTCDelegationResponse) String() string { return proto.CompactTextString(m) }
 func (*QueryBTCDelegationResponse) ProtoMessage()    {}
 func (*QueryBTCDelegationResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_74d49d26f7429697, []int{13}
+	return fileDescriptor_74d49d26f7429697, []int{15}
 }
 func (m *QueryBTCDelegationResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -727,17 +832,19 @@ func (m *QueryBTCDelegationResponse) GetBtcDelegation() *BTCDelegationResponse {
 	return nil
 }
 
-// BTCDelegationResponse is the client needed information from a BTCDelegation with the current status based on parameters.
+// BTCDelegationResponse is the client needed information from a BTCDelegation
+// with the current status based on parameters.
 type BTCDelegationResponse struct {
 	// staker_addr is the address to receive rewards from BTC delegation.
 	StakerAddr string `protobuf:"bytes,1,opt,name=staker_addr,json=stakerAddr,proto3" json:"staker_addr,omitempty"`
 	// btc_pk is the Bitcoin secp256k1 PK of this BTC delegation
 	// the PK follows encoding in BIP-340 spec
-	BtcPk *github_com_babylonlabs_io_babylon_types.BIP340PubKey `protobuf:"bytes,2,opt,name=btc_pk,json=btcPk,proto3,customtype=github.com/babylonlabs-io/babylon/types.BIP340PubKey" json:"btc_pk,omitempty"`
+	BtcPk *github_com_babylonlabs_io_babylon_v3_types.BIP340PubKey `protobuf:"bytes,2,opt,name=btc_pk,json=btcPk,proto3,customtype=github.com/babylonlabs-io/babylon/v3/types.BIP340PubKey" json:"btc_pk,omitempty"`
 	// fp_btc_pk_list is the list of BIP-340 PKs of the finality providers that
 	// this BTC delegation delegates to
-	FpBtcPkList []github_com_babylonlabs_io_babylon_types.BIP340PubKey `protobuf:"bytes,3,rep,name=fp_btc_pk_list,json=fpBtcPkList,proto3,customtype=github.com/babylonlabs-io/babylon/types.BIP340PubKey" json:"fp_btc_pk_list,omitempty"`
-	// staking_time is the number of blocks for which the delegation is locked on BTC chain
+	FpBtcPkList []github_com_babylonlabs_io_babylon_v3_types.BIP340PubKey `protobuf:"bytes,3,rep,name=fp_btc_pk_list,json=fpBtcPkList,proto3,customtype=github.com/babylonlabs-io/babylon/v3/types.BIP340PubKey" json:"fp_btc_pk_list,omitempty"`
+	// staking_time is the number of blocks for which the delegation is locked on
+	// BTC chain
 	StakingTime uint32 `protobuf:"varint,4,opt,name=staking_time,json=stakingTime,proto3" json:"staking_time,omitempty"`
 	// start_height is the start BTC height of the BTC delegation
 	// it is the start BTC height of the timelock
@@ -766,8 +873,8 @@ type BTCDelegationResponse struct {
 	Active bool `protobuf:"varint,13,opt,name=active,proto3" json:"active,omitempty"`
 	// descriptive status of current delegation.
 	StatusDesc string `protobuf:"bytes,14,opt,name=status_desc,json=statusDesc,proto3" json:"status_desc,omitempty"`
-	// unbonding_time used in unbonding output timelock path and in slashing transactions
-	// change outputs
+	// unbonding_time used in unbonding output timelock path and in slashing
+	// transactions change outputs
 	UnbondingTime uint32 `protobuf:"varint,15,opt,name=unbonding_time,json=unbondingTime,proto3" json:"unbonding_time,omitempty"`
 	// undelegation_response is the undelegation info of this delegation.
 	UndelegationResponse *BTCUndelegationResponse `protobuf:"bytes,16,opt,name=undelegation_response,json=undelegationResponse,proto3" json:"undelegation_response,omitempty"`
@@ -779,7 +886,7 @@ func (m *BTCDelegationResponse) Reset()         { *m = BTCDelegationResponse{} }
 func (m *BTCDelegationResponse) String() string { return proto.CompactTextString(m) }
 func (*BTCDelegationResponse) ProtoMessage()    {}
 func (*BTCDelegationResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_74d49d26f7429697, []int{14}
+	return fileDescriptor_74d49d26f7429697, []int{16}
 }
 func (m *BTCDelegationResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -917,7 +1024,8 @@ func (m *BTCDelegationResponse) GetParamsVersion() uint32 {
 // which spent the staking output
 type DelegatorUnbondingInfoResponse struct {
 	// spend_stake_tx_hex is the transaction which spent the staking output. It is
-	// filled only if the spend_stake_tx_hex is different than the unbonding_tx_hex
+	// filled only if the spend_stake_tx_hex is different than the
+	// unbonding_tx_hex
 	SpendStakeTxHex string `protobuf:"bytes,1,opt,name=spend_stake_tx_hex,json=spendStakeTxHex,proto3" json:"spend_stake_tx_hex,omitempty"`
 }
 
@@ -925,7 +1033,7 @@ func (m *DelegatorUnbondingInfoResponse) Reset()         { *m = DelegatorUnbondi
 func (m *DelegatorUnbondingInfoResponse) String() string { return proto.CompactTextString(m) }
 func (*DelegatorUnbondingInfoResponse) ProtoMessage()    {}
 func (*DelegatorUnbondingInfoResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_74d49d26f7429697, []int{15}
+	return fileDescriptor_74d49d26f7429697, []int{17}
 }
 func (m *DelegatorUnbondingInfoResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -964,8 +1072,8 @@ func (m *DelegatorUnbondingInfoResponse) GetSpendStakeTxHex() string {
 // BTCUndelegationResponse provides all necessary info about the undeleagation
 type BTCUndelegationResponse struct {
 	// unbonding_tx is the transaction which will transfer the funds from staking
-	// output to unbonding output. Unbonding output will usually have lower timelock
-	// than staking output. The unbonding tx as string hex.
+	// output to unbonding output. Unbonding output will usually have lower
+	// timelock than staking output. The unbonding tx as string hex.
 	UnbondingTxHex string `protobuf:"bytes,1,opt,name=unbonding_tx_hex,json=unbondingTxHex,proto3" json:"unbonding_tx_hex,omitempty"`
 	// covenant_unbonding_sig_list is the list of signatures on the unbonding tx
 	// by covenant members
@@ -990,7 +1098,7 @@ func (m *BTCUndelegationResponse) Reset()         { *m = BTCUndelegationResponse
 func (m *BTCUndelegationResponse) String() string { return proto.CompactTextString(m) }
 func (*BTCUndelegationResponse) ProtoMessage()    {}
 func (*BTCUndelegationResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_74d49d26f7429697, []int{16}
+	return fileDescriptor_74d49d26f7429697, []int{18}
 }
 func (m *BTCUndelegationResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1061,7 +1169,8 @@ func (m *BTCUndelegationResponse) GetDelegatorUnbondingInfoResponse() *Delegator
 	return nil
 }
 
-// BTCDelegatorDelegationsResponse is a collection of BTC delegations responses from the same delegator.
+// BTCDelegatorDelegationsResponse is a collection of BTC delegations responses
+// from the same delegator.
 type BTCDelegatorDelegationsResponse struct {
 	Dels []*BTCDelegationResponse `protobuf:"bytes,1,rep,name=dels,proto3" json:"dels,omitempty"`
 }
@@ -1070,7 +1179,7 @@ func (m *BTCDelegatorDelegationsResponse) Reset()         { *m = BTCDelegatorDel
 func (m *BTCDelegatorDelegationsResponse) String() string { return proto.CompactTextString(m) }
 func (*BTCDelegatorDelegationsResponse) ProtoMessage()    {}
 func (*BTCDelegatorDelegationsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_74d49d26f7429697, []int{17}
+	return fileDescriptor_74d49d26f7429697, []int{19}
 }
 func (m *BTCDelegatorDelegationsResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1106,7 +1215,8 @@ func (m *BTCDelegatorDelegationsResponse) GetDels() []*BTCDelegationResponse {
 	return nil
 }
 
-// FinalityProviderResponse defines a finality provider with voting power information.
+// FinalityProviderResponse defines a finality provider with voting power
+// information.
 type FinalityProviderResponse struct {
 	// description defines the description terms for the finality provider.
 	Description *types.Description `protobuf:"bytes,1,opt,name=description,proto3" json:"description,omitempty"`
@@ -1116,7 +1226,7 @@ type FinalityProviderResponse struct {
 	Addr string `protobuf:"bytes,3,opt,name=addr,proto3" json:"addr,omitempty"`
 	// btc_pk is the Bitcoin secp256k1 PK of this finality provider
 	// the PK follows encoding in BIP-340 spec
-	BtcPk *github_com_babylonlabs_io_babylon_types.BIP340PubKey `protobuf:"bytes,4,opt,name=btc_pk,json=btcPk,proto3,customtype=github.com/babylonlabs-io/babylon/types.BIP340PubKey" json:"btc_pk,omitempty"`
+	BtcPk *github_com_babylonlabs_io_babylon_v3_types.BIP340PubKey `protobuf:"bytes,4,opt,name=btc_pk,json=btcPk,proto3,customtype=github.com/babylonlabs-io/babylon/v3/types.BIP340PubKey" json:"btc_pk,omitempty"`
 	// pop is the proof of possession of the BTC_PK by the fp addr.
 	// Essentially is the signature where the BTC SK sigs the fp addr.
 	Pop *ProofOfPossessionBTC `protobuf:"bytes,5,opt,name=pop,proto3" json:"pop,omitempty"`
@@ -1132,13 +1242,23 @@ type FinalityProviderResponse struct {
 	Height uint64 `protobuf:"varint,8,opt,name=height,proto3" json:"height,omitempty"`
 	// jailed defines whether the finality provider is jailed
 	Jailed bool `protobuf:"varint,9,opt,name=jailed,proto3" json:"jailed,omitempty"`
+	// highest_voted_height is the highest height for which the
+	// finality provider has voted
+	HighestVotedHeight uint32 `protobuf:"varint,10,opt,name=highest_voted_height,json=highestVotedHeight,proto3" json:"highest_voted_height,omitempty"`
+	// commission_info contains information details of the finality provider
+	// commission.
+	CommissionInfo *CommissionInfo `protobuf:"bytes,11,opt,name=commission_info,json=commissionInfo,proto3" json:"commission_info,omitempty"`
+	// consumer_id is the ID of the consumer the finality provider is operating
+	// on. If it's missing / empty, it's assumed the finality provider is
+	// operating in the Babylon chain.
+	ConsumerId string `protobuf:"bytes,12,opt,name=consumer_id,json=consumerId,proto3" json:"consumer_id,omitempty"`
 }
 
 func (m *FinalityProviderResponse) Reset()         { *m = FinalityProviderResponse{} }
 func (m *FinalityProviderResponse) String() string { return proto.CompactTextString(m) }
 func (*FinalityProviderResponse) ProtoMessage()    {}
 func (*FinalityProviderResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_74d49d26f7429697, []int{18}
+	return fileDescriptor_74d49d26f7429697, []int{20}
 }
 func (m *FinalityProviderResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1216,11 +1336,217 @@ func (m *FinalityProviderResponse) GetJailed() bool {
 	return false
 }
 
+func (m *FinalityProviderResponse) GetHighestVotedHeight() uint32 {
+	if m != nil {
+		return m.HighestVotedHeight
+	}
+	return 0
+}
+
+func (m *FinalityProviderResponse) GetCommissionInfo() *CommissionInfo {
+	if m != nil {
+		return m.CommissionInfo
+	}
+	return nil
+}
+
+func (m *FinalityProviderResponse) GetConsumerId() string {
+	if m != nil {
+		return m.ConsumerId
+	}
+	return ""
+}
+
+// QueryLargestBtcReOrgRequest query request of the largest BTC reorg request
+type QueryLargestBtcReOrgRequest struct {
+}
+
+func (m *QueryLargestBtcReOrgRequest) Reset()         { *m = QueryLargestBtcReOrgRequest{} }
+func (m *QueryLargestBtcReOrgRequest) String() string { return proto.CompactTextString(m) }
+func (*QueryLargestBtcReOrgRequest) ProtoMessage()    {}
+func (*QueryLargestBtcReOrgRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_74d49d26f7429697, []int{21}
+}
+func (m *QueryLargestBtcReOrgRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryLargestBtcReOrgRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryLargestBtcReOrgRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryLargestBtcReOrgRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryLargestBtcReOrgRequest.Merge(m, src)
+}
+func (m *QueryLargestBtcReOrgRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryLargestBtcReOrgRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryLargestBtcReOrgRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryLargestBtcReOrgRequest proto.InternalMessageInfo
+
+// QueryLargestBtcReOrgResponse stores the largest BTC reorg recorded
+type QueryLargestBtcReOrgResponse struct {
+	// BlockDiff is the difference of the block height of the BTC header Tip - the btc height
+	// which it was rolled back
+	BlockDiff uint32 `protobuf:"varint,1,opt,name=block_diff,json=blockDiff,proto3" json:"block_diff,omitempty"`
+	// RollbackFrom is the latest BTC block header prior to rollback
+	RollbackFrom *types1.BTCHeaderInfoResponse `protobuf:"bytes,2,opt,name=rollback_from,json=rollbackFrom,proto3" json:"rollback_from,omitempty"`
+	// RollbackTo is the BTC block header which we rollback to
+	RollbackTo *types1.BTCHeaderInfoResponse `protobuf:"bytes,3,opt,name=rollback_to,json=rollbackTo,proto3" json:"rollback_to,omitempty"`
+}
+
+func (m *QueryLargestBtcReOrgResponse) Reset()         { *m = QueryLargestBtcReOrgResponse{} }
+func (m *QueryLargestBtcReOrgResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryLargestBtcReOrgResponse) ProtoMessage()    {}
+func (*QueryLargestBtcReOrgResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_74d49d26f7429697, []int{22}
+}
+func (m *QueryLargestBtcReOrgResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryLargestBtcReOrgResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryLargestBtcReOrgResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryLargestBtcReOrgResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryLargestBtcReOrgResponse.Merge(m, src)
+}
+func (m *QueryLargestBtcReOrgResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryLargestBtcReOrgResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryLargestBtcReOrgResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryLargestBtcReOrgResponse proto.InternalMessageInfo
+
+func (m *QueryLargestBtcReOrgResponse) GetBlockDiff() uint32 {
+	if m != nil {
+		return m.BlockDiff
+	}
+	return 0
+}
+
+func (m *QueryLargestBtcReOrgResponse) GetRollbackFrom() *types1.BTCHeaderInfoResponse {
+	if m != nil {
+		return m.RollbackFrom
+	}
+	return nil
+}
+
+func (m *QueryLargestBtcReOrgResponse) GetRollbackTo() *types1.BTCHeaderInfoResponse {
+	if m != nil {
+		return m.RollbackTo
+	}
+	return nil
+}
+
+// QueryParamsVersionsRequest is the request type for the
+// Query/ParamsVersions RPC method.
+type QueryParamsVersionsRequest struct {
+	// pagination defines an optional pagination for the request.
+	Pagination *query.PageRequest `protobuf:"bytes,1,opt,name=pagination,proto3" json:"pagination,omitempty"`
+}
+
+func (m *QueryParamsVersionsRequest) Reset()         { *m = QueryParamsVersionsRequest{} }
+func (m *QueryParamsVersionsRequest) String() string { return proto.CompactTextString(m) }
+func (*QueryParamsVersionsRequest) ProtoMessage()    {}
+func (*QueryParamsVersionsRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_74d49d26f7429697, []int{23}
+}
+func (m *QueryParamsVersionsRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryParamsVersionsRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryParamsVersionsRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryParamsVersionsRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryParamsVersionsRequest.Merge(m, src)
+}
+func (m *QueryParamsVersionsRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryParamsVersionsRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryParamsVersionsRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryParamsVersionsRequest proto.InternalMessageInfo
+
+// QueryParamsVersionsResponse stores all the params with versions.
+type QueryParamsVersionsResponse struct {
+	// params holds all the params with version from this module.
+	Params []StoredParams `protobuf:"bytes,1,rep,name=params,proto3" json:"params"`
+	// pagination defines the pagination in the response.
+	Pagination *query.PageResponse `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+}
+
+func (m *QueryParamsVersionsResponse) Reset()         { *m = QueryParamsVersionsResponse{} }
+func (m *QueryParamsVersionsResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryParamsVersionsResponse) ProtoMessage()    {}
+func (*QueryParamsVersionsResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_74d49d26f7429697, []int{24}
+}
+func (m *QueryParamsVersionsResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryParamsVersionsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryParamsVersionsResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryParamsVersionsResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryParamsVersionsResponse.Merge(m, src)
+}
+func (m *QueryParamsVersionsResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryParamsVersionsResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryParamsVersionsResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryParamsVersionsResponse proto.InternalMessageInfo
+
 func init() {
 	proto.RegisterType((*QueryParamsRequest)(nil), "babylon.btcstaking.v1.QueryParamsRequest")
 	proto.RegisterType((*QueryParamsResponse)(nil), "babylon.btcstaking.v1.QueryParamsResponse")
 	proto.RegisterType((*QueryParamsByVersionRequest)(nil), "babylon.btcstaking.v1.QueryParamsByVersionRequest")
 	proto.RegisterType((*QueryParamsByVersionResponse)(nil), "babylon.btcstaking.v1.QueryParamsByVersionResponse")
+	proto.RegisterType((*QueryParamsByBTCHeightRequest)(nil), "babylon.btcstaking.v1.QueryParamsByBTCHeightRequest")
+	proto.RegisterType((*QueryParamsByBTCHeightResponse)(nil), "babylon.btcstaking.v1.QueryParamsByBTCHeightResponse")
 	proto.RegisterType((*QueryFinalityProvidersRequest)(nil), "babylon.btcstaking.v1.QueryFinalityProvidersRequest")
 	proto.RegisterType((*QueryFinalityProvidersResponse)(nil), "babylon.btcstaking.v1.QueryFinalityProvidersResponse")
 	proto.RegisterType((*QueryFinalityProviderRequest)(nil), "babylon.btcstaking.v1.QueryFinalityProviderRequest")
@@ -1236,117 +1562,144 @@ func init() {
 	proto.RegisterType((*BTCUndelegationResponse)(nil), "babylon.btcstaking.v1.BTCUndelegationResponse")
 	proto.RegisterType((*BTCDelegatorDelegationsResponse)(nil), "babylon.btcstaking.v1.BTCDelegatorDelegationsResponse")
 	proto.RegisterType((*FinalityProviderResponse)(nil), "babylon.btcstaking.v1.FinalityProviderResponse")
+	proto.RegisterType((*QueryLargestBtcReOrgRequest)(nil), "babylon.btcstaking.v1.QueryLargestBtcReOrgRequest")
+	proto.RegisterType((*QueryLargestBtcReOrgResponse)(nil), "babylon.btcstaking.v1.QueryLargestBtcReOrgResponse")
+	proto.RegisterType((*QueryParamsVersionsRequest)(nil), "babylon.btcstaking.v1.QueryParamsVersionsRequest")
+	proto.RegisterType((*QueryParamsVersionsResponse)(nil), "babylon.btcstaking.v1.QueryParamsVersionsResponse")
 }
 
 func init() { proto.RegisterFile("babylon/btcstaking/v1/query.proto", fileDescriptor_74d49d26f7429697) }
 
 var fileDescriptor_74d49d26f7429697 = []byte{
-	// 1673 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x58, 0x4b, 0x6f, 0xdb, 0xca,
-	0x15, 0x36, 0x6d, 0x59, 0xb1, 0x8f, 0x2c, 0xd9, 0x9e, 0xeb, 0xd8, 0x8c, 0x7c, 0x2d, 0x3b, 0x6a,
-	0x6e, 0xe2, 0x3c, 0x2c, 0xc6, 0x8f, 0xf4, 0xb6, 0x08, 0x6e, 0xdb, 0xc8, 0xce, 0xab, 0x89, 0x1b,
-	0x97, 0x8a, 0xbb, 0xe8, 0x4b, 0xa0, 0xc8, 0x11, 0xc5, 0x5a, 0x22, 0x19, 0xce, 0xc8, 0x90, 0x11,
-	0x18, 0x28, 0xb2, 0xe8, 0xba, 0x40, 0xfb, 0x23, 0x02, 0x74, 0x53, 0xa0, 0xd9, 0x74, 0xd1, 0x7d,
-	0xba, 0x0b, 0xd2, 0x4d, 0x91, 0x45, 0x50, 0x24, 0x05, 0xba, 0xea, 0xbe, 0xe8, 0xaa, 0xe0, 0xcc,
-	0xf0, 0x21, 0x59, 0xb4, 0x2d, 0xd7, 0x3b, 0x71, 0xce, 0xfb, 0x9b, 0xef, 0xf0, 0xf0, 0x08, 0x2e,
-	0xd7, 0xb4, 0xda, 0x41, 0xd3, 0xb1, 0x95, 0x1a, 0xd5, 0x09, 0xd5, 0xf6, 0x2c, 0xdb, 0x54, 0xf6,
-	0x57, 0x95, 0x17, 0x6d, 0xec, 0x1d, 0x94, 0x5c, 0xcf, 0xa1, 0x0e, 0xba, 0x28, 0x54, 0x4a, 0x91,
-	0x4a, 0x69, 0x7f, 0x35, 0x3f, 0x63, 0x3a, 0xa6, 0xc3, 0x34, 0x14, 0xff, 0x17, 0x57, 0xce, 0x7f,
-	0x69, 0x3a, 0x8e, 0xd9, 0xc4, 0x8a, 0xe6, 0x5a, 0x8a, 0x66, 0xdb, 0x0e, 0xd5, 0xa8, 0xe5, 0xd8,
-	0x44, 0x48, 0x2f, 0xe9, 0x0e, 0x69, 0x39, 0xa4, 0xca, 0xcd, 0xf8, 0x83, 0x10, 0x5d, 0xe1, 0x4f,
-	0x4a, 0x94, 0x44, 0x0d, 0x53, 0x6d, 0x35, 0x78, 0x16, 0x5a, 0x37, 0x84, 0x56, 0x4d, 0x23, 0x98,
-	0x27, 0x19, 0x2a, 0xba, 0x9a, 0x69, 0xd9, 0x2c, 0x9a, 0xd0, 0x2d, 0xf6, 0x2f, 0xcd, 0xd5, 0x3c,
-	0xad, 0x15, 0x44, 0xbd, 0xda, 0x5f, 0x27, 0x56, 0x29, 0xd7, 0x5b, 0x4c, 0xf0, 0xe5, 0xb8, 0x5c,
-	0xa1, 0x38, 0x03, 0xe8, 0xc7, 0x7e, 0x3a, 0x3b, 0xcc, 0xbb, 0x8a, 0x5f, 0xb4, 0x31, 0xa1, 0x45,
-	0x15, 0xbe, 0xe8, 0x3a, 0x25, 0xae, 0x63, 0x13, 0x8c, 0xee, 0x42, 0x9a, 0x67, 0x21, 0x4b, 0x4b,
-	0xd2, 0x72, 0x66, 0x6d, 0xa1, 0xd4, 0x17, 0xe2, 0x12, 0x37, 0x2b, 0xa7, 0xde, 0x7e, 0x5c, 0x1c,
-	0x52, 0x85, 0x49, 0xf1, 0x6b, 0x98, 0x8f, 0xf9, 0x2c, 0x1f, 0xfc, 0x04, 0x7b, 0xc4, 0x72, 0x6c,
-	0x11, 0x12, 0xc9, 0x70, 0x61, 0x9f, 0x9f, 0x30, 0xe7, 0x59, 0x35, 0x78, 0x2c, 0xfe, 0x0c, 0xbe,
-	0xec, 0x6f, 0x78, 0x1e, 0x59, 0x99, 0xb0, 0xc0, 0x9c, 0x3f, 0xb0, 0x6c, 0xad, 0x69, 0xd1, 0x83,
-	0x1d, 0xcf, 0xd9, 0xb7, 0x0c, 0xec, 0x05, 0x50, 0xa0, 0x07, 0x00, 0xd1, 0x0d, 0x89, 0x08, 0x57,
-	0x4b, 0x82, 0x02, 0xfe, 0x75, 0x96, 0x38, 0xe7, 0xc4, 0x75, 0x96, 0x76, 0x34, 0x13, 0x0b, 0x5b,
-	0x35, 0x66, 0x59, 0xfc, 0xab, 0x04, 0x85, 0xa4, 0x48, 0xa2, 0x90, 0x5f, 0x02, 0xaa, 0x0b, 0xa1,
-	0xcf, 0x34, 0x2e, 0x95, 0xa5, 0xa5, 0x91, 0xe5, 0xcc, 0x9a, 0x92, 0x50, 0x54, 0xaf, 0xb7, 0xc0,
-	0x99, 0x3a, 0x5d, 0xef, 0x8d, 0x83, 0x1e, 0x76, 0x95, 0x32, 0xcc, 0x4a, 0xb9, 0x76, 0x62, 0x29,
-	0xc2, 0x5f, 0xbc, 0x96, 0x7b, 0xe2, 0x46, 0x8e, 0x06, 0xe7, 0x98, 0x5d, 0x86, 0x6c, 0xdd, 0xad,
-	0xd6, 0xa8, 0x5e, 0x75, 0xf7, 0xaa, 0x0d, 0xdc, 0x61, 0xb0, 0x8d, 0xab, 0x50, 0x77, 0xcb, 0x54,
-	0xdf, 0xd9, 0x7b, 0x84, 0x3b, 0xc5, 0xc3, 0x04, 0xdc, 0x43, 0x30, 0x7e, 0x0e, 0xd3, 0x47, 0xc0,
-	0x10, 0xf0, 0x0f, 0x8c, 0xc5, 0x54, 0x2f, 0x16, 0xc5, 0xd7, 0x12, 0xe4, 0x59, 0xfc, 0xf2, 0xf3,
-	0xcd, 0x2d, 0xdc, 0xc4, 0x26, 0x6f, 0xf7, 0xa0, 0x80, 0x32, 0xa4, 0x09, 0xd5, 0x68, 0x9b, 0x53,
-	0x2a, 0xb7, 0x76, 0x23, 0x21, 0x62, 0x97, 0x75, 0x85, 0x59, 0xa8, 0xc2, 0xb2, 0x87, 0x38, 0xc3,
-	0x67, 0x26, 0xce, 0x5f, 0x24, 0xd1, 0x38, 0xbd, 0xa9, 0x0a, 0xa0, 0x76, 0x61, 0xd2, 0x47, 0xda,
-	0x88, 0x44, 0x82, 0x32, 0xb7, 0x4e, 0x93, 0x74, 0x88, 0x51, 0xae, 0x46, 0xf5, 0x98, 0xfb, 0xf3,
-	0x23, 0xcb, 0xef, 0x25, 0xb8, 0xd6, 0xf7, 0xaa, 0xfb, 0xe0, 0x7e, 0x32, 0x71, 0xce, 0x0d, 0xd6,
-	0x7f, 0x49, 0xb0, 0x7c, 0x72, 0x5a, 0x02, 0x63, 0x0f, 0x2e, 0xc5, 0x30, 0x76, 0xbc, 0x3e, 0x68,
-	0x7f, 0xfb, 0x44, 0xb4, 0x9d, 0x7e, 0xae, 0xd5, 0xb9, 0x08, 0xf7, 0x2e, 0x85, 0xf3, 0xbb, 0x80,
-	0x1f, 0xc2, 0xa5, 0xa3, 0xfc, 0x09, 0x10, 0x5f, 0x81, 0x2f, 0x44, 0xb2, 0x55, 0xda, 0xa9, 0x36,
-	0x34, 0xd2, 0x88, 0xe1, 0x3e, 0x25, 0x44, 0xcf, 0x3b, 0x8f, 0x34, 0xd2, 0xf0, 0xdb, 0xf6, 0x45,
-	0xbf, 0xb6, 0x09, 0x61, 0xaa, 0x40, 0xae, 0x9b, 0x8a, 0xa2, 0x61, 0x07, 0x63, 0x62, 0xb6, 0x8b,
-	0x89, 0xc5, 0xff, 0xa6, 0xe1, 0x62, 0xff, 0x70, 0xdf, 0x85, 0x8c, 0xef, 0x0c, 0x7b, 0x55, 0xcd,
-	0x30, 0xf8, 0xcb, 0x61, 0xbc, 0x2c, 0xbf, 0x7f, 0xb3, 0x32, 0x23, 0x50, 0xba, 0x67, 0x18, 0x1e,
-	0x26, 0xa4, 0x42, 0x3d, 0xcb, 0x36, 0x55, 0xe0, 0xca, 0xfe, 0x21, 0x7a, 0x06, 0x69, 0xce, 0x32,
-	0x06, 0xec, 0x44, 0xf9, 0x3b, 0x1f, 0x3e, 0x2e, 0x6e, 0x98, 0x16, 0x6d, 0xb4, 0x6b, 0x25, 0xdd,
-	0x69, 0x29, 0x22, 0xdf, 0xa6, 0x56, 0x23, 0x2b, 0x96, 0x13, 0x3c, 0x2a, 0xf4, 0xc0, 0xc5, 0xa4,
-	0x54, 0x7e, 0xbc, 0xb3, 0xbe, 0x71, 0x7b, 0xa7, 0x5d, 0x7b, 0x82, 0x0f, 0xd4, 0xd1, 0x9a, 0xcf,
-	0x4c, 0xf4, 0x0b, 0xc8, 0x45, 0xcc, 0x6d, 0x5a, 0x84, 0xca, 0x23, 0x4b, 0x23, 0xff, 0x97, 0xe3,
-	0x8c, 0x20, 0xfd, 0x53, 0x8b, 0x35, 0xc6, 0x44, 0x78, 0x4d, 0x56, 0x0b, 0xcb, 0x29, 0x36, 0x22,
-	0x33, 0xc1, 0xfd, 0x58, 0x2d, 0x2c, 0x54, 0x3c, 0x5a, 0x6d, 0x60, 0xcb, 0x6c, 0x50, 0x79, 0x34,
-	0x54, 0xf1, 0xe8, 0x23, 0x76, 0x84, 0x16, 0x00, 0xb0, 0x6d, 0x04, 0x0a, 0x69, 0xa6, 0x30, 0x8e,
-	0x6d, 0x43, 0x88, 0xe7, 0x61, 0x9c, 0x3a, 0x54, 0x6b, 0x56, 0x89, 0x46, 0xe5, 0x0b, 0x4b, 0xd2,
-	0x72, 0x4a, 0x1d, 0x63, 0x07, 0x15, 0x8d, 0xa2, 0x2b, 0x90, 0x8b, 0x13, 0x05, 0x77, 0xe4, 0x31,
-	0xc6, 0x91, 0x89, 0x88, 0x23, 0xb8, 0x83, 0xae, 0xc2, 0x24, 0x69, 0x6a, 0xa4, 0x11, 0x53, 0x1b,
-	0x67, 0x6a, 0xd9, 0xe0, 0x98, 0xeb, 0xdd, 0x81, 0xb9, 0xa8, 0x99, 0x98, 0xa8, 0x4a, 0x2c, 0x93,
-	0xe9, 0x03, 0xd3, 0x9f, 0x09, 0xc5, 0x15, 0x5f, 0x5a, 0xb1, 0x4c, 0xdf, 0x6c, 0x17, 0xb2, 0xba,
-	0xb3, 0x8f, 0x6d, 0xcd, 0xa6, 0xbe, 0x3e, 0x91, 0x33, 0xac, 0xf7, 0x6e, 0x27, 0xf0, 0x6b, 0x53,
-	0xe8, 0xde, 0x33, 0x34, 0xd7, 0xf7, 0x64, 0x99, 0xb6, 0x46, 0xdb, 0x1e, 0x26, 0xea, 0x44, 0xe0,
-	0xa6, 0x62, 0x99, 0x04, 0xdd, 0x02, 0x14, 0xd4, 0xe6, 0xb4, 0xa9, 0xdb, 0xa6, 0x55, 0xcb, 0xe8,
-	0xc8, 0x13, 0x0c, 0x9f, 0xa0, 0x07, 0x9e, 0x31, 0xc1, 0x63, 0xa3, 0x83, 0x66, 0x21, 0xad, 0xe9,
-	0xd4, 0xda, 0xc7, 0x72, 0x76, 0x49, 0x5a, 0x1e, 0x53, 0xc5, 0x13, 0x5a, 0x64, 0x74, 0xa4, 0x6d,
-	0x52, 0x35, 0x30, 0xd1, 0xe5, 0x1c, 0x7f, 0x75, 0xf1, 0xa3, 0x2d, 0x4c, 0x74, 0xf4, 0x15, 0xe4,
-	0xda, 0x76, 0xcd, 0xb1, 0x8d, 0xf0, 0x1a, 0x27, 0x59, 0x88, 0x6c, 0x78, 0xca, 0x2e, 0x52, 0x87,
-	0x8b, 0x6d, 0x3b, 0xea, 0xa1, 0xaa, 0x27, 0xf8, 0x2e, 0x4f, 0xb1, 0x66, 0x2a, 0x25, 0x37, 0xd3,
-	0x6e, 0xcc, 0x2c, 0x6c, 0xa7, 0x99, 0x76, 0x9f, 0x53, 0x3f, 0x17, 0xfe, 0x05, 0x54, 0x0d, 0xbe,
-	0xba, 0xa6, 0x79, 0x2e, 0xfc, 0x54, 0x7c, 0x63, 0x15, 0xb7, 0xa1, 0x10, 0xbe, 0x9c, 0x76, 0x83,
-	0x2c, 0x1f, 0xdb, 0x75, 0x27, 0x74, 0x74, 0x13, 0x10, 0x71, 0x7d, 0x56, 0xb1, 0xee, 0x0a, 0x2e,
-	0x9d, 0xbf, 0x3f, 0x26, 0x99, 0xa4, 0xe2, 0x0b, 0xd8, 0xb5, 0x17, 0xff, 0x33, 0x02, 0x73, 0x09,
-	0x79, 0xa2, 0x65, 0x98, 0x8a, 0xa1, 0x13, 0x77, 0x13, 0xa1, 0xc6, 0xc9, 0xa3, 0xc3, 0x7c, 0xc8,
-	0x82, 0xc8, 0xc4, 0xe7, 0x0f, 0x6b, 0xbc, 0x61, 0xc6, 0x89, 0x2b, 0x09, 0x30, 0x85, 0x24, 0x60,
-	0x55, 0xc8, 0x81, 0xa3, 0xb0, 0xb8, 0x8a, 0x65, 0xb2, 0x8e, 0xeb, 0xc3, 0xe4, 0x91, 0x7e, 0x4c,
-	0xbe, 0x0b, 0xf9, 0x1e, 0x26, 0x07, 0xc9, 0xf8, 0x26, 0x29, 0x66, 0x32, 0xd7, 0x4d, 0x66, 0x1e,
-	0xc5, 0x37, 0xae, 0xc3, 0x6c, 0xc4, 0xe7, 0x98, 0x2d, 0x91, 0x47, 0xcf, 0x48, 0xec, 0x99, 0x90,
-	0xd8, 0x51, 0x24, 0x82, 0x7e, 0x2d, 0xc1, 0xe5, 0x28, 0xcb, 0x08, 0x33, 0xcb, 0xae, 0x3b, 0x11,
-	0xbf, 0xd2, 0x8c, 0x5f, 0x77, 0x12, 0x62, 0x1e, 0xcf, 0x03, 0xb5, 0x60, 0x1c, 0x2b, 0x2f, 0xea,
-	0xb0, 0x78, 0xc2, 0x28, 0x44, 0x3f, 0x80, 0x94, 0x81, 0x9b, 0x67, 0xfb, 0x7c, 0x61, 0x96, 0xc5,
-	0x57, 0x29, 0x90, 0x13, 0xbf, 0x28, 0xef, 0x43, 0xc6, 0x6f, 0x4c, 0xcf, 0x72, 0x63, 0xa3, 0xe9,
-	0x5b, 0xc1, 0x44, 0x8d, 0x22, 0xf0, 0x71, 0xba, 0x15, 0xa9, 0xaa, 0x71, 0x3b, 0xb4, 0x0d, 0xa0,
-	0x3b, 0xad, 0x96, 0x45, 0x48, 0x30, 0x97, 0xc7, 0xcb, 0x2b, 0x1f, 0x3e, 0x2e, 0xce, 0x73, 0x47,
-	0xc4, 0xd8, 0x2b, 0x59, 0x8e, 0xd2, 0xd2, 0x68, 0xa3, 0xf4, 0x14, 0x9b, 0x9a, 0x7e, 0xb0, 0x85,
-	0xf5, 0xf7, 0x6f, 0x56, 0x40, 0xc4, 0xd9, 0xc2, 0xba, 0x1a, 0x73, 0x80, 0x6e, 0x41, 0x8a, 0x4d,
-	0xaf, 0x91, 0x13, 0xa6, 0x17, 0xd3, 0x8a, 0xcd, 0xad, 0xd4, 0xf9, 0xcc, 0xad, 0x6f, 0x60, 0xc4,
-	0x75, 0x5c, 0x36, 0x2c, 0x32, 0x6b, 0x37, 0x93, 0x36, 0x27, 0xcf, 0x71, 0xea, 0xcf, 0xea, 0x3b,
-	0x0e, 0x21, 0x98, 0x65, 0x5d, 0x7e, 0xbe, 0xa9, 0xfa, 0x76, 0x68, 0x03, 0x66, 0x19, 0x6f, 0xb1,
-	0x51, 0x15, 0xa6, 0xf1, 0xe9, 0x92, 0x52, 0x67, 0x84, 0xb4, 0xcc, 0x85, 0x62, 0xd0, 0xf8, 0xef,
-	0xdb, 0xc0, 0x8a, 0xea, 0x81, 0xc5, 0x05, 0xf1, 0xbe, 0x15, 0x16, 0x54, 0x17, 0xda, 0xb3, 0x90,
-	0x16, 0x1a, 0x63, 0xcc, 0xa7, 0x78, 0xf2, 0xcf, 0x7f, 0xa5, 0x59, 0x4d, 0x6c, 0xb0, 0x11, 0x33,
-	0xa6, 0x8a, 0xa7, 0xb5, 0xd7, 0x00, 0xa3, 0xec, 0x23, 0x05, 0xfd, 0x46, 0x82, 0x34, 0xdf, 0xfa,
-	0xd0, 0xf5, 0x84, 0xd2, 0x8e, 0x2e, 0xbf, 0xf9, 0x1b, 0xa7, 0x51, 0x15, 0xac, 0xfe, 0xea, 0xd5,
-	0xdf, 0xfe, 0xf9, 0xbb, 0xe1, 0x45, 0xb4, 0xa0, 0x1c, 0xb7, 0xb4, 0xa3, 0x3f, 0x48, 0x30, 0xd9,
-	0xb3, 0xbe, 0xa2, 0xb5, 0x93, 0xc3, 0xf4, 0x2e, 0xc9, 0xf9, 0xf5, 0x81, 0x6c, 0x44, 0x8e, 0x0a,
-	0xcb, 0xf1, 0x3a, 0xba, 0x76, 0x6c, 0x8e, 0xca, 0x4b, 0x31, 0x08, 0x0e, 0xd1, 0x9f, 0x24, 0x98,
-	0x3e, 0xb2, 0xa5, 0xa2, 0x8d, 0xe3, 0x62, 0x27, 0xad, 0xcf, 0xf9, 0x3b, 0x03, 0x5a, 0x89, 0x9c,
-	0x57, 0x59, 0xce, 0x37, 0xd1, 0xf5, 0x84, 0x9c, 0x8f, 0xee, 0xc9, 0xe8, 0xbd, 0x04, 0x53, 0xbd,
-	0x0e, 0xd1, 0xfa, 0x20, 0xe1, 0x83, 0x9c, 0x37, 0x06, 0x33, 0x12, 0x29, 0x57, 0x58, 0xca, 0xdb,
-	0xe8, 0xc9, 0xa9, 0x53, 0x56, 0x5e, 0x76, 0x2d, 0x3b, 0x87, 0x47, 0x55, 0xd0, 0x1f, 0x25, 0xc8,
-	0x75, 0xef, 0x7d, 0x68, 0xf5, 0xb8, 0xec, 0xfa, 0xae, 0xb3, 0xf9, 0xb5, 0x41, 0x4c, 0x44, 0x39,
-	0x5f, 0xb3, 0x72, 0x56, 0x91, 0xa2, 0x24, 0xfe, 0xd5, 0x14, 0xdf, 0x82, 0x94, 0x97, 0xfc, 0x43,
-	0xe7, 0x10, 0xfd, 0x5b, 0x82, 0xf9, 0x63, 0x76, 0x2a, 0xf4, 0xbd, 0x41, 0xd0, 0xed, 0x53, 0xcc,
-	0xf7, 0xcf, 0x6c, 0x2f, 0x2a, 0xdb, 0x66, 0x95, 0x3d, 0x44, 0xf7, 0xcf, 0x7e, 0x51, 0xb1, 0xc2,
-	0xd1, 0x9f, 0x25, 0xc8, 0x76, 0x61, 0x88, 0x6e, 0x9f, 0x1a, 0xee, 0xa0, 0xa6, 0xd5, 0x01, 0x2c,
-	0x44, 0x15, 0x9b, 0xac, 0x8a, 0x6f, 0xd0, 0xdd, 0x53, 0xdd, 0x0f, 0xbb, 0x9e, 0xde, 0x2d, 0xef,
-	0xb0, 0xfc, 0xa3, 0xb7, 0x9f, 0x0a, 0xd2, 0xbb, 0x4f, 0x05, 0xe9, 0x1f, 0x9f, 0x0a, 0xd2, 0x6f,
-	0x3f, 0x17, 0x86, 0xde, 0x7d, 0x2e, 0x0c, 0xfd, 0xfd, 0x73, 0x61, 0xe8, 0xa7, 0xa7, 0x18, 0x2a,
-	0x9d, 0x78, 0x44, 0x36, 0x61, 0x6a, 0x69, 0xf6, 0xa7, 0xe2, 0xfa, 0xff, 0x02, 0x00, 0x00, 0xff,
-	0xff, 0xd4, 0x91, 0x2b, 0x9a, 0x9e, 0x15, 0x00, 0x00,
+	// 2047 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x59, 0xcb, 0x6f, 0x1c, 0x49,
+	0x19, 0x77, 0xfb, 0x15, 0xfb, 0x1b, 0x7b, 0x6c, 0xd7, 0x3a, 0xc9, 0xc4, 0x5e, 0x3f, 0xd2, 0xe4,
+	0xe1, 0x3c, 0x3c, 0xed, 0x47, 0x42, 0x04, 0x51, 0x16, 0x32, 0xf6, 0x66, 0x13, 0x36, 0x21, 0x4e,
+	0x8f, 0xb3, 0x07, 0x40, 0x34, 0x3d, 0xdd, 0x35, 0x3d, 0x8d, 0x67, 0xba, 0x26, 0x5d, 0x35, 0xc6,
+	0x56, 0x64, 0x69, 0xc5, 0x01, 0x71, 0x44, 0x82, 0x3f, 0x60, 0x6f, 0xac, 0x04, 0x07, 0xa4, 0xdd,
+	0x0b, 0x07, 0xc4, 0x81, 0xcb, 0x72, 0x5b, 0x85, 0x0b, 0xda, 0x43, 0x84, 0x12, 0xa4, 0xe5, 0xc2,
+	0x9d, 0x23, 0xea, 0xaa, 0xea, 0xc7, 0x8c, 0xbb, 0xc7, 0x1e, 0xaf, 0x2f, 0xd6, 0x54, 0x7d, 0xef,
+	0xaf, 0x7e, 0x5f, 0x7d, 0xd5, 0x9f, 0xe1, 0x62, 0xc5, 0xac, 0xec, 0xd7, 0x89, 0xa7, 0x55, 0x98,
+	0x45, 0x99, 0xb9, 0xe3, 0x7a, 0x8e, 0xb6, 0xbb, 0xaa, 0xbd, 0x68, 0x61, 0x7f, 0xbf, 0xd8, 0xf4,
+	0x09, 0x23, 0xe8, 0xac, 0x64, 0x29, 0xc6, 0x2c, 0xc5, 0xdd, 0xd5, 0x99, 0x69, 0x87, 0x38, 0x84,
+	0x73, 0x68, 0xc1, 0x2f, 0xc1, 0x3c, 0xf3, 0xae, 0x43, 0x88, 0x53, 0xc7, 0x9a, 0xd9, 0x74, 0x35,
+	0xd3, 0xf3, 0x08, 0x33, 0x99, 0x4b, 0x3c, 0x2a, 0xa9, 0x17, 0x2c, 0x42, 0x1b, 0x84, 0x1a, 0x42,
+	0x4c, 0x2c, 0x24, 0xe9, 0x92, 0x58, 0x69, 0xb1, 0x13, 0x15, 0xcc, 0xcc, 0xd5, 0x70, 0x2d, 0xb9,
+	0xae, 0x4b, 0xae, 0x8a, 0x49, 0xb1, 0x70, 0x32, 0x62, 0x6c, 0x9a, 0x8e, 0xeb, 0x71, 0x6b, 0x92,
+	0x57, 0x4d, 0x0f, 0xad, 0x69, 0xfa, 0x66, 0x23, 0xb4, 0x7a, 0x25, 0x9d, 0x27, 0x11, 0xa9, 0xe0,
+	0x5b, 0xc8, 0xd0, 0x45, 0x9a, 0x92, 0xe1, 0x72, 0x82, 0xa1, 0xee, 0x3a, 0xb5, 0xe0, 0x2f, 0xf6,
+	0x58, 0x47, 0x2e, 0xd5, 0x69, 0x40, 0xcf, 0x82, 0xe5, 0x16, 0x77, 0x42, 0xc7, 0x2f, 0x5a, 0x98,
+	0x32, 0x55, 0x87, 0x77, 0xda, 0x76, 0x69, 0x93, 0x78, 0x14, 0xa3, 0xbb, 0x30, 0x2c, 0x9c, 0x2d,
+	0x28, 0x8b, 0xca, 0x52, 0x6e, 0x6d, 0xae, 0x98, 0x7a, 0x12, 0x45, 0x21, 0x56, 0x1a, 0xfc, 0xe2,
+	0xf5, 0x42, 0x9f, 0x2e, 0x45, 0xd4, 0x3b, 0x30, 0x9b, 0xd0, 0x59, 0xda, 0xff, 0x08, 0xfb, 0xd4,
+	0x25, 0x9e, 0x34, 0x89, 0x0a, 0x70, 0x66, 0x57, 0xec, 0x70, 0xe5, 0xe3, 0x7a, 0xb8, 0x54, 0x7f,
+	0x0c, 0xef, 0xa6, 0x0b, 0x9e, 0x86, 0x57, 0xef, 0xc1, 0x5c, 0x9b, 0xf2, 0xd2, 0xf6, 0xc6, 0x43,
+	0x1c, 0xa4, 0x2b, 0xf4, 0x6b, 0x0e, 0xa0, 0xc2, 0x2c, 0xa3, 0xc6, 0x37, 0xa5, 0x6b, 0xa3, 0x15,
+	0x66, 0x09, 0x2e, 0xf5, 0x17, 0x30, 0x9f, 0x25, 0x7f, 0x0a, 0xee, 0x25, 0xb3, 0xd2, 0xdf, 0x9e,
+	0x15, 0x47, 0x3a, 0xfe, 0xc0, 0xf5, 0xcc, 0xba, 0xcb, 0xf6, 0xb7, 0x7c, 0xb2, 0xeb, 0xda, 0xd8,
+	0x0f, 0xcf, 0x10, 0x3d, 0x00, 0x88, 0x11, 0x28, 0x6d, 0x5f, 0x29, 0x4a, 0x88, 0x07, 0x70, 0x2d,
+	0x0a, 0x1c, 0x48, 0xb8, 0x16, 0xb7, 0x4c, 0x07, 0x4b, 0x59, 0x3d, 0x21, 0xa9, 0xfe, 0x5d, 0x91,
+	0x21, 0xa6, 0x58, 0x92, 0x21, 0xfe, 0x14, 0x50, 0x55, 0x12, 0x83, 0x4a, 0x12, 0xd4, 0x82, 0xb2,
+	0x38, 0xb0, 0x94, 0x5b, 0xd3, 0x32, 0xc2, 0xed, 0xd4, 0x16, 0x2a, 0xd3, 0xa7, 0xaa, 0x9d, 0x76,
+	0xd0, 0x07, 0x6d, 0xa1, 0xf4, 0xf3, 0x50, 0xae, 0x1e, 0x19, 0x8a, 0xd4, 0x97, 0x8c, 0xe5, 0xbe,
+	0x84, 0xd2, 0x61, 0xe3, 0x22, 0x67, 0x17, 0x61, 0xbc, 0xda, 0x34, 0x82, 0xf3, 0x6e, 0xee, 0x18,
+	0x35, 0xbc, 0xc7, 0xd3, 0x36, 0xaa, 0x43, 0xb5, 0x59, 0x62, 0xd6, 0xd6, 0xce, 0x43, 0xbc, 0xa7,
+	0x1e, 0x64, 0xe4, 0x3d, 0x4a, 0xc6, 0x4f, 0x60, 0xea, 0x50, 0x32, 0x64, 0xfa, 0x7b, 0xce, 0xc5,
+	0x64, 0x67, 0x2e, 0xd4, 0x4f, 0x15, 0x98, 0xe1, 0xf6, 0x4b, 0xdb, 0x1b, 0x9b, 0xb8, 0x8e, 0x1d,
+	0x71, 0x9d, 0x85, 0x01, 0x94, 0x60, 0x98, 0x32, 0x93, 0xb5, 0x04, 0xd8, 0xf2, 0x6b, 0xd7, 0x33,
+	0x2c, 0xb6, 0x49, 0x97, 0xb9, 0x84, 0x2e, 0x25, 0x3b, 0x80, 0xd3, 0x7f, 0x62, 0xe0, 0xfc, 0x45,
+	0x91, 0x15, 0xdf, 0xe9, 0xaa, 0x4c, 0xd4, 0x73, 0x98, 0x08, 0x32, 0x6d, 0xc7, 0x24, 0x09, 0x99,
+	0x9b, 0xc7, 0x71, 0x3a, 0xca, 0x51, 0xbe, 0xc2, 0xac, 0x84, 0xfa, 0xd3, 0x03, 0xcb, 0xef, 0x14,
+	0xb8, 0x9a, 0x7a, 0xd4, 0x29, 0x79, 0x3f, 0x1a, 0x38, 0xa7, 0x96, 0xd6, 0xaf, 0x15, 0x58, 0x3a,
+	0xda, 0x2d, 0x99, 0x63, 0x1f, 0x2e, 0x24, 0x72, 0x4c, 0xfc, 0x94, 0x6c, 0x7f, 0xfb, 0xc8, 0x6c,
+	0x93, 0x34, 0xd5, 0xfa, 0xf9, 0x38, 0xef, 0x6d, 0x0c, 0xa7, 0x77, 0x00, 0x3f, 0x80, 0x0b, 0x87,
+	0xf1, 0x13, 0x66, 0x7c, 0x19, 0xde, 0x91, 0xce, 0x1a, 0x6c, 0xcf, 0xa8, 0x99, 0xb4, 0x96, 0xc8,
+	0xfb, 0xa4, 0x24, 0x6d, 0xef, 0x3d, 0x34, 0x69, 0x2d, 0x28, 0xdb, 0x17, 0x69, 0x65, 0x13, 0xa5,
+	0xa9, 0x0c, 0xf9, 0x76, 0x28, 0xca, 0x82, 0xed, 0x0d, 0x89, 0xe3, 0x6d, 0x48, 0x54, 0x3f, 0x3e,
+	0x03, 0x67, 0xd3, 0xcd, 0x7d, 0x07, 0x72, 0x81, 0x32, 0xec, 0x1b, 0xa6, 0x6d, 0x8b, 0xcb, 0x61,
+	0xb4, 0x54, 0x78, 0xf5, 0xf9, 0xf2, 0xb4, 0xcc, 0xd2, 0x7d, 0xdb, 0xf6, 0x31, 0xa5, 0x65, 0xe6,
+	0xbb, 0x9e, 0xa3, 0x83, 0x60, 0x0e, 0x36, 0x91, 0x0e, 0xc3, 0x02, 0x65, 0x3c, 0xb1, 0x63, 0xa5,
+	0xbb, 0x5f, 0xbd, 0x5e, 0xb8, 0xe3, 0xb8, 0xac, 0xd6, 0xaa, 0x14, 0x2d, 0xd2, 0xd0, 0xa4, 0xbf,
+	0x75, 0xb3, 0x42, 0x97, 0x5d, 0x12, 0x2e, 0xb5, 0xdd, 0x75, 0x8d, 0xed, 0x37, 0x31, 0x2d, 0x96,
+	0x1e, 0x6d, 0xad, 0xdf, 0x5a, 0xd9, 0x6a, 0x55, 0x3e, 0xc4, 0xfb, 0xfa, 0x50, 0x25, 0x00, 0x27,
+	0xfa, 0x19, 0xe4, 0x63, 0xf0, 0xd6, 0x5d, 0xca, 0x0a, 0x03, 0x8b, 0x03, 0xdf, 0x54, 0x77, 0x4e,
+	0x42, 0xff, 0xb1, 0xcb, 0xcb, 0x63, 0x2c, 0x3a, 0x2c, 0xb7, 0x81, 0x0b, 0x83, 0xbc, 0x97, 0xe5,
+	0xc2, 0x53, 0x72, 0x1b, 0x58, 0xb2, 0xf8, 0x2c, 0xec, 0xb4, 0x43, 0x11, 0x8b, 0xcf, 0x44, 0x47,
+	0x0d, 0x5a, 0x31, 0xf6, 0xec, 0x90, 0x61, 0x58, 0xb4, 0x62, 0xec, 0xd9, 0x92, 0x3c, 0x0b, 0xa3,
+	0x8c, 0x30, 0xb3, 0x6e, 0x50, 0x93, 0x15, 0xce, 0x2c, 0x2a, 0x4b, 0x83, 0xfa, 0x08, 0xdf, 0x28,
+	0x9b, 0x0c, 0x5d, 0x82, 0x7c, 0x12, 0x2e, 0x78, 0xaf, 0x30, 0xc2, 0x91, 0x32, 0x16, 0x23, 0x05,
+	0xef, 0xa1, 0x2b, 0x30, 0x41, 0xeb, 0x26, 0xad, 0x25, 0xd8, 0x46, 0x39, 0xdb, 0x78, 0xb8, 0x2d,
+	0xf8, 0x6e, 0xc3, 0xf9, 0xb8, 0xa4, 0x38, 0xc9, 0xa0, 0xae, 0xc3, 0xf9, 0x81, 0xf3, 0x4f, 0x47,
+	0xe4, 0x72, 0x40, 0x2d, 0xbb, 0x4e, 0x20, 0xf6, 0x1c, 0xc6, 0x2d, 0xb2, 0x8b, 0x3d, 0xd3, 0x63,
+	0x01, 0x3f, 0x2d, 0xe4, 0x78, 0x05, 0xae, 0x64, 0xa0, 0x6c, 0x43, 0xf2, 0xde, 0xb7, 0xcd, 0x66,
+	0xa0, 0xc9, 0x75, 0x3c, 0x93, 0xb5, 0x7c, 0x4c, 0xf5, 0xb1, 0x50, 0x4d, 0xd9, 0x75, 0x28, 0xba,
+	0x09, 0x28, 0x8c, 0x8d, 0xb4, 0x58, 0xb3, 0xc5, 0x0c, 0xd7, 0xde, 0x2b, 0x8c, 0xf1, 0xfc, 0x84,
+	0x95, 0xf0, 0x94, 0x13, 0x1e, 0xd9, 0x7b, 0xe8, 0x1c, 0x0c, 0x9b, 0x16, 0x73, 0x77, 0x71, 0x61,
+	0x7c, 0x51, 0x59, 0x1a, 0xd1, 0xe5, 0x0a, 0x2d, 0x70, 0x50, 0xb2, 0x16, 0x35, 0x6c, 0x4c, 0xad,
+	0x42, 0x5e, 0x5c, 0x60, 0x62, 0x6b, 0x13, 0x53, 0x0b, 0x5d, 0x86, 0x7c, 0xcb, 0xab, 0x10, 0xcf,
+	0x8e, 0x8e, 0x71, 0x82, 0x9b, 0x18, 0x8f, 0x76, 0xf9, 0x41, 0x5a, 0x70, 0xb6, 0xe5, 0xc5, 0x95,
+	0x64, 0xf8, 0x12, 0xf5, 0x85, 0x49, 0x5e, 0x52, 0xc5, 0xec, 0x92, 0x7a, 0x9e, 0x10, 0x8b, 0x8a,
+	0x6a, 0xba, 0x95, 0xb2, 0x1b, 0xf8, 0x22, 0x5e, 0x48, 0x46, 0xf8, 0x3c, 0x9a, 0x12, 0xbe, 0x88,
+	0x5d, 0xf9, 0x44, 0x54, 0x9f, 0xc0, 0x7c, 0x74, 0x45, 0x3d, 0x0f, 0xbd, 0x7c, 0xe4, 0x55, 0x49,
+	0xa4, 0xe8, 0x06, 0x20, 0xda, 0x0c, 0x50, 0xc5, 0x6b, 0x2c, 0x3c, 0x74, 0x71, 0x8b, 0x4c, 0x70,
+	0x4a, 0x39, 0x20, 0xf0, 0x63, 0x57, 0xff, 0x37, 0x00, 0xe7, 0x33, 0xfc, 0x44, 0x4b, 0x30, 0x99,
+	0xc8, 0x4e, 0x52, 0x4d, 0x9c, 0x35, 0x01, 0x1e, 0x0b, 0x66, 0x23, 0x14, 0xc4, 0x22, 0x01, 0x7e,
+	0x78, 0xed, 0xf5, 0x73, 0x4c, 0x5c, 0xca, 0x48, 0x53, 0x04, 0x02, 0x1e, 0x45, 0x21, 0x54, 0x14,
+	0x05, 0x57, 0x76, 0x1d, 0x5e, 0x71, 0x29, 0x48, 0x1e, 0x48, 0x43, 0xf2, 0x5d, 0x98, 0xe9, 0x40,
+	0x72, 0xe8, 0x4c, 0x20, 0x32, 0xc8, 0x45, 0xce, 0xb7, 0x83, 0x59, 0x58, 0x09, 0x84, 0xab, 0x70,
+	0x2e, 0xc6, 0x73, 0x42, 0x96, 0x16, 0x86, 0x4e, 0x08, 0xec, 0xe9, 0x08, 0xd8, 0xb1, 0x25, 0x8a,
+	0x3e, 0x56, 0xe0, 0x62, 0xec, 0x65, 0x9c, 0x33, 0xd7, 0xab, 0x92, 0x18, 0x5f, 0xc3, 0x1c, 0x5f,
+	0xb7, 0x33, 0x6c, 0x76, 0xc7, 0x81, 0x3e, 0x6f, 0x77, 0xa5, 0xab, 0x16, 0x2c, 0x1c, 0xd1, 0x10,
+	0xd1, 0xf7, 0x61, 0xd0, 0xc6, 0xf5, 0x93, 0x3d, 0x62, 0xb8, 0xa4, 0xfa, 0xe9, 0x10, 0x14, 0x32,
+	0xdf, 0x95, 0xef, 0x43, 0x2e, 0x28, 0x4c, 0xdf, 0x6d, 0x26, 0x1a, 0xd4, 0xb7, 0xc2, 0xbe, 0x1a,
+	0x5b, 0x10, 0x4d, 0x75, 0x33, 0x66, 0xd5, 0x93, 0x72, 0xe8, 0x09, 0x80, 0x45, 0x1a, 0x0d, 0x97,
+	0x46, 0x1f, 0x15, 0xa3, 0xa5, 0xe5, 0xaf, 0x5e, 0x2f, 0xcc, 0x0a, 0x45, 0xd4, 0xde, 0x29, 0xba,
+	0x44, 0x6b, 0x98, 0xac, 0x56, 0x7c, 0x8c, 0x1d, 0xd3, 0xda, 0xdf, 0xc4, 0xd6, 0xab, 0xcf, 0x97,
+	0x41, 0xda, 0xd9, 0xc4, 0x96, 0x9e, 0x50, 0x80, 0x6e, 0xc2, 0x20, 0xef, 0x61, 0x03, 0x47, 0xf4,
+	0x30, 0xce, 0x95, 0xe8, 0x5e, 0x83, 0xa7, 0xd6, 0xbd, 0xee, 0xc1, 0x40, 0x93, 0x34, 0x79, 0xbf,
+	0xc8, 0xad, 0xdd, 0xc8, 0xfa, 0xb8, 0xf2, 0x09, 0xa9, 0x3e, 0xad, 0x6e, 0x11, 0x4a, 0x31, 0x77,
+	0xbc, 0xb4, 0xbd, 0xa1, 0x07, 0x72, 0xe8, 0x16, 0x9c, 0xe3, 0xd0, 0xc5, 0xb6, 0x21, 0x45, 0x93,
+	0x0d, 0x66, 0x50, 0x9f, 0x96, 0xd4, 0x92, 0x20, 0xca, 0x5e, 0x13, 0x5c, 0xb9, 0xa1, 0x54, 0xfc,
+	0x75, 0x78, 0x46, 0x5e, 0xb9, 0x52, 0x22, 0xfc, 0x48, 0x0c, 0xae, 0x5c, 0xc9, 0x31, 0xc2, 0x75,
+	0xca, 0x55, 0xb0, 0xff, 0x73, 0xd3, 0xad, 0x63, 0x9b, 0x77, 0x99, 0x11, 0x5d, 0xae, 0xd0, 0x0a,
+	0x4c, 0xd7, 0x5c, 0xa7, 0x86, 0x29, 0x33, 0x76, 0x09, 0xc3, 0x51, 0xcb, 0x03, 0xae, 0x1f, 0x49,
+	0xda, 0x47, 0x01, 0x49, 0x5a, 0xf8, 0x21, 0x4c, 0xc4, 0x87, 0xc2, 0xeb, 0xa2, 0x90, 0xe3, 0x09,
+	0xb9, 0x9c, 0x59, 0x82, 0x21, 0x37, 0x87, 0x79, 0xde, 0x6a, 0x5b, 0x07, 0xcd, 0xc0, 0x22, 0x1e,
+	0x6d, 0x35, 0xb0, 0x6f, 0xb8, 0x36, 0xef, 0x25, 0xa3, 0xc1, 0xb9, 0x8b, 0xad, 0x47, 0xb6, 0x3a,
+	0x27, 0xdf, 0xf6, 0x8f, 0x4d, 0xdf, 0xc1, 0x94, 0x95, 0x98, 0xa5, 0xe3, 0xa7, 0xbe, 0x13, 0x0e,
+	0x10, 0xbe, 0x56, 0xe4, 0x97, 0xd6, 0x21, 0xba, 0x44, 0x73, 0xf0, 0x59, 0x5d, 0x27, 0xd6, 0x8e,
+	0x61, 0xbb, 0xd5, 0x6a, 0xf4, 0x59, 0x1d, 0xec, 0x6c, 0xba, 0xd5, 0x6a, 0xd0, 0x29, 0x7d, 0x52,
+	0xaf, 0x57, 0x4c, 0x6b, 0xc7, 0xa8, 0xfa, 0xa4, 0x21, 0x9f, 0x91, 0x6d, 0x17, 0x4a, 0x62, 0xaa,
+	0x21, 0x0b, 0xeb, 0x21, 0x36, 0x6d, 0xec, 0xb7, 0xd5, 0xf5, 0x58, 0xa8, 0xe6, 0x81, 0x4f, 0x1a,
+	0xe8, 0x19, 0xe4, 0x22, 0xb5, 0x8c, 0x70, 0xd0, 0x9e, 0x44, 0x29, 0x84, 0x4a, 0xb6, 0x89, 0xea,
+	0xc9, 0x87, 0xe5, 0x56, 0xb2, 0xf1, 0x9c, 0xf6, 0x47, 0xf8, 0x77, 0x47, 0x7e, 0xfd, 0xc9, 0x42,
+	0xdf, 0x7f, 0x3e, 0x59, 0xe8, 0x53, 0x3f, 0x53, 0xda, 0xe6, 0x28, 0xb1, 0x41, 0x99, 0xd8, 0xfb,
+	0x89, 0x71, 0xc3, 0x00, 0xbf, 0x21, 0x32, 0x1a, 0x09, 0x23, 0x3e, 0xb6, 0x53, 0x87, 0x0e, 0xa7,
+	0xf5, 0x80, 0x8f, 0xbd, 0x5e, 0xfb, 0x5b, 0x1e, 0x86, 0xb8, 0xd7, 0xe8, 0x57, 0x0a, 0x0c, 0x0b,
+	0xab, 0xe8, 0x5a, 0x86, 0x6b, 0x87, 0x07, 0x52, 0x33, 0xd7, 0x8f, 0xc3, 0x2a, 0xaf, 0xea, 0xcb,
+	0xbf, 0xfc, 0xc7, 0xbf, 0x7f, 0xdb, 0xbf, 0x80, 0xe6, 0xb4, 0x6e, 0xf3, 0x36, 0xf4, 0x7b, 0x05,
+	0xf2, 0xed, 0x39, 0x44, 0xab, 0x47, 0x5b, 0xe9, 0x38, 0xe0, 0x99, 0xb5, 0x5e, 0x44, 0xa4, 0x83,
+	0x45, 0xee, 0xe0, 0x12, 0xba, 0xd2, 0xd5, 0xc1, 0xf0, 0x65, 0x43, 0xd1, 0x1f, 0x14, 0x98, 0xe8,
+	0x18, 0x7e, 0xa1, 0x63, 0xd8, 0xed, 0x1c, 0xb1, 0xcd, 0xac, 0xf7, 0x24, 0x23, 0x9d, 0xd5, 0xb8,
+	0xb3, 0xd7, 0xd0, 0xd5, 0xae, 0xce, 0x6a, 0x2f, 0xa5, 0xb7, 0x07, 0xe8, 0xaf, 0x0a, 0x4c, 0x1d,
+	0x9a, 0x86, 0xa1, 0x5b, 0xc7, 0xb1, 0xdd, 0x39, 0x7c, 0x9b, 0xb9, 0xdd, 0xa3, 0x94, 0xf4, 0xf9,
+	0x1e, 0xf7, 0xf9, 0x0e, 0xba, 0xdd, 0xdd, 0xe7, 0xf8, 0xe6, 0xd6, 0x5e, 0xc6, 0xbf, 0x0f, 0xd0,
+	0x67, 0x0a, 0x4c, 0x1d, 0x1a, 0x76, 0x75, 0x8f, 0x20, 0x6b, 0x0a, 0xd7, 0x3d, 0x82, 0xcc, 0x89,
+	0x9a, 0xba, 0xca, 0x23, 0xb8, 0x81, 0xae, 0x65, 0x44, 0x70, 0x78, 0xdc, 0x86, 0x5e, 0x29, 0x30,
+	0xd9, 0xa9, 0x10, 0xad, 0xf7, 0x62, 0x3e, 0xf4, 0xf9, 0x56, 0x6f, 0x42, 0xd2, 0xe5, 0x32, 0x77,
+	0xf9, 0x09, 0xfa, 0xf0, 0xd8, 0x2e, 0x6b, 0x2f, 0xdb, 0x66, 0x26, 0x07, 0x87, 0x59, 0xd0, 0x9f,
+	0x14, 0xc8, 0xb7, 0x8f, 0x8f, 0xba, 0x17, 0x69, 0xea, 0x54, 0xac, 0x7b, 0x91, 0xa6, 0x4f, 0xa7,
+	0xd4, 0x3b, 0x3c, 0x9c, 0x55, 0xa4, 0x69, 0x99, 0x13, 0xf9, 0xe4, 0x30, 0x45, 0x7b, 0x29, 0xbe,
+	0x94, 0x0e, 0xd0, 0x7f, 0x15, 0x98, 0xed, 0x32, 0x9a, 0x41, 0xef, 0xf5, 0x92, 0xdd, 0x94, 0x60,
+	0xbe, 0x77, 0x62, 0x79, 0x19, 0xd9, 0x13, 0x1e, 0xd9, 0x07, 0xe8, 0xfd, 0x93, 0x1f, 0x54, 0x22,
+	0x70, 0xf4, 0x67, 0x05, 0xc6, 0xdb, 0x72, 0x88, 0x56, 0x8e, 0x9d, 0xee, 0x30, 0xa6, 0xd5, 0x1e,
+	0x24, 0x64, 0x14, 0x1b, 0x3c, 0x8a, 0x7b, 0xe8, 0xee, 0xb1, 0xce, 0x87, 0x1f, 0x4f, 0xe7, 0xb0,
+	0xe8, 0x00, 0xfd, 0x51, 0x81, 0x89, 0x8e, 0x17, 0x4a, 0xf7, 0x9b, 0x35, 0xfd, 0xb9, 0xd3, 0xfd,
+	0x66, 0xcd, 0x78, 0x02, 0xa9, 0x2b, 0x3c, 0x82, 0xeb, 0x68, 0x29, 0x23, 0x82, 0xba, 0x90, 0xe3,
+	0x89, 0xf7, 0x31, 0xf1, 0x9d, 0xd2, 0xb3, 0x2f, 0xde, 0xcc, 0x2b, 0x5f, 0xbe, 0x99, 0x57, 0xfe,
+	0xf5, 0x66, 0x5e, 0xf9, 0xcd, 0xdb, 0xf9, 0xbe, 0x2f, 0xdf, 0xce, 0xf7, 0xfd, 0xf3, 0xed, 0x7c,
+	0xdf, 0x8f, 0x8e, 0xf7, 0x88, 0xde, 0x4b, 0x5a, 0xe0, 0x2f, 0xea, 0xca, 0x30, 0xff, 0x37, 0xd0,
+	0xfa, 0xff, 0x03, 0x00, 0x00, 0xff, 0xff, 0x9d, 0x71, 0x59, 0xf8, 0x77, 0x1b, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1363,18 +1716,27 @@ const _ = grpc.SupportPackageIsVersion4
 type QueryClient interface {
 	// Parameters queries the parameters of the module.
 	Params(ctx context.Context, in *QueryParamsRequest, opts ...grpc.CallOption) (*QueryParamsResponse, error)
-	// ParamsByVersion queries the parameters of the module for a specific version of past params.
+	// ParamsVersions queries all the parameters of the module with version.
+	ParamsVersions(ctx context.Context, in *QueryParamsVersionsRequest, opts ...grpc.CallOption) (*QueryParamsVersionsResponse, error)
+	// ParamsByVersion queries the parameters of the module for a specific version
+	// of past params.
 	ParamsByVersion(ctx context.Context, in *QueryParamsByVersionRequest, opts ...grpc.CallOption) (*QueryParamsByVersionResponse, error)
+	// ParamsByBTCHeight queries the parameters of the module for a specific BTC
+	// height
+	ParamsByBTCHeight(ctx context.Context, in *QueryParamsByBTCHeightRequest, opts ...grpc.CallOption) (*QueryParamsByBTCHeightResponse, error)
 	// FinalityProviders queries all finality providers
 	FinalityProviders(ctx context.Context, in *QueryFinalityProvidersRequest, opts ...grpc.CallOption) (*QueryFinalityProvidersResponse, error)
 	// FinalityProvider info about one finality provider
 	FinalityProvider(ctx context.Context, in *QueryFinalityProviderRequest, opts ...grpc.CallOption) (*QueryFinalityProviderResponse, error)
 	// BTCDelegations queries all BTC delegations under a given status
 	BTCDelegations(ctx context.Context, in *QueryBTCDelegationsRequest, opts ...grpc.CallOption) (*QueryBTCDelegationsResponse, error)
-	// FinalityProviderDelegations queries all BTC delegations of the given finality provider
+	// FinalityProviderDelegations queries all BTC delegations of the given
+	// finality provider
 	FinalityProviderDelegations(ctx context.Context, in *QueryFinalityProviderDelegationsRequest, opts ...grpc.CallOption) (*QueryFinalityProviderDelegationsResponse, error)
 	// BTCDelegation retrieves delegation by corresponding staking tx hash
 	BTCDelegation(ctx context.Context, in *QueryBTCDelegationRequest, opts ...grpc.CallOption) (*QueryBTCDelegationResponse, error)
+	// LargestBtcReOrg retrieves the largest BTC reorg
+	LargestBtcReOrg(ctx context.Context, in *QueryLargestBtcReOrgRequest, opts ...grpc.CallOption) (*QueryLargestBtcReOrgResponse, error)
 }
 
 type queryClient struct {
@@ -1394,9 +1756,27 @@ func (c *queryClient) Params(ctx context.Context, in *QueryParamsRequest, opts .
 	return out, nil
 }
 
+func (c *queryClient) ParamsVersions(ctx context.Context, in *QueryParamsVersionsRequest, opts ...grpc.CallOption) (*QueryParamsVersionsResponse, error) {
+	out := new(QueryParamsVersionsResponse)
+	err := c.cc.Invoke(ctx, "/babylon.btcstaking.v1.Query/ParamsVersions", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *queryClient) ParamsByVersion(ctx context.Context, in *QueryParamsByVersionRequest, opts ...grpc.CallOption) (*QueryParamsByVersionResponse, error) {
 	out := new(QueryParamsByVersionResponse)
 	err := c.cc.Invoke(ctx, "/babylon.btcstaking.v1.Query/ParamsByVersion", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *queryClient) ParamsByBTCHeight(ctx context.Context, in *QueryParamsByBTCHeightRequest, opts ...grpc.CallOption) (*QueryParamsByBTCHeightResponse, error) {
+	out := new(QueryParamsByBTCHeightResponse)
+	err := c.cc.Invoke(ctx, "/babylon.btcstaking.v1.Query/ParamsByBTCHeight", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1448,22 +1828,40 @@ func (c *queryClient) BTCDelegation(ctx context.Context, in *QueryBTCDelegationR
 	return out, nil
 }
 
+func (c *queryClient) LargestBtcReOrg(ctx context.Context, in *QueryLargestBtcReOrgRequest, opts ...grpc.CallOption) (*QueryLargestBtcReOrgResponse, error) {
+	out := new(QueryLargestBtcReOrgResponse)
+	err := c.cc.Invoke(ctx, "/babylon.btcstaking.v1.Query/LargestBtcReOrg", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // QueryServer is the server API for Query service.
 type QueryServer interface {
 	// Parameters queries the parameters of the module.
 	Params(context.Context, *QueryParamsRequest) (*QueryParamsResponse, error)
-	// ParamsByVersion queries the parameters of the module for a specific version of past params.
+	// ParamsVersions queries all the parameters of the module with version.
+	ParamsVersions(context.Context, *QueryParamsVersionsRequest) (*QueryParamsVersionsResponse, error)
+	// ParamsByVersion queries the parameters of the module for a specific version
+	// of past params.
 	ParamsByVersion(context.Context, *QueryParamsByVersionRequest) (*QueryParamsByVersionResponse, error)
+	// ParamsByBTCHeight queries the parameters of the module for a specific BTC
+	// height
+	ParamsByBTCHeight(context.Context, *QueryParamsByBTCHeightRequest) (*QueryParamsByBTCHeightResponse, error)
 	// FinalityProviders queries all finality providers
 	FinalityProviders(context.Context, *QueryFinalityProvidersRequest) (*QueryFinalityProvidersResponse, error)
 	// FinalityProvider info about one finality provider
 	FinalityProvider(context.Context, *QueryFinalityProviderRequest) (*QueryFinalityProviderResponse, error)
 	// BTCDelegations queries all BTC delegations under a given status
 	BTCDelegations(context.Context, *QueryBTCDelegationsRequest) (*QueryBTCDelegationsResponse, error)
-	// FinalityProviderDelegations queries all BTC delegations of the given finality provider
+	// FinalityProviderDelegations queries all BTC delegations of the given
+	// finality provider
 	FinalityProviderDelegations(context.Context, *QueryFinalityProviderDelegationsRequest) (*QueryFinalityProviderDelegationsResponse, error)
 	// BTCDelegation retrieves delegation by corresponding staking tx hash
 	BTCDelegation(context.Context, *QueryBTCDelegationRequest) (*QueryBTCDelegationResponse, error)
+	// LargestBtcReOrg retrieves the largest BTC reorg
+	LargestBtcReOrg(context.Context, *QueryLargestBtcReOrgRequest) (*QueryLargestBtcReOrgResponse, error)
 }
 
 // UnimplementedQueryServer can be embedded to have forward compatible implementations.
@@ -1473,8 +1871,14 @@ type UnimplementedQueryServer struct {
 func (*UnimplementedQueryServer) Params(ctx context.Context, req *QueryParamsRequest) (*QueryParamsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Params not implemented")
 }
+func (*UnimplementedQueryServer) ParamsVersions(ctx context.Context, req *QueryParamsVersionsRequest) (*QueryParamsVersionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ParamsVersions not implemented")
+}
 func (*UnimplementedQueryServer) ParamsByVersion(ctx context.Context, req *QueryParamsByVersionRequest) (*QueryParamsByVersionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ParamsByVersion not implemented")
+}
+func (*UnimplementedQueryServer) ParamsByBTCHeight(ctx context.Context, req *QueryParamsByBTCHeightRequest) (*QueryParamsByBTCHeightResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ParamsByBTCHeight not implemented")
 }
 func (*UnimplementedQueryServer) FinalityProviders(ctx context.Context, req *QueryFinalityProvidersRequest) (*QueryFinalityProvidersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FinalityProviders not implemented")
@@ -1490,6 +1894,9 @@ func (*UnimplementedQueryServer) FinalityProviderDelegations(ctx context.Context
 }
 func (*UnimplementedQueryServer) BTCDelegation(ctx context.Context, req *QueryBTCDelegationRequest) (*QueryBTCDelegationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BTCDelegation not implemented")
+}
+func (*UnimplementedQueryServer) LargestBtcReOrg(ctx context.Context, req *QueryLargestBtcReOrgRequest) (*QueryLargestBtcReOrgResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LargestBtcReOrg not implemented")
 }
 
 func RegisterQueryServer(s grpc1.Server, srv QueryServer) {
@@ -1514,6 +1921,24 @@ func _Query_Params_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Query_ParamsVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryParamsVersionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).ParamsVersions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/babylon.btcstaking.v1.Query/ParamsVersions",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).ParamsVersions(ctx, req.(*QueryParamsVersionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Query_ParamsByVersion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(QueryParamsByVersionRequest)
 	if err := dec(in); err != nil {
@@ -1528,6 +1953,24 @@ func _Query_ParamsByVersion_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).ParamsByVersion(ctx, req.(*QueryParamsByVersionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Query_ParamsByBTCHeight_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryParamsByBTCHeightRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).ParamsByBTCHeight(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/babylon.btcstaking.v1.Query/ParamsByBTCHeight",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).ParamsByBTCHeight(ctx, req.(*QueryParamsByBTCHeightRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1622,6 +2065,24 @@ func _Query_BTCDelegation_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Query_LargestBtcReOrg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryLargestBtcReOrgRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).LargestBtcReOrg(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/babylon.btcstaking.v1.Query/LargestBtcReOrg",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).LargestBtcReOrg(ctx, req.(*QueryLargestBtcReOrgRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Query_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "babylon.btcstaking.v1.Query",
 	HandlerType: (*QueryServer)(nil),
@@ -1631,8 +2092,16 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Query_Params_Handler,
 		},
 		{
+			MethodName: "ParamsVersions",
+			Handler:    _Query_ParamsVersions_Handler,
+		},
+		{
 			MethodName: "ParamsByVersion",
 			Handler:    _Query_ParamsByVersion_Handler,
+		},
+		{
+			MethodName: "ParamsByBTCHeight",
+			Handler:    _Query_ParamsByBTCHeight_Handler,
 		},
 		{
 			MethodName: "FinalityProviders",
@@ -1653,6 +2122,10 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BTCDelegation",
 			Handler:    _Query_BTCDelegation_Handler,
+		},
+		{
+			MethodName: "LargestBtcReOrg",
+			Handler:    _Query_LargestBtcReOrg_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -1763,6 +2236,72 @@ func (m *QueryParamsByVersionResponse) MarshalToSizedBuffer(dAtA []byte) (int, e
 	_ = i
 	var l int
 	_ = l
+	{
+		size, err := m.Params.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintQuery(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0xa
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryParamsByBTCHeightRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryParamsByBTCHeightRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryParamsByBTCHeightRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.BtcHeight != 0 {
+		i = encodeVarintQuery(dAtA, i, uint64(m.BtcHeight))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryParamsByBTCHeightResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryParamsByBTCHeightResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryParamsByBTCHeightResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Version != 0 {
+		i = encodeVarintQuery(dAtA, i, uint64(m.Version))
+		i--
+		dAtA[i] = 0x10
+	}
 	{
 		size, err := m.Params.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
@@ -2500,6 +3039,30 @@ func (m *FinalityProviderResponse) MarshalToSizedBuffer(dAtA []byte) (int, error
 	_ = i
 	var l int
 	_ = l
+	if len(m.ConsumerId) > 0 {
+		i -= len(m.ConsumerId)
+		copy(dAtA[i:], m.ConsumerId)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.ConsumerId)))
+		i--
+		dAtA[i] = 0x62
+	}
+	if m.CommissionInfo != nil {
+		{
+			size, err := m.CommissionInfo.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintQuery(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x5a
+	}
+	if m.HighestVotedHeight != 0 {
+		i = encodeVarintQuery(dAtA, i, uint64(m.HighestVotedHeight))
+		i--
+		dAtA[i] = 0x50
+	}
 	if m.Jailed {
 		i--
 		if m.Jailed {
@@ -2583,6 +3146,165 @@ func (m *FinalityProviderResponse) MarshalToSizedBuffer(dAtA []byte) (int, error
 	return len(dAtA) - i, nil
 }
 
+func (m *QueryLargestBtcReOrgRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryLargestBtcReOrgRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryLargestBtcReOrgRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryLargestBtcReOrgResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryLargestBtcReOrgResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryLargestBtcReOrgResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.RollbackTo != nil {
+		{
+			size, err := m.RollbackTo.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintQuery(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.RollbackFrom != nil {
+		{
+			size, err := m.RollbackFrom.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintQuery(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.BlockDiff != 0 {
+		i = encodeVarintQuery(dAtA, i, uint64(m.BlockDiff))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryParamsVersionsRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryParamsVersionsRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryParamsVersionsRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Pagination != nil {
+		{
+			size, err := m.Pagination.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintQuery(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryParamsVersionsResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryParamsVersionsResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryParamsVersionsResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Pagination != nil {
+		{
+			size, err := m.Pagination.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintQuery(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Params) > 0 {
+		for iNdEx := len(m.Params) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Params[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintQuery(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func encodeVarintQuery(dAtA []byte, offset int, v uint64) int {
 	offset -= sovQuery(v)
 	base := offset
@@ -2634,6 +3356,32 @@ func (m *QueryParamsByVersionResponse) Size() (n int) {
 	_ = l
 	l = m.Params.Size()
 	n += 1 + l + sovQuery(uint64(l))
+	return n
+}
+
+func (m *QueryParamsByBTCHeightRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.BtcHeight != 0 {
+		n += 1 + sovQuery(uint64(m.BtcHeight))
+	}
+	return n
+}
+
+func (m *QueryParamsByBTCHeightResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = m.Params.Size()
+	n += 1 + l + sovQuery(uint64(l))
+	if m.Version != 0 {
+		n += 1 + sovQuery(uint64(m.Version))
+	}
 	return n
 }
 
@@ -2968,6 +3716,78 @@ func (m *FinalityProviderResponse) Size() (n int) {
 	if m.Jailed {
 		n += 2
 	}
+	if m.HighestVotedHeight != 0 {
+		n += 1 + sovQuery(uint64(m.HighestVotedHeight))
+	}
+	if m.CommissionInfo != nil {
+		l = m.CommissionInfo.Size()
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	l = len(m.ConsumerId)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryLargestBtcReOrgRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	return n
+}
+
+func (m *QueryLargestBtcReOrgResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.BlockDiff != 0 {
+		n += 1 + sovQuery(uint64(m.BlockDiff))
+	}
+	if m.RollbackFrom != nil {
+		l = m.RollbackFrom.Size()
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	if m.RollbackTo != nil {
+		l = m.RollbackTo.Size()
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryParamsVersionsRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Pagination != nil {
+		l = m.Pagination.Size()
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryParamsVersionsResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Params) > 0 {
+		for _, e := range m.Params {
+			l = e.Size()
+			n += 1 + l + sovQuery(uint64(l))
+		}
+	}
+	if m.Pagination != nil {
+		l = m.Pagination.Size()
+		n += 1 + l + sovQuery(uint64(l))
+	}
 	return n
 }
 
@@ -3241,6 +4061,177 @@ func (m *QueryParamsByVersionResponse) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryParamsByBTCHeightRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryParamsByBTCHeightRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryParamsByBTCHeightRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BtcHeight", wireType)
+			}
+			m.BtcHeight = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.BtcHeight |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryParamsByBTCHeightResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryParamsByBTCHeightResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryParamsByBTCHeightResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Params", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Params.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
+			}
+			m.Version = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Version |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipQuery(dAtA[iNdEx:])
@@ -4357,7 +5348,7 @@ func (m *BTCDelegationResponse) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_babylonlabs_io_babylon_types.BIP340PubKey
+			var v github_com_babylonlabs_io_babylon_v3_types.BIP340PubKey
 			m.BtcPk = &v
 			if err := m.BtcPk.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -4392,7 +5383,7 @@ func (m *BTCDelegationResponse) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_babylonlabs_io_babylon_types.BIP340PubKey
+			var v github_com_babylonlabs_io_babylon_v3_types.BIP340PubKey
 			m.FpBtcPkList = append(m.FpBtcPkList, v)
 			if err := m.FpBtcPkList[len(m.FpBtcPkList)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -5348,7 +6339,7 @@ func (m *FinalityProviderResponse) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_babylonlabs_io_babylon_types.BIP340PubKey
+			var v github_com_babylonlabs_io_babylon_v3_types.BIP340PubKey
 			m.BtcPk = &v
 			if err := m.BtcPk.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -5467,6 +6458,490 @@ func (m *FinalityProviderResponse) Unmarshal(dAtA []byte) error {
 				}
 			}
 			m.Jailed = bool(v != 0)
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HighestVotedHeight", wireType)
+			}
+			m.HighestVotedHeight = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.HighestVotedHeight |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CommissionInfo", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.CommissionInfo == nil {
+				m.CommissionInfo = &CommissionInfo{}
+			}
+			if err := m.CommissionInfo.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConsumerId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ConsumerId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryLargestBtcReOrgRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryLargestBtcReOrgRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryLargestBtcReOrgRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryLargestBtcReOrgResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryLargestBtcReOrgResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryLargestBtcReOrgResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockDiff", wireType)
+			}
+			m.BlockDiff = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.BlockDiff |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RollbackFrom", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.RollbackFrom == nil {
+				m.RollbackFrom = &types1.BTCHeaderInfoResponse{}
+			}
+			if err := m.RollbackFrom.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RollbackTo", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.RollbackTo == nil {
+				m.RollbackTo = &types1.BTCHeaderInfoResponse{}
+			}
+			if err := m.RollbackTo.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryParamsVersionsRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryParamsVersionsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryParamsVersionsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pagination", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Pagination == nil {
+				m.Pagination = &query.PageRequest{}
+			}
+			if err := m.Pagination.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryParamsVersionsResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryParamsVersionsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryParamsVersionsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Params", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Params = append(m.Params, StoredParams{})
+			if err := m.Params[len(m.Params)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pagination", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Pagination == nil {
+				m.Pagination = &query.PageResponse{}
+			}
+			if err := m.Pagination.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipQuery(dAtA[iNdEx:])

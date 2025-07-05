@@ -6,9 +6,9 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	btcstk "github.com/babylonlabs-io/babylon/btcstaking"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	"github.com/babylonlabs-io/babylon/x/finality/types"
+	btcstk "github.com/babylonlabs-io/babylon/v3/btcstaking"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	"github.com/babylonlabs-io/babylon/v3/x/finality/types"
 )
 
 // InitGenesis initializes the keeper state from a provided initial genesis state.
@@ -30,7 +30,11 @@ func (k Keeper) InitGenesis(ctx context.Context, gs types.GenesisState) error {
 	}
 
 	for _, prc := range gs.PubRandCommit {
-		k.SetPubRandCommit(ctx, prc.FpBtcPk, prc.PubRandCommit)
+		// This func sets also the PubRandCommit index
+		err := k.SetPubRandCommit(ctx, prc.FpBtcPk, prc.PubRandCommit)
+		if err != nil {
+			return err
+		}
 	}
 
 	for _, info := range gs.SigningInfos {
@@ -55,6 +59,9 @@ func (k Keeper) InitGenesis(ctx context.Context, gs types.GenesisState) error {
 	for _, vpCache := range gs.VpDstCache {
 		k.SetVotingPowerDistCache(ctx, vpCache.BlockHeight, vpCache.VpDistribution)
 	}
+
+	k.setNextHeightToFinalize(ctx, gs.NextHeightToFinalize)
+	k.SetNextHeightToReward(ctx, gs.NextHeightToReward)
 
 	return k.SetParams(ctx, gs.Params)
 }
@@ -101,17 +108,25 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 		return nil, err
 	}
 
+	idxs, err := k.pubRandCommitIdxs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	return &types.GenesisState{
-		Params:           k.GetParams(ctx),
-		IndexedBlocks:    blocks,
-		Evidences:        evidences,
-		VoteSigs:         voteSigs,
-		PublicRandomness: pubRandomness,
-		PubRandCommit:    prCommit,
-		SigningInfos:     signingInfos,
-		MissedBlocks:     missedBlocks,
-		VotingPowers:     vpFps,
-		VpDstCache:       vpDstCache,
+		Params:               k.GetParams(ctx),
+		IndexedBlocks:        blocks,
+		Evidences:            evidences,
+		VoteSigs:             voteSigs,
+		PublicRandomness:     pubRandomness,
+		PubRandCommit:        prCommit,
+		SigningInfos:         signingInfos,
+		MissedBlocks:         missedBlocks,
+		VotingPowers:         vpFps,
+		VpDstCache:           vpDstCache,
+		NextHeightToFinalize: k.getNextHeightToFinalize(ctx),
+		NextHeightToReward:   k.GetNextHeightToReward(ctx),
+		PubRandCommitIndexes: idxs,
 	}, nil
 }
 
@@ -315,6 +330,28 @@ func (k Keeper) votingPowersDistCacheBlkHeight(ctx context.Context) ([]*types.Vo
 	}
 
 	return vps, nil
+}
+
+func (k Keeper) pubRandCommitIdxs(ctx context.Context) ([]*types.PubRandCommitIdx, error) {
+	idxs := make([]*types.PubRandCommitIdx, 0)
+	err := k.pubRandCommitIndex.Walk(ctx, nil, func(fpPkBytes []byte, idx types.PubRandCommitIndexValue) (stop bool, err error) {
+		fpPk, err := bbn.NewBIP340PubKey(fpPkBytes)
+		if err != nil {
+			return true, err
+		}
+
+		idxs = append(idxs, &types.PubRandCommitIdx{
+			FpBtcPk: fpPk,
+			Index:   &idx,
+		})
+
+		return false, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return idxs, nil
 }
 
 // parsePubKeyAndBlkHeightFromStoreKey expects to receive a key with

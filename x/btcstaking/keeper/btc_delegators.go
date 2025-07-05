@@ -6,10 +6,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/runtime"
 
 	"cosmossdk.io/store/prefix"
+
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 
-	bbn "github.com/babylonlabs-io/babylon/types"
-	"github.com/babylonlabs-io/babylon/x/btcstaking/types"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
 )
 
 // getBTCDelegatorDelegationIndex gets the BTC delegation index with a given BTC PK under a given finality provider
@@ -60,54 +61,56 @@ func (k Keeper) getBTCDelegatorDelegations(ctx context.Context, fpBTCPK *bbn.BIP
 	return &types.BTCDelegatorDelegations{Dels: btcDels}
 }
 
-// GetFPBTCDelegations retrieves all BTC delegations for a given finality provider.
+// HandleFPBTCDelegations processes all BTC delegations for a given finality provider using a provided handler function.
 // This function works for both Babylon finality providers and consumer finality providers.
 // It automatically determines and selects the appropriate KV store based on the finality provider type.
 //
 // Parameters:
 // - ctx: The context for the operation
 // - fpBTCPK: The Bitcoin public key of the finality provider
+// - handler: A function that processes each BTCDelegation
 //
 // Returns:
-// - A slice of BTCDelegation pointers representing all delegations for the given finality provider
-// - An error if the finality provider is not found or if there's an issue retrieving the delegations
-func (k Keeper) GetFPBTCDelegations(ctx context.Context, fpBTCPK *bbn.BIP340PubKey) ([]*types.BTCDelegation, error) {
+// - An error if the finality provider is not found or if there's an issue processing the delegations
+func (k Keeper) HandleFPBTCDelegations(ctx context.Context, fpBTCPK *bbn.BIP340PubKey, handler func(*types.BTCDelegation) error) error {
 	var store prefix.Store
 	// Determine which store to use based on the finality provider type
-	if k.HasFinalityProvider(ctx, *fpBTCPK) {
+	switch {
+	case k.HasFinalityProvider(ctx, *fpBTCPK):
 		// Babylon finality provider
 		store = k.btcDelegatorFpStore(ctx, fpBTCPK)
-	} else if k.BscKeeper.HasConsumerFinalityProvider(ctx, fpBTCPK) {
+	case k.BscKeeper.HasConsumerFinalityProvider(ctx, fpBTCPK):
 		// Consumer finality provider
 		store = k.btcConsumerDelegatorStore(ctx, fpBTCPK)
-	} else {
+	default:
 		// if not found in either store, return error
-		return nil, types.ErrFpNotFound
+		return types.ErrFpNotFound
 	}
 
 	iterator := store.Iterator(nil, nil)
 	defer iterator.Close()
 
-	btcDels := make([]*types.BTCDelegation, 0)
 	for ; iterator.Valid(); iterator.Next() {
 		var btcDelIndex types.BTCDelegatorDelegationIndex
 		if err := btcDelIndex.Unmarshal(iterator.Value()); err != nil {
-			return nil, err
+			return err
 		}
 
 		for _, stakingTxHashBytes := range btcDelIndex.StakingTxHashList {
 			stakingTxHash, err := chainhash.NewHash(stakingTxHashBytes)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			btcDel := k.getBTCDelegation(ctx, *stakingTxHash)
 			if btcDel != nil {
-				btcDels = append(btcDels, btcDel)
+				if err := handler(btcDel); err != nil {
+					return err
+				}
 			}
 		}
 	}
 
-	return btcDels, nil
+	return nil
 }
 
 // btcDelegatorFpStore returns the KVStore of the BTC delegators

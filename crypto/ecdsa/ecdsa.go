@@ -6,7 +6,6 @@ import (
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
-	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
 )
@@ -34,21 +33,25 @@ func magicHash(msg string) chainhash.Hash {
 	return chainhash.DoubleHashH(bytes)
 }
 
-func Sign(sk *btcec.PrivateKey, msg string) ([]byte, error) {
+func Sign(sk *btcec.PrivateKey, msg string) []byte {
 	msgHash := magicHash(msg)
 	return ecdsa.SignCompact(sk, msgHash[:], true)
 }
 
-func Verify(pk *btcec.PublicKey, msg string, sigBytes []byte) error {
+func RecoverPublicKey(msg string, sigBytes []byte) (*btcec.PublicKey, bool, error) {
 	msgHash := magicHash(msg)
-	recoveredPK, _, err := ecdsa.RecoverCompact(sigBytes, msgHash[:])
+	recoveredPK, wasCompressed, err := ecdsa.RecoverCompact(sigBytes, msgHash[:])
 	if err != nil {
-		return err
+		return nil, false, err
 	}
-	pkBytes := schnorr.SerializePubKey(pk)
-	recoveredPKBytes := schnorr.SerializePubKey(recoveredPK)
-	if !bytes.Equal(pkBytes, recoveredPKBytes) {
-		return fmt.Errorf("the recovered PK does not match the given PK")
+
+	var s btcec.ModNScalar
+	if overflow := s.SetByteSlice(sigBytes[33:65]); overflow {
+		return nil, false, fmt.Errorf("invalid signature: S >= group order")
 	}
-	return nil
+	if s.IsOverHalfOrder() {
+		return nil, false, fmt.Errorf("invalid signature: S >= group order/2")
+	}
+
+	return recoveredPK, wasCompressed, nil
 }

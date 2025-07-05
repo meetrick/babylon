@@ -5,12 +5,12 @@ package types
 
 import (
 	fmt "fmt"
-	types4 "github.com/babylonlabs-io/babylon/x/btccheckpoint/types"
-	types1 "github.com/babylonlabs-io/babylon/x/btclightclient/types"
-	types "github.com/babylonlabs-io/babylon/x/btcstaking/types"
-	types3 "github.com/babylonlabs-io/babylon/x/checkpointing/types"
-	types2 "github.com/babylonlabs-io/babylon/x/epoching/types"
-	types5 "github.com/babylonlabs-io/babylon/x/finality/types"
+	types4 "github.com/babylonlabs-io/babylon/v3/x/btccheckpoint/types"
+	types1 "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
+	types "github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
+	types3 "github.com/babylonlabs-io/babylon/v3/x/checkpointing/types"
+	types2 "github.com/babylonlabs-io/babylon/v3/x/epoching/types"
+	types5 "github.com/babylonlabs-io/babylon/v3/x/finality/types"
 	proto "github.com/cosmos/gogoproto/proto"
 	io "io"
 	math "math"
@@ -28,30 +28,29 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
-// ZoneconciergePacketData is the message that defines the IBC packets of
-// ZoneConcierge
-type ZoneconciergePacketData struct {
+// OutboundPacket represents packets sent from Babylon to other chains
+type OutboundPacket struct {
 	// packet is the actual message carried in the IBC packet
 	//
 	// Types that are valid to be assigned to Packet:
-	//	*ZoneconciergePacketData_BtcTimestamp
-	//	*ZoneconciergePacketData_BtcStaking
-	//	*ZoneconciergePacketData_ConsumerSlashing
-	Packet isZoneconciergePacketData_Packet `protobuf_oneof:"packet"`
+	//	*OutboundPacket_BtcTimestamp
+	//	*OutboundPacket_BtcStaking
+	//	*OutboundPacket_BtcHeaders
+	Packet isOutboundPacket_Packet `protobuf_oneof:"packet"`
 }
 
-func (m *ZoneconciergePacketData) Reset()         { *m = ZoneconciergePacketData{} }
-func (m *ZoneconciergePacketData) String() string { return proto.CompactTextString(m) }
-func (*ZoneconciergePacketData) ProtoMessage()    {}
-func (*ZoneconciergePacketData) Descriptor() ([]byte, []int) {
+func (m *OutboundPacket) Reset()         { *m = OutboundPacket{} }
+func (m *OutboundPacket) String() string { return proto.CompactTextString(m) }
+func (*OutboundPacket) ProtoMessage()    {}
+func (*OutboundPacket) Descriptor() ([]byte, []int) {
 	return fileDescriptor_be12e124c5c4fdb9, []int{0}
 }
-func (m *ZoneconciergePacketData) XXX_Unmarshal(b []byte) error {
+func (m *OutboundPacket) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *ZoneconciergePacketData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *OutboundPacket) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_ZoneconciergePacketData.Marshal(b, m, deterministic)
+		return xxx_messageInfo_OutboundPacket.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -61,88 +60,209 @@ func (m *ZoneconciergePacketData) XXX_Marshal(b []byte, deterministic bool) ([]b
 		return b[:n], nil
 	}
 }
-func (m *ZoneconciergePacketData) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ZoneconciergePacketData.Merge(m, src)
+func (m *OutboundPacket) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_OutboundPacket.Merge(m, src)
 }
-func (m *ZoneconciergePacketData) XXX_Size() int {
+func (m *OutboundPacket) XXX_Size() int {
 	return m.Size()
 }
-func (m *ZoneconciergePacketData) XXX_DiscardUnknown() {
-	xxx_messageInfo_ZoneconciergePacketData.DiscardUnknown(m)
+func (m *OutboundPacket) XXX_DiscardUnknown() {
+	xxx_messageInfo_OutboundPacket.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_ZoneconciergePacketData proto.InternalMessageInfo
+var xxx_messageInfo_OutboundPacket proto.InternalMessageInfo
 
-type isZoneconciergePacketData_Packet interface {
-	isZoneconciergePacketData_Packet()
+type isOutboundPacket_Packet interface {
+	isOutboundPacket_Packet()
 	MarshalTo([]byte) (int, error)
 	Size() int
 }
 
-type ZoneconciergePacketData_BtcTimestamp struct {
+type OutboundPacket_BtcTimestamp struct {
 	BtcTimestamp *BTCTimestamp `protobuf:"bytes,1,opt,name=btc_timestamp,json=btcTimestamp,proto3,oneof" json:"btc_timestamp,omitempty"`
 }
-type ZoneconciergePacketData_BtcStaking struct {
+type OutboundPacket_BtcStaking struct {
 	BtcStaking *types.BTCStakingIBCPacket `protobuf:"bytes,2,opt,name=btc_staking,json=btcStaking,proto3,oneof" json:"btc_staking,omitempty"`
 }
-type ZoneconciergePacketData_ConsumerSlashing struct {
-	ConsumerSlashing *ConsumerSlashingIBCPacket `protobuf:"bytes,3,opt,name=consumer_slashing,json=consumerSlashing,proto3,oneof" json:"consumer_slashing,omitempty"`
+type OutboundPacket_BtcHeaders struct {
+	BtcHeaders *BTCHeaders `protobuf:"bytes,3,opt,name=btc_headers,json=btcHeaders,proto3,oneof" json:"btc_headers,omitempty"`
 }
 
-func (*ZoneconciergePacketData_BtcTimestamp) isZoneconciergePacketData_Packet()     {}
-func (*ZoneconciergePacketData_BtcStaking) isZoneconciergePacketData_Packet()       {}
-func (*ZoneconciergePacketData_ConsumerSlashing) isZoneconciergePacketData_Packet() {}
+func (*OutboundPacket_BtcTimestamp) isOutboundPacket_Packet() {}
+func (*OutboundPacket_BtcStaking) isOutboundPacket_Packet()   {}
+func (*OutboundPacket_BtcHeaders) isOutboundPacket_Packet()   {}
 
-func (m *ZoneconciergePacketData) GetPacket() isZoneconciergePacketData_Packet {
+func (m *OutboundPacket) GetPacket() isOutboundPacket_Packet {
 	if m != nil {
 		return m.Packet
 	}
 	return nil
 }
 
-func (m *ZoneconciergePacketData) GetBtcTimestamp() *BTCTimestamp {
-	if x, ok := m.GetPacket().(*ZoneconciergePacketData_BtcTimestamp); ok {
+func (m *OutboundPacket) GetBtcTimestamp() *BTCTimestamp {
+	if x, ok := m.GetPacket().(*OutboundPacket_BtcTimestamp); ok {
 		return x.BtcTimestamp
 	}
 	return nil
 }
 
-func (m *ZoneconciergePacketData) GetBtcStaking() *types.BTCStakingIBCPacket {
-	if x, ok := m.GetPacket().(*ZoneconciergePacketData_BtcStaking); ok {
+func (m *OutboundPacket) GetBtcStaking() *types.BTCStakingIBCPacket {
+	if x, ok := m.GetPacket().(*OutboundPacket_BtcStaking); ok {
 		return x.BtcStaking
 	}
 	return nil
 }
 
-func (m *ZoneconciergePacketData) GetConsumerSlashing() *ConsumerSlashingIBCPacket {
-	if x, ok := m.GetPacket().(*ZoneconciergePacketData_ConsumerSlashing); ok {
+func (m *OutboundPacket) GetBtcHeaders() *BTCHeaders {
+	if x, ok := m.GetPacket().(*OutboundPacket_BtcHeaders); ok {
+		return x.BtcHeaders
+	}
+	return nil
+}
+
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*OutboundPacket) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
+		(*OutboundPacket_BtcTimestamp)(nil),
+		(*OutboundPacket_BtcStaking)(nil),
+		(*OutboundPacket_BtcHeaders)(nil),
+	}
+}
+
+// InboundPacket represents packets received by Babylon from other chains
+type InboundPacket struct {
+	// packet is the actual message carried in the IBC packet
+	//
+	// Types that are valid to be assigned to Packet:
+	//	*InboundPacket_ConsumerSlashing
+	Packet isInboundPacket_Packet `protobuf_oneof:"packet"`
+}
+
+func (m *InboundPacket) Reset()         { *m = InboundPacket{} }
+func (m *InboundPacket) String() string { return proto.CompactTextString(m) }
+func (*InboundPacket) ProtoMessage()    {}
+func (*InboundPacket) Descriptor() ([]byte, []int) {
+	return fileDescriptor_be12e124c5c4fdb9, []int{1}
+}
+func (m *InboundPacket) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *InboundPacket) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_InboundPacket.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *InboundPacket) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_InboundPacket.Merge(m, src)
+}
+func (m *InboundPacket) XXX_Size() int {
+	return m.Size()
+}
+func (m *InboundPacket) XXX_DiscardUnknown() {
+	xxx_messageInfo_InboundPacket.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_InboundPacket proto.InternalMessageInfo
+
+type isInboundPacket_Packet interface {
+	isInboundPacket_Packet()
+	MarshalTo([]byte) (int, error)
+	Size() int
+}
+
+type InboundPacket_ConsumerSlashing struct {
+	ConsumerSlashing *ConsumerSlashingIBCPacket `protobuf:"bytes,1,opt,name=consumer_slashing,json=consumerSlashing,proto3,oneof" json:"consumer_slashing,omitempty"`
+}
+
+func (*InboundPacket_ConsumerSlashing) isInboundPacket_Packet() {}
+
+func (m *InboundPacket) GetPacket() isInboundPacket_Packet {
+	if m != nil {
+		return m.Packet
+	}
+	return nil
+}
+
+func (m *InboundPacket) GetConsumerSlashing() *ConsumerSlashingIBCPacket {
+	if x, ok := m.GetPacket().(*InboundPacket_ConsumerSlashing); ok {
 		return x.ConsumerSlashing
 	}
 	return nil
 }
 
 // XXX_OneofWrappers is for the internal use of the proto package.
-func (*ZoneconciergePacketData) XXX_OneofWrappers() []interface{} {
+func (*InboundPacket) XXX_OneofWrappers() []interface{} {
 	return []interface{}{
-		(*ZoneconciergePacketData_BtcTimestamp)(nil),
-		(*ZoneconciergePacketData_BtcStaking)(nil),
-		(*ZoneconciergePacketData_ConsumerSlashing)(nil),
+		(*InboundPacket_ConsumerSlashing)(nil),
 	}
 }
 
-// BTCTimestamp is a BTC timestamp that carries information of a BTC-finalised epoch
+// BTCHeaders contains BTC headers that have been verified and inserted into Babylon's BTC light client
+// These headers are forwarded to consumer chains to keep their light clients in sync with Babylon
+type BTCHeaders struct {
+	Headers []*types1.BTCHeaderInfo `protobuf:"bytes,1,rep,name=headers,proto3" json:"headers,omitempty"`
+}
+
+func (m *BTCHeaders) Reset()         { *m = BTCHeaders{} }
+func (m *BTCHeaders) String() string { return proto.CompactTextString(m) }
+func (*BTCHeaders) ProtoMessage()    {}
+func (*BTCHeaders) Descriptor() ([]byte, []int) {
+	return fileDescriptor_be12e124c5c4fdb9, []int{2}
+}
+func (m *BTCHeaders) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *BTCHeaders) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_BTCHeaders.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *BTCHeaders) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BTCHeaders.Merge(m, src)
+}
+func (m *BTCHeaders) XXX_Size() int {
+	return m.Size()
+}
+func (m *BTCHeaders) XXX_DiscardUnknown() {
+	xxx_messageInfo_BTCHeaders.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_BTCHeaders proto.InternalMessageInfo
+
+func (m *BTCHeaders) GetHeaders() []*types1.BTCHeaderInfo {
+	if m != nil {
+		return m.Headers
+	}
+	return nil
+}
+
+// BTCTimestamp is a BTC timestamp that carries information of a BTC-finalised epoch.
 // It includes a number of BTC headers, a raw checkpoint, an epoch metadata, and
-// a CZ header if there exists CZ headers checkpointed to this epoch.
+// a Cosmos Consumer header if there exists Cosmos Consumer headers checkpointed to this epoch.
 // Upon a newly finalised epoch in Babylon, Babylon will send a BTC timestamp to each
-// Cosmos zone that has phase-2 integration with Babylon via IBC.
+// consumer chain via IBC.
 type BTCTimestamp struct {
-	// header is the last CZ header in the finalized Babylon epoch
+	// header is the last Cosmos Consumer header in the finalized Babylon epoch
 	Header *IndexedHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	// btc_headers is BTC headers between
 	// - the block AFTER the common ancestor of BTC tip at epoch `lastFinalizedEpoch-1` and BTC tip at epoch `lastFinalizedEpoch`
 	// - BTC tip at epoch `lastFinalizedEpoch`
 	// where `lastFinalizedEpoch` is the last finalised epoch in Babylon
-	BtcHeaders []*types1.BTCHeaderInfo `protobuf:"bytes,2,rep,name=btc_headers,json=btcHeaders,proto3" json:"btc_headers,omitempty"`
+	BtcHeaders *BTCHeaders `protobuf:"bytes,2,opt,name=btc_headers,json=btcHeaders,proto3" json:"btc_headers,omitempty"`
 	// epoch_info is the metadata of the sealed epoch
 	EpochInfo *types2.Epoch `protobuf:"bytes,3,opt,name=epoch_info,json=epochInfo,proto3" json:"epoch_info,omitempty"`
 	// raw_checkpoint is the raw checkpoint that seals this epoch
@@ -158,7 +278,7 @@ func (m *BTCTimestamp) Reset()         { *m = BTCTimestamp{} }
 func (m *BTCTimestamp) String() string { return proto.CompactTextString(m) }
 func (*BTCTimestamp) ProtoMessage()    {}
 func (*BTCTimestamp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_be12e124c5c4fdb9, []int{1}
+	return fileDescriptor_be12e124c5c4fdb9, []int{3}
 }
 func (m *BTCTimestamp) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -194,7 +314,7 @@ func (m *BTCTimestamp) GetHeader() *IndexedHeader {
 	return nil
 }
 
-func (m *BTCTimestamp) GetBtcHeaders() []*types1.BTCHeaderInfo {
+func (m *BTCTimestamp) GetBtcHeaders() *BTCHeaders {
 	if m != nil {
 		return m.BtcHeaders
 	}
@@ -241,7 +361,7 @@ func (m *ConsumerSlashingIBCPacket) Reset()         { *m = ConsumerSlashingIBCPa
 func (m *ConsumerSlashingIBCPacket) String() string { return proto.CompactTextString(m) }
 func (*ConsumerSlashingIBCPacket) ProtoMessage()    {}
 func (*ConsumerSlashingIBCPacket) Descriptor() ([]byte, []int) {
-	return fileDescriptor_be12e124c5c4fdb9, []int{2}
+	return fileDescriptor_be12e124c5c4fdb9, []int{4}
 }
 func (m *ConsumerSlashingIBCPacket) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -278,7 +398,9 @@ func (m *ConsumerSlashingIBCPacket) GetEvidence() *types5.Evidence {
 }
 
 func init() {
-	proto.RegisterType((*ZoneconciergePacketData)(nil), "babylon.zoneconcierge.v1.ZoneconciergePacketData")
+	proto.RegisterType((*OutboundPacket)(nil), "babylon.zoneconcierge.v1.OutboundPacket")
+	proto.RegisterType((*InboundPacket)(nil), "babylon.zoneconcierge.v1.InboundPacket")
+	proto.RegisterType((*BTCHeaders)(nil), "babylon.zoneconcierge.v1.BTCHeaders")
 	proto.RegisterType((*BTCTimestamp)(nil), "babylon.zoneconcierge.v1.BTCTimestamp")
 	proto.RegisterType((*ConsumerSlashingIBCPacket)(nil), "babylon.zoneconcierge.v1.ConsumerSlashingIBCPacket")
 }
@@ -288,47 +410,50 @@ func init() {
 }
 
 var fileDescriptor_be12e124c5c4fdb9 = []byte{
-	// 585 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x93, 0x4d, 0x6f, 0xd3, 0x30,
-	0x18, 0xc7, 0xdb, 0x8d, 0x55, 0xc3, 0xdd, 0xd0, 0xf0, 0x85, 0x50, 0x89, 0x68, 0xaa, 0x04, 0x14,
-	0x34, 0x52, 0x75, 0x3b, 0xa0, 0x9d, 0x90, 0x5a, 0x5e, 0x5a, 0xa1, 0xa1, 0x91, 0x0e, 0x0e, 0xbb,
-	0x54, 0x8e, 0xeb, 0x36, 0x56, 0x5b, 0x3b, 0x4a, 0xdc, 0x6e, 0xdd, 0xa7, 0xe0, 0x4b, 0xf0, 0x51,
-	0x90, 0x38, 0xee, 0xc8, 0x11, 0xb5, 0x5f, 0x04, 0xf9, 0x25, 0x6e, 0x1a, 0x94, 0x4b, 0xe4, 0xe7,
-	0xc9, 0xef, 0xf9, 0xdb, 0xfe, 0xfb, 0x79, 0xc0, 0xf3, 0x00, 0x05, 0xcb, 0x29, 0x67, 0xcd, 0x3b,
-	0xce, 0x08, 0xe6, 0x0c, 0x53, 0x12, 0x8f, 0x49, 0x73, 0xd1, 0x6a, 0x46, 0x08, 0x4f, 0x88, 0xf0,
-	0xa2, 0x98, 0x0b, 0x0e, 0x1d, 0x83, 0x79, 0x5b, 0x98, 0xb7, 0x68, 0xd5, 0x4e, 0x52, 0x81, 0x40,
-	0x60, 0x1c, 0x12, 0x3c, 0x89, 0x38, 0x65, 0x42, 0x0a, 0x6c, 0x25, 0xb4, 0x4e, 0xcd, 0xcb, 0xd0,
-	0x53, 0x3a, 0x0e, 0xe5, 0x97, 0x58, 0x3c, 0x93, 0x31, 0x7c, 0x3d, 0xc3, 0x27, 0x02, 0x4d, 0x28,
-	0x1b, 0xe7, 0xcf, 0x56, 0x7b, 0x95, 0x32, 0x9b, 0xdd, 0x0c, 0xf6, 0xdf, 0xf6, 0x56, 0x8e, 0x44,
-	0x1c, 0x87, 0x86, 0x4a, 0xd7, 0x86, 0x39, 0x29, 0x74, 0x64, 0xfb, 0xee, 0x39, 0xc5, 0x11, 0x65,
-	0x68, 0x4a, 0xc5, 0x52, 0x82, 0xe9, 0x5a, 0x33, 0xf5, 0x9f, 0x3b, 0xe0, 0xc9, 0x75, 0xb6, 0xf6,
-	0x52, 0x1d, 0xff, 0x3d, 0x12, 0x08, 0x5e, 0x80, 0xc3, 0x40, 0xe0, 0x81, 0xa0, 0x33, 0x92, 0x08,
-	0x34, 0x8b, 0x9c, 0xf2, 0x71, 0xb9, 0x51, 0x3d, 0x7d, 0xe1, 0x15, 0x19, 0xee, 0xb5, 0xaf, 0x3a,
-	0x57, 0x29, 0xdd, 0x2d, 0xf9, 0x07, 0x81, 0xc0, 0x36, 0x86, 0x17, 0xa0, 0x2a, 0xe5, 0x8c, 0x55,
-	0xce, 0x8e, 0x12, 0x7b, 0x6d, 0xc5, 0x36, 0x2e, 0x1a, 0xa5, 0xbe, 0x8e, 0x7a, 0xed, 0x8e, 0x3e,
-	0x53, 0xb7, 0xe4, 0x83, 0x40, 0x60, 0x93, 0x86, 0x01, 0x78, 0x8c, 0x39, 0x4b, 0xe6, 0x33, 0x12,
-	0x0f, 0x92, 0x29, 0x4a, 0xa4, 0x4d, 0xce, 0xae, 0x12, 0x3d, 0x2b, 0x3e, 0x61, 0xc7, 0x94, 0xf4,
-	0x4d, 0x45, 0x56, 0xfd, 0x08, 0xe7, 0x7e, 0xb6, 0xf7, 0x41, 0x45, 0x3f, 0x67, 0xfd, 0xd7, 0x2e,
-	0x38, 0xc8, 0xde, 0x0e, 0xbe, 0x03, 0x95, 0x90, 0xa0, 0x21, 0x89, 0x8d, 0x2b, 0x2f, 0x8b, 0xf7,
-	0xec, 0xb1, 0x21, 0xb9, 0x25, 0xc3, 0xae, 0xc2, 0x7d, 0x53, 0x06, 0x7b, 0xda, 0x0e, 0x1d, 0x25,
-	0xce, 0xce, 0xf1, 0x6e, 0xa3, 0x7a, 0xda, 0xc8, 0xda, 0x91, 0x6d, 0x39, 0x6d, 0x89, 0x96, 0xe8,
-	0xb1, 0x11, 0x57, 0x56, 0xe8, 0x30, 0x81, 0xe7, 0x00, 0xa8, 0x46, 0x19, 0x50, 0x36, 0xe2, 0xc6,
-	0x03, 0xdb, 0xce, 0x9e, 0xed, 0xa1, 0x45, 0xcb, 0xfb, 0x20, 0xd7, 0xfe, 0x43, 0x95, 0x92, 0x32,
-	0xf0, 0x0b, 0x78, 0x14, 0xa3, 0x9b, 0xc1, 0xa6, 0x1b, 0x9d, 0x07, 0xb9, 0xeb, 0x6c, 0x75, 0xae,
-	0xd4, 0xf0, 0xd1, 0x4d, 0xc7, 0xe6, 0xfc, 0xc3, 0x38, 0x1b, 0xc2, 0x6f, 0x00, 0xaa, 0x47, 0x9e,
-	0x07, 0x33, 0x9a, 0x24, 0x94, 0xb3, 0xc1, 0x84, 0x2c, 0x9d, 0xbd, 0x9c, 0xe6, 0xf6, 0xf8, 0x2d,
-	0x5a, 0x5e, 0xdf, 0xf2, 0x9f, 0xc9, 0xd2, 0x3f, 0x92, 0xcf, 0x9c, 0xcd, 0xc0, 0x4f, 0x60, 0x2f,
-	0x8a, 0x39, 0x1f, 0x39, 0x15, 0xa5, 0xd4, 0x2a, 0x36, 0xfb, 0x52, 0x62, 0x1f, 0x55, 0x93, 0xdf,
-	0x91, 0x61, 0x27, 0x44, 0x94, 0x29, 0xbf, 0x74, 0x7d, 0xfd, 0x3b, 0x78, 0x5a, 0xd8, 0x02, 0xf0,
-	0x1c, 0xec, 0x93, 0x05, 0x1d, 0x12, 0x86, 0x89, 0x79, 0xd5, 0x67, 0x76, 0x23, 0x3b, 0x37, 0xd2,
-	0x45, 0x03, 0xf9, 0x16, 0x6f, 0x7f, 0xfd, 0xbd, 0x72, 0xcb, 0xf7, 0x2b, 0xb7, 0xfc, 0x77, 0xe5,
-	0x96, 0x7f, 0xac, 0xdd, 0xd2, 0xfd, 0xda, 0x2d, 0xfd, 0x59, 0xbb, 0xa5, 0xeb, 0xb7, 0x63, 0x2a,
-	0xc2, 0x79, 0xe0, 0x61, 0x3e, 0x6b, 0x1a, 0xb1, 0x29, 0x0a, 0x92, 0x37, 0x94, 0xa7, 0x61, 0xf3,
-	0x36, 0x37, 0xcf, 0x62, 0x19, 0x91, 0x24, 0xa8, 0xa8, 0x09, 0x3d, 0xfb, 0x17, 0x00, 0x00, 0xff,
-	0xff, 0x2c, 0xdb, 0xe9, 0xb1, 0x07, 0x05, 0x00, 0x00,
+	// 628 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x54, 0x4d, 0x6f, 0xd3, 0x4c,
+	0x10, 0x8e, 0xdb, 0xb7, 0x79, 0xcb, 0xf6, 0x43, 0x65, 0x4f, 0xa6, 0x12, 0x56, 0x15, 0xf1, 0x51,
+	0x50, 0xb1, 0x95, 0xe6, 0x54, 0x2e, 0x48, 0x89, 0x4a, 0x13, 0xa1, 0x42, 0xe4, 0x04, 0x0e, 0x5c,
+	0x22, 0xef, 0x7a, 0x13, 0xaf, 0x92, 0xec, 0x5a, 0xf6, 0xc6, 0x6d, 0x2a, 0x71, 0xe0, 0x1f, 0xf0,
+	0x97, 0xb8, 0x71, 0xec, 0x91, 0x23, 0x4a, 0xfe, 0x08, 0xb2, 0xbd, 0x76, 0xd6, 0x46, 0x46, 0x5c,
+	0xac, 0xdd, 0xf1, 0x33, 0xcf, 0xcc, 0x3c, 0x33, 0xb3, 0xe0, 0x29, 0x72, 0xd0, 0x72, 0xc6, 0x99,
+	0x75, 0xc7, 0x19, 0xc1, 0x9c, 0x61, 0x4a, 0x82, 0x09, 0xb1, 0xa2, 0xa6, 0xe5, 0x3b, 0x78, 0x4a,
+	0x84, 0xe9, 0x07, 0x5c, 0x70, 0xa8, 0x4b, 0x98, 0x59, 0x80, 0x99, 0x51, 0xf3, 0xf8, 0x2c, 0x23,
+	0x40, 0x02, 0x63, 0x8f, 0xe0, 0xa9, 0xcf, 0x29, 0x13, 0x31, 0x41, 0xc1, 0x90, 0xf2, 0x1c, 0x9b,
+	0x0a, 0x7a, 0x46, 0x27, 0x5e, 0xfc, 0x25, 0x39, 0x5c, 0xb1, 0x48, 0x7c, 0x43, 0xc1, 0x87, 0xc2,
+	0x99, 0x52, 0x36, 0x29, 0xe7, 0x76, 0xfc, 0x22, 0xc3, 0x6c, 0xa2, 0x49, 0xd8, 0x1f, 0xe1, 0x73,
+	0x3a, 0xe2, 0x73, 0xec, 0x49, 0x54, 0x76, 0x96, 0x98, 0xb3, 0x4a, 0x45, 0x8a, 0xb5, 0x97, 0x18,
+	0xc7, 0x94, 0x39, 0x33, 0x2a, 0x96, 0x31, 0x30, 0x3b, 0xa7, 0x98, 0xc6, 0xd7, 0x2d, 0x70, 0xf8,
+	0x61, 0x21, 0x10, 0x5f, 0x30, 0xb7, 0x9f, 0x64, 0x0e, 0xaf, 0xc1, 0x01, 0x12, 0x78, 0x24, 0xe8,
+	0x9c, 0x84, 0xc2, 0x99, 0xfb, 0xba, 0x76, 0xa2, 0x9d, 0xee, 0x9d, 0x3f, 0x33, 0xab, 0x74, 0x36,
+	0xdb, 0xc3, 0xce, 0x30, 0x43, 0x77, 0x6b, 0xf6, 0x3e, 0x12, 0x38, 0xbf, 0xc3, 0x6b, 0xb0, 0x17,
+	0xd3, 0x49, 0x85, 0xf4, 0xad, 0x84, 0xec, 0x65, 0x4e, 0xb6, 0x11, 0x4f, 0x32, 0x0d, 0xd2, 0x5b,
+	0xaf, 0xdd, 0x49, 0xf3, 0xe9, 0xd6, 0x6c, 0x80, 0x04, 0x96, 0x66, 0x78, 0x95, 0xd2, 0x79, 0xc4,
+	0x71, 0x49, 0x10, 0xea, 0xdb, 0x09, 0xdd, 0x93, 0xbf, 0xe6, 0xd6, 0x4d, 0xb1, 0x92, 0x48, 0xde,
+	0xda, 0xbb, 0xa0, 0x9e, 0xb6, 0xaa, 0xf1, 0x05, 0x1c, 0xf4, 0x98, 0xaa, 0x00, 0x02, 0x0f, 0x31,
+	0x67, 0xe1, 0x62, 0x4e, 0x82, 0x51, 0x38, 0x73, 0xc2, 0xb8, 0x03, 0x52, 0x85, 0x56, 0x75, 0xa4,
+	0x8e, 0x74, 0x19, 0x48, 0x0f, 0xb5, 0x82, 0x23, 0x5c, 0xfa, 0xa9, 0x84, 0xef, 0x03, 0xb0, 0x49,
+	0x12, 0xb6, 0xc1, 0xff, 0x59, 0x6d, 0xda, 0xc9, 0xf6, 0xe9, 0xde, 0xf9, 0xa9, 0x2a, 0x95, 0x3a,
+	0x85, 0x6a, 0x71, 0x3d, 0x36, 0xe6, 0x76, 0xe6, 0xd8, 0xf8, 0xbe, 0x0d, 0xf6, 0xd5, 0x9e, 0xc0,
+	0x37, 0xa0, 0x9e, 0xfe, 0x93, 0x55, 0x3c, 0xaf, 0xae, 0xa2, 0xc7, 0x5c, 0x72, 0x4b, 0xdc, 0x94,
+	0xd6, 0x96, 0x6e, 0xf0, 0xb2, 0xa8, 0xfa, 0xd6, 0xbf, 0xab, 0xae, 0x6a, 0x0e, 0x2f, 0x00, 0x48,
+	0x26, 0x7a, 0x44, 0xd9, 0x98, 0xcb, 0xde, 0xe5, 0x7b, 0x67, 0xe6, 0xc3, 0x1e, 0x35, 0xcd, 0xcb,
+	0xf8, 0x6c, 0x3f, 0x48, 0x4c, 0x71, 0x71, 0xf0, 0x3d, 0x38, 0x0c, 0x9c, 0x9b, 0xd1, 0x66, 0x6d,
+	0xf4, 0xff, 0x4a, 0xa5, 0x14, 0x56, 0x2c, 0xe6, 0xb0, 0x9d, 0x9b, 0x4e, 0x6e, 0xb3, 0x0f, 0x02,
+	0xf5, 0x0a, 0x3f, 0x02, 0x98, 0x8c, 0xe5, 0x02, 0xcd, 0x69, 0x18, 0x52, 0xce, 0x46, 0x53, 0xb2,
+	0xd4, 0x77, 0x4a, 0x9c, 0xc5, 0x77, 0x22, 0x6a, 0x9a, 0x83, 0x1c, 0xff, 0x8e, 0x2c, 0xed, 0xa3,
+	0x78, 0x30, 0x55, 0x0b, 0xbc, 0x02, 0x3b, 0x7e, 0xc0, 0xf9, 0x58, 0xaf, 0x27, 0x4c, 0xcd, 0x6a,
+	0x89, 0xfa, 0x31, 0xec, 0x6d, 0xb2, 0x8d, 0x77, 0xc4, 0xed, 0x78, 0x0e, 0x65, 0x49, 0x17, 0x53,
+	0xff, 0xc6, 0x27, 0xf0, 0xa8, 0x72, 0xa0, 0xe0, 0x05, 0xd8, 0x25, 0x11, 0x75, 0x09, 0xc3, 0x44,
+	0x76, 0xf4, 0x71, 0x1e, 0x28, 0x5f, 0xf0, 0x58, 0x45, 0x09, 0xb2, 0x73, 0x78, 0x7b, 0xf8, 0x63,
+	0x65, 0x68, 0xf7, 0x2b, 0x43, 0xfb, 0xb5, 0x32, 0xb4, 0x6f, 0x6b, 0xa3, 0x76, 0xbf, 0x36, 0x6a,
+	0x3f, 0xd7, 0x46, 0xed, 0xf3, 0xeb, 0x09, 0x15, 0xde, 0x02, 0x99, 0x98, 0xcf, 0x2d, 0x49, 0x36,
+	0x73, 0x50, 0xf8, 0x8a, 0xf2, 0xec, 0x6a, 0x45, 0x2d, 0xeb, 0xb6, 0xf4, 0xf6, 0x88, 0xa5, 0x4f,
+	0x42, 0x54, 0x4f, 0x5e, 0x93, 0xd6, 0xef, 0x00, 0x00, 0x00, 0xff, 0xff, 0x7c, 0xe2, 0x98, 0xd3,
+	0xb3, 0x05, 0x00, 0x00,
 }
 
-func (m *ZoneconciergePacketData) Marshal() (dAtA []byte, err error) {
+func (m *OutboundPacket) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -338,12 +463,12 @@ func (m *ZoneconciergePacketData) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *ZoneconciergePacketData) MarshalTo(dAtA []byte) (int, error) {
+func (m *OutboundPacket) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *ZoneconciergePacketData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *OutboundPacket) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -360,12 +485,12 @@ func (m *ZoneconciergePacketData) MarshalToSizedBuffer(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
-func (m *ZoneconciergePacketData_BtcTimestamp) MarshalTo(dAtA []byte) (int, error) {
+func (m *OutboundPacket_BtcTimestamp) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *ZoneconciergePacketData_BtcTimestamp) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *OutboundPacket_BtcTimestamp) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	if m.BtcTimestamp != nil {
 		{
@@ -381,12 +506,12 @@ func (m *ZoneconciergePacketData_BtcTimestamp) MarshalToSizedBuffer(dAtA []byte)
 	}
 	return len(dAtA) - i, nil
 }
-func (m *ZoneconciergePacketData_BtcStaking) MarshalTo(dAtA []byte) (int, error) {
+func (m *OutboundPacket_BtcStaking) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *ZoneconciergePacketData_BtcStaking) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *OutboundPacket_BtcStaking) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	if m.BtcStaking != nil {
 		{
@@ -402,16 +527,16 @@ func (m *ZoneconciergePacketData_BtcStaking) MarshalToSizedBuffer(dAtA []byte) (
 	}
 	return len(dAtA) - i, nil
 }
-func (m *ZoneconciergePacketData_ConsumerSlashing) MarshalTo(dAtA []byte) (int, error) {
+func (m *OutboundPacket_BtcHeaders) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *ZoneconciergePacketData_ConsumerSlashing) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *OutboundPacket_BtcHeaders) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
-	if m.ConsumerSlashing != nil {
+	if m.BtcHeaders != nil {
 		{
-			size, err := m.ConsumerSlashing.MarshalToSizedBuffer(dAtA[:i])
+			size, err := m.BtcHeaders.MarshalToSizedBuffer(dAtA[:i])
 			if err != nil {
 				return 0, err
 			}
@@ -423,6 +548,96 @@ func (m *ZoneconciergePacketData_ConsumerSlashing) MarshalToSizedBuffer(dAtA []b
 	}
 	return len(dAtA) - i, nil
 }
+func (m *InboundPacket) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InboundPacket) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *InboundPacket) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Packet != nil {
+		{
+			size := m.Packet.Size()
+			i -= size
+			if _, err := m.Packet.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *InboundPacket_ConsumerSlashing) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *InboundPacket_ConsumerSlashing) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.ConsumerSlashing != nil {
+		{
+			size, err := m.ConsumerSlashing.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintPacket(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+func (m *BTCHeaders) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BTCHeaders) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *BTCHeaders) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Headers) > 0 {
+		for iNdEx := len(m.Headers) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Headers[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintPacket(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *BTCTimestamp) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -491,19 +706,17 @@ func (m *BTCTimestamp) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x1a
 	}
-	if len(m.BtcHeaders) > 0 {
-		for iNdEx := len(m.BtcHeaders) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.BtcHeaders[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintPacket(dAtA, i, uint64(size))
+	if m.BtcHeaders != nil {
+		{
+			size, err := m.BtcHeaders.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
 			}
-			i--
-			dAtA[i] = 0x12
+			i -= size
+			i = encodeVarintPacket(dAtA, i, uint64(size))
 		}
+		i--
+		dAtA[i] = 0x12
 	}
 	if m.Header != nil {
 		{
@@ -566,7 +779,7 @@ func encodeVarintPacket(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
-func (m *ZoneconciergePacketData) Size() (n int) {
+func (m *OutboundPacket) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -578,7 +791,7 @@ func (m *ZoneconciergePacketData) Size() (n int) {
 	return n
 }
 
-func (m *ZoneconciergePacketData_BtcTimestamp) Size() (n int) {
+func (m *OutboundPacket_BtcTimestamp) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -590,7 +803,7 @@ func (m *ZoneconciergePacketData_BtcTimestamp) Size() (n int) {
 	}
 	return n
 }
-func (m *ZoneconciergePacketData_BtcStaking) Size() (n int) {
+func (m *OutboundPacket_BtcStaking) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -602,7 +815,31 @@ func (m *ZoneconciergePacketData_BtcStaking) Size() (n int) {
 	}
 	return n
 }
-func (m *ZoneconciergePacketData_ConsumerSlashing) Size() (n int) {
+func (m *OutboundPacket_BtcHeaders) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.BtcHeaders != nil {
+		l = m.BtcHeaders.Size()
+		n += 1 + l + sovPacket(uint64(l))
+	}
+	return n
+}
+func (m *InboundPacket) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Packet != nil {
+		n += m.Packet.Size()
+	}
+	return n
+}
+
+func (m *InboundPacket_ConsumerSlashing) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -614,6 +851,21 @@ func (m *ZoneconciergePacketData_ConsumerSlashing) Size() (n int) {
 	}
 	return n
 }
+func (m *BTCHeaders) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Headers) > 0 {
+		for _, e := range m.Headers {
+			l = e.Size()
+			n += 1 + l + sovPacket(uint64(l))
+		}
+	}
+	return n
+}
+
 func (m *BTCTimestamp) Size() (n int) {
 	if m == nil {
 		return 0
@@ -624,11 +876,9 @@ func (m *BTCTimestamp) Size() (n int) {
 		l = m.Header.Size()
 		n += 1 + l + sovPacket(uint64(l))
 	}
-	if len(m.BtcHeaders) > 0 {
-		for _, e := range m.BtcHeaders {
-			l = e.Size()
-			n += 1 + l + sovPacket(uint64(l))
-		}
+	if m.BtcHeaders != nil {
+		l = m.BtcHeaders.Size()
+		n += 1 + l + sovPacket(uint64(l))
 	}
 	if m.EpochInfo != nil {
 		l = m.EpochInfo.Size()
@@ -668,7 +918,7 @@ func sovPacket(x uint64) (n int) {
 func sozPacket(x uint64) (n int) {
 	return sovPacket(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (m *ZoneconciergePacketData) Unmarshal(dAtA []byte) error {
+func (m *OutboundPacket) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -691,10 +941,10 @@ func (m *ZoneconciergePacketData) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ZoneconciergePacketData: wiretype end group for non-group")
+			return fmt.Errorf("proto: OutboundPacket: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ZoneconciergePacketData: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: OutboundPacket: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -730,7 +980,7 @@ func (m *ZoneconciergePacketData) Unmarshal(dAtA []byte) error {
 			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
-			m.Packet = &ZoneconciergePacketData_BtcTimestamp{v}
+			m.Packet = &OutboundPacket_BtcTimestamp{v}
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -765,9 +1015,94 @@ func (m *ZoneconciergePacketData) Unmarshal(dAtA []byte) error {
 			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
-			m.Packet = &ZoneconciergePacketData_BtcStaking{v}
+			m.Packet = &OutboundPacket_BtcStaking{v}
 			iNdEx = postIndex
 		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BtcHeaders", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPacket
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthPacket
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthPacket
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &BTCHeaders{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Packet = &OutboundPacket_BtcHeaders{v}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipPacket(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthPacket
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *InboundPacket) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowPacket
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InboundPacket: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InboundPacket: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ConsumerSlashing", wireType)
 			}
@@ -800,7 +1135,91 @@ func (m *ZoneconciergePacketData) Unmarshal(dAtA []byte) error {
 			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
-			m.Packet = &ZoneconciergePacketData_ConsumerSlashing{v}
+			m.Packet = &InboundPacket_ConsumerSlashing{v}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipPacket(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthPacket
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *BTCHeaders) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowPacket
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BTCHeaders: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BTCHeaders: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Headers", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPacket
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthPacket
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthPacket
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Headers = append(m.Headers, &types1.BTCHeaderInfo{})
+			if err := m.Headers[len(m.Headers)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -917,8 +1336,10 @@ func (m *BTCTimestamp) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.BtcHeaders = append(m.BtcHeaders, &types1.BTCHeaderInfo{})
-			if err := m.BtcHeaders[len(m.BtcHeaders)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if m.BtcHeaders == nil {
+				m.BtcHeaders = &BTCHeaders{}
+			}
+			if err := m.BtcHeaders.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

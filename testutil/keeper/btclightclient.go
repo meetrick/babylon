@@ -17,14 +17,13 @@ import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/stretchr/testify/require"
 
-	bapp "github.com/babylonlabs-io/babylon/app"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	btclightclientk "github.com/babylonlabs-io/babylon/x/btclightclient/keeper"
-	btclightclientt "github.com/babylonlabs-io/babylon/x/btclightclient/types"
+	bapp "github.com/babylonlabs-io/babylon/v3/app"
+	appparams "github.com/babylonlabs-io/babylon/v3/app/params"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	btclightclientk "github.com/babylonlabs-io/babylon/v3/x/btclightclient/keeper"
+	btclightclientt "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
 )
 
 type MockIncentiveKeeper struct{}
@@ -58,15 +57,16 @@ func BTCLightClientKeeperWithCustomParams(
 
 	registry := codectypes.NewInterfaceRegistry()
 	cdc := codec.NewProtoCodec(registry)
-
-	testCfg := bbn.ParseBtcOptionsFromConfig(bapp.TmpAppOptions())
+	appOpts, cleanup := bapp.TmpAppOptions()
+	defer cleanup()
+	testCfg := bbn.ParseBtcOptionsFromConfig(appOpts)
 	stServ := runtime.NewKVStoreService(storeKey)
 	k := btclightclientk.NewKeeper(
 		cdc,
 		stServ,
 		testCfg,
 		&MockIncentiveKeeper{},
-		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		appparams.AccGov.String(),
 	)
 
 	ctx := sdk.NewContext(stateStore, cmtproto.Header{}, false, log.NewNopLogger())

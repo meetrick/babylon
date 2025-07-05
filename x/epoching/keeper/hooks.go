@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"cosmossdk.io/math"
-	checkpointingtypes "github.com/babylonlabs-io/babylon/x/checkpointing/types"
-	"github.com/babylonlabs-io/babylon/x/epoching/types"
+	checkpointingtypes "github.com/babylonlabs-io/babylon/v3/x/checkpointing/types"
+	"github.com/babylonlabs-io/babylon/v3/x/epoching/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
@@ -49,7 +49,10 @@ func (k Keeper) Hooks() Hooks { return Hooks{k} }
 // BeforeValidatorSlashed records the slash event
 func (h Hooks) BeforeValidatorSlashed(ctx context.Context, valAddr sdk.ValAddress, fraction math.LegacyDec) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	thresholds := []float64{float64(1) / float64(3), float64(2) / float64(3)}
+	thresholds := []math.LegacyDec{
+		math.LegacyMustNewDecFromStr("0.33"), // 1/3
+		math.LegacyMustNewDecFromStr("0.67"), // 2/3
+	}
 
 	epochNumber := h.k.GetEpoch(ctx).EpochNumber
 	totalVotingPower := h.k.GetTotalVotingPower(ctx, epochNumber)
@@ -68,7 +71,9 @@ func (h Hooks) BeforeValidatorSlashed(ctx context.Context, valAddr sdk.ValAddres
 
 	for _, threshold := range thresholds {
 		// if a certain threshold voting power is slashed in a single epoch, emit event and trigger hook
-		if float64(slashedVotingPower) < float64(totalVotingPower)*threshold && float64(totalVotingPower)*threshold <= float64(slashedVotingPower+thisVotingPower) {
+		thresholdValue := math.LegacyNewDec(totalVotingPower).Mul(threshold)
+
+		if math.LegacyNewDec(slashedVotingPower).LT(thresholdValue) && thresholdValue.LTE(math.LegacyNewDec(slashedVotingPower+thisVotingPower)) {
 			slashedVals := h.k.GetSlashedValidators(ctx, epochNumber)
 			slashedVals = append(slashedVals, thisVal)
 			event := types.NewEventSlashThreshold(slashedVotingPower, totalVotingPower, slashedVals)

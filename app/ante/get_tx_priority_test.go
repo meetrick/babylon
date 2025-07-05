@@ -3,7 +3,7 @@ package ante
 import (
 	"testing"
 
-	appparams "github.com/babylonlabs-io/babylon/app/params"
+	appparams "github.com/babylonlabs-io/babylon/v3/app/params"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -48,6 +48,12 @@ func TestGetTxPriority(t *testing.T) {
 			fee:         sdk.NewCoins(sdk.NewInt64Coin(denom, 1_000)),
 			gas:         1_000_000,
 			expectedPri: 1000,
+		},
+		{
+			name:        "0 gas, should return 0 priority",
+			fee:         sdk.NewCoins(sdk.NewInt64Coin(denom, 1_000)),
+			gas:         0,
+			expectedPri: 0,
 		},
 	}
 

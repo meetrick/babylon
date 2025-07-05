@@ -14,23 +14,25 @@ import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/x/finality/keeper"
-	"github.com/babylonlabs-io/babylon/x/finality/types"
+	appparams "github.com/babylonlabs-io/babylon/v3/app/params"
+	"github.com/babylonlabs-io/babylon/v3/x/finality/keeper"
+	"github.com/babylonlabs-io/babylon/v3/x/finality/types"
 )
 
-func FinalityKeeperWithStore(
+func FinalityKeeperWithStoreKey(
 	t testing.TB,
 	db dbm.DB,
 	stateStore store.CommitMultiStore,
+	storeKey *storetypes.KVStoreKey,
 	bsKeeper types.BTCStakingKeeper,
 	iKeeper types.IncentiveKeeper,
 	ckptKeeper types.CheckpointingKeeper,
 ) (*keeper.Keeper, sdk.Context) {
-	storeKey := storetypes.NewKVStoreKey(types.StoreKey)
+	if storeKey == nil {
+		storeKey = storetypes.NewKVStoreKey(types.StoreKey)
+	}
 
 	stateStore.MountStoreWithDB(storeKey, storetypes.StoreTypeIAVL, db)
 	require.NoError(t, stateStore.LoadLatestVersion())
@@ -44,13 +46,25 @@ func FinalityKeeperWithStore(
 		bsKeeper,
 		iKeeper,
 		ckptKeeper,
-		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		appparams.AccFinality.String(),
+		appparams.AccGov.String(),
 	)
 
 	ctx := sdk.NewContext(stateStore, cmtproto.Header{}, false, log.NewNopLogger())
 	ctx = ctx.WithHeaderInfo(header.Info{})
 
 	return &k, ctx
+}
+
+func FinalityKeeperWithStore(
+	t testing.TB,
+	db dbm.DB,
+	stateStore store.CommitMultiStore,
+	bsKeeper types.BTCStakingKeeper,
+	iKeeper types.IncentiveKeeper,
+	ckptKeeper types.CheckpointingKeeper,
+) (*keeper.Keeper, sdk.Context) {
+	return FinalityKeeperWithStoreKey(t, db, stateStore, nil, bsKeeper, iKeeper, ckptKeeper)
 }
 
 func FinalityKeeper(

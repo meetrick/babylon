@@ -12,13 +12,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/babylonlabs-io/babylon/x/btcstaking/types"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
 )
 
 type (
 	Keeper struct {
-		cdc          codec.BinaryCodec
-		storeService corestoretypes.KVStoreService
+		cdc                     codec.BinaryCodec
+		storeService            corestoretypes.KVStoreService
+		btcStakingModuleAddress string
 
 		btclcKeeper types.BTCLightClientKeeper
 		btccKeeper  types.BtcCheckpointKeeper
@@ -27,9 +28,13 @@ type (
 
 		Schema                       collections.Schema
 		AllowedStakingTxHashesKeySet collections.KeySet[[]byte]
+		// LargestBtcReorg defines the BTC block height difference between
+		// the btc tip height and the rollback block height
+		LargestBtcReorg collections.Item[types.LargestBtcReOrg]
 
 		btcNet *chaincfg.Params
-		// the address capable of executing a MsgUpdateParams message. Typically, this
+		// the address capable of executing a MsgUpdateParams or
+		// MsgResumeFinalityProposal message. Typically, this
 		// should be the x/gov module account.
 		authority string
 	}
@@ -45,24 +50,31 @@ func NewKeeper(
 	iKeeper types.IncentiveKeeper,
 
 	btcNet *chaincfg.Params,
+	btcStakingModuleAddress string,
 	authority string,
 ) Keeper {
 	sb := collections.NewSchemaBuilder(storeService)
 
 	k := Keeper{
-		cdc:          cdc,
-		storeService: storeService,
-
-		btclcKeeper: btclcKeeper,
-		btccKeeper:  btccKeeper,
-		BscKeeper:   bscKeeper,
-		iKeeper:     iKeeper,
+		cdc:                     cdc,
+		storeService:            storeService,
+		btcStakingModuleAddress: btcStakingModuleAddress,
+		btclcKeeper:             btclcKeeper,
+		btccKeeper:              btccKeeper,
+		BscKeeper:               bscKeeper,
+		iKeeper:                 iKeeper,
 
 		AllowedStakingTxHashesKeySet: collections.NewKeySet(
 			sb,
 			types.AllowedStakingTxHashesKey,
 			"allowed_staking_tx_hashes_key_set",
 			collections.BytesKey,
+		),
+		LargestBtcReorg: collections.NewItem[types.LargestBtcReOrg](
+			sb,
+			types.LargestBtcReorgInBlocks,
+			"largest_btc_reorg",
+			codec.CollValue[types.LargestBtcReOrg](cdc),
 		),
 		btcNet:    btcNet,
 		authority: authority,
@@ -91,4 +103,15 @@ func (k Keeper) BeginBlocker(ctx context.Context) error {
 	k.IndexBTCHeight(ctx)
 
 	return nil
+}
+
+func (k Keeper) BtccKeeper() types.BtcCheckpointKeeper {
+	if k.btccKeeper == nil {
+		panic("BtcCheckpointKeeper is not set")
+	}
+	return k.btccKeeper
+}
+
+func (k Keeper) ModuleAddress() string {
+	return k.btcStakingModuleAddress
 }

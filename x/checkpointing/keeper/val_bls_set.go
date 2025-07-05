@@ -2,9 +2,10 @@ package keeper
 
 import (
 	"context"
-	"cosmossdk.io/store/prefix"
 	"fmt"
-	"github.com/babylonlabs-io/babylon/x/checkpointing/types"
+
+	"cosmossdk.io/store/prefix"
+	"github.com/babylonlabs-io/babylon/v3/x/checkpointing/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )

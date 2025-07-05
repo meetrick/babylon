@@ -7,30 +7,29 @@ import (
 	"testing"
 
 	"cosmossdk.io/core/header"
-	appkeepers "github.com/babylonlabs-io/babylon/app/keepers"
-	"github.com/babylonlabs-io/babylon/crypto/bls12381"
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
-	checkpointingtypes "github.com/babylonlabs-io/babylon/x/checkpointing/types"
+	"cosmossdk.io/math"
 	abci "github.com/cometbft/cometbft/abci/types"
 	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	cosmosed "github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
-	protoio "github.com/cosmos/gogoproto/io"
-
-	"cosmossdk.io/math"
-	"github.com/cosmos/gogoproto/proto"
-	"github.com/stretchr/testify/require"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	protoio "github.com/cosmos/gogoproto/io"
+	"github.com/cosmos/gogoproto/proto"
+	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/app"
-	appparams "github.com/babylonlabs-io/babylon/app/params"
-	btcstakingtypes "github.com/babylonlabs-io/babylon/x/btcstaking/types"
-	"github.com/babylonlabs-io/babylon/x/epoching/keeper"
-	"github.com/babylonlabs-io/babylon/x/epoching/types"
+	"github.com/babylonlabs-io/babylon/v3/app"
+	appparams "github.com/babylonlabs-io/babylon/v3/app/params"
+	"github.com/babylonlabs-io/babylon/v3/app/signingcontext"
+	"github.com/babylonlabs-io/babylon/v3/crypto/bls12381"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	btcstakingtypes "github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
+	checkpointingtypes "github.com/babylonlabs-io/babylon/v3/x/checkpointing/types"
+	"github.com/babylonlabs-io/babylon/v3/x/epoching/keeper"
+	"github.com/babylonlabs-io/babylon/v3/x/epoching/types"
 )
 
 // Helper is a structure which wraps the entire app and exposes functionalities for testing the epoching module
@@ -48,20 +47,21 @@ type Helper struct {
 
 // NewHelper creates the helper for testing the epoching module
 func NewHelper(t *testing.T) *Helper {
-	valSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(1)
+	valSet, blsSigner, err := datagen.GenesisValidatorSetWithPrivSigner(1)
 	require.NoError(t, err)
 
-	return NewHelperWithValSet(t, valSet, privSigner)
+	return NewHelperWithValSet(t, valSet, blsSigner)
 }
 
 // NewHelperWithValSet is same as NewHelper, except that it creates a set of validators
 // the privSigner is the 0th validator in valSet
-func NewHelperWithValSet(t *testing.T, valSet *datagen.GenesisValidators, privSigner *appkeepers.PrivSigner) *Helper {
+func NewHelperWithValSet(t *testing.T, valSet *datagen.GenesisValidators, blsSigner checkpointingtypes.BlsSigner) *Helper {
+	t.Helper()
 	// generate the genesis account
-	signerPubKey := privSigner.WrappedPV.Key.PubKey
+	signerPubKey := valSet.Keys[0].PrivKey.PubKey()
 	acc := authtypes.NewBaseAccount(signerPubKey.Address().Bytes(), &cosmosed.PubKey{Key: signerPubKey.Bytes()}, 0, 0)
-	privSigner.WrappedPV.Key.DelegatorAddress = acc.Address
-	valSet.Keys[0].ValidatorAddress = privSigner.WrappedPV.GetAddress().String()
+
+	valSet.Keys[0].ValidatorAddress = sdk.ValAddress(acc.GetAddress()).String()
 	// ensure the genesis account has a sufficient amount of tokens
 	balance := banktypes.Balance{
 		Address: acc.GetAddress().String(),
@@ -70,7 +70,7 @@ func NewHelperWithValSet(t *testing.T, valSet *datagen.GenesisValidators, privSi
 	GenAccs := []authtypes.GenesisAccount{acc}
 
 	// setup the app and ctx
-	app := app.SetupWithGenesisValSet(t, valSet.GetGenesisKeys(), privSigner, GenAccs, balance)
+	app := app.SetupWithGenesisValSet(t, bbn.BtcSimnet, valSet.GetGenesisKeys(), blsSigner, GenAccs, balance)
 	ctx := app.BaseApp.NewContext(false).WithBlockHeight(1).WithHeaderInfo(header.Info{Height: 1}) // NOTE: height is 1
 
 	// get necessary subsets of the app/keeper
@@ -94,11 +94,10 @@ func NewHelperWithValSet(t *testing.T, valSet *datagen.GenesisValidators, privSi
 
 // NewHelperWithValSetNoSigner is same as NewHelperWithValSet, except that the privSigner is not
 // included in the validator set
-func NewHelperWithValSetNoSigner(t *testing.T, valSet *datagen.GenesisValidators, privSigner *appkeepers.PrivSigner) *Helper {
+func NewHelperWithValSetNoSigner(t *testing.T, valSet *datagen.GenesisValidators, blsSigner checkpointingtypes.BlsSigner) *Helper {
 	// generate the genesis account
-	signerPubKey := privSigner.WrappedPV.Key.PubKey
+	signerPubKey := valSet.Keys[0].PrivKey.PubKey()
 	acc := authtypes.NewBaseAccount(signerPubKey.Address().Bytes(), &cosmosed.PubKey{Key: signerPubKey.Bytes()}, 0, 0)
-	privSigner.WrappedPV.Key.DelegatorAddress = acc.Address
 	// set a random validator address instead of the privSigner's
 	valSet.Keys[0].ValidatorAddress = datagen.GenRandomValidatorAddress().String()
 	// ensure the genesis account has a sufficient amount of tokens
@@ -109,7 +108,7 @@ func NewHelperWithValSetNoSigner(t *testing.T, valSet *datagen.GenesisValidators
 	GenAccs := []authtypes.GenesisAccount{acc}
 
 	// setup the app and ctx
-	app := app.SetupWithGenesisValSet(t, valSet.GetGenesisKeys(), privSigner, GenAccs, balance)
+	app := app.SetupWithGenesisValSet(t, bbn.BtcSimnet, valSet.GetGenesisKeys(), blsSigner, GenAccs, balance)
 	ctx := app.BaseApp.NewContext(false).WithBlockHeight(1).WithHeaderInfo(header.Info{Height: 1}) // NOTE: height is 1
 
 	// get necessary subsets of the app/keeper
@@ -141,6 +140,22 @@ func (h *Helper) Error(err error) {
 
 func (h *Helper) EqualError(err, expected error) {
 	require.EqualError(h.t, err, expected.Error())
+}
+
+func (h *Helper) StakerPopContext() string {
+	return signingcontext.StakerPopContextV0(h.App.ChainID(), h.App.BTCStakingKeeper.ModuleAddress())
+}
+
+func (h *Helper) FpPopContext() string {
+	return signingcontext.FpPopContextV0(h.App.ChainID(), h.App.BTCStakingKeeper.ModuleAddress())
+}
+
+func (h *Helper) FpFinVoteContext() string {
+	return signingcontext.FpFinVoteContextV0(h.App.ChainID(), h.App.FinalityKeeper.ModuleAddress())
+}
+
+func (h *Helper) FpRandCommitContext() string {
+	return signingcontext.FpRandCommitContextV0(h.App.ChainID(), h.App.FinalityKeeper.ModuleAddress())
 }
 
 func (h *Helper) getExtendedVotesFromValSet(
@@ -285,7 +300,6 @@ func (h *Helper) Handle(action func(sdk.Context) (proto.Message, error)) *sdk.Re
 	r, err := sdk.WrapServiceResult(h.Ctx, res, err)
 	require.NoError(h.t, err)
 	require.NotNil(h.t, r)
-	require.NoError(h.t, err)
 	return r
 }
 
@@ -307,8 +321,8 @@ func (h *Helper) CheckDelegator(delegator sdk.AccAddress, val sdk.ValAddress, fo
 	require.Equal(h.t, ok, found)
 }
 
-func (h *Helper) AddDelegation(del *btcstakingtypes.BTCDelegation, minUnbondingTime uint32) {
-	err := h.App.BTCStakingKeeper.AddBTCDelegation(h.Ctx, del, minUnbondingTime)
+func (h *Helper) AddDelegation(del *btcstakingtypes.BTCDelegation) {
+	err := h.App.BTCStakingKeeper.AddBTCDelegation(h.Ctx, del)
 	h.NoError(err)
 }
 
@@ -316,9 +330,13 @@ func (h *Helper) AddFinalityProvider(fp *btcstakingtypes.FinalityProvider) {
 	err := h.App.BTCStakingKeeper.AddFinalityProvider(h.Ctx, &btcstakingtypes.MsgCreateFinalityProvider{
 		Addr:        fp.Addr,
 		Description: fp.Description,
-		Commission:  fp.Commission,
-		BtcPk:       fp.BtcPk,
-		Pop:         fp.Pop,
+		Commission: btcstakingtypes.NewCommissionRates(
+			*fp.Commission,
+			fp.CommissionInfo.MaxRate,
+			fp.CommissionInfo.MaxChangeRate,
+		),
+		BtcPk: fp.BtcPk,
+		Pop:   fp.Pop,
 	})
 	h.NoError(err)
 }

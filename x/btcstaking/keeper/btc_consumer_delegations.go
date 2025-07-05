@@ -4,22 +4,18 @@ import (
 	"context"
 
 	"cosmossdk.io/store/prefix"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	bstypes "github.com/babylonlabs-io/babylon/x/btcstaking/types"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	bstypes "github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 )
 
-// IndexBTCConsumerDelegation indexes a BTC delegation into the BTC consumer delegator store
+// indexBTCConsumerDelegation indexes a BTC delegation into the BTC consumer delegator store
 // CONTRACT: this function only takes BTC delegations that have passed verifications
 // imposed in `x/btcstaking/msg_server.go`
-func (k Keeper) IndexBTCConsumerDelegation(ctx sdk.Context, btcDel *bstypes.BTCDelegation) error {
-	if err := btcDel.ValidateBasic(); err != nil {
-		return err
-	}
-
+func (k Keeper) indexBTCConsumerDelegation(ctx sdk.Context, btcDel *bstypes.BTCDelegation) error {
 	// get staking tx hash
 	stakingTxHash, err := btcDel.GetStakingTxHash()
 	if err != nil {
@@ -58,9 +54,7 @@ func (k Keeper) GetBTCConsumerDelegatorDelegationsResponses(
 	ctx sdk.Context,
 	fpBTCPK *bbn.BIP340PubKey,
 	pagination *query.PageRequest,
-	wValue uint32,
 	btcHeight uint32,
-	covenantQuorum uint32,
 ) ([]*bstypes.BTCDelegatorDelegationsResponse, *query.PageResponse, error) {
 	btcDelStore := k.btcConsumerDelegatorStore(ctx, fpBTCPK)
 
@@ -75,10 +69,11 @@ func (k Keeper) GetBTCConsumerDelegatorDelegationsResponses(
 
 		btcDelsResp := make([]*bstypes.BTCDelegationResponse, len(curBTCDels.Dels))
 		for i, btcDel := range curBTCDels.Dels {
+			params := k.GetParamsByVersion(ctx, btcDel.ParamsVersion)
+
 			status := btcDel.GetStatus(
 				btcHeight,
-				wValue,
-				covenantQuorum,
+				params.CovenantQuorum,
 			)
 			btcDelsResp[i] = bstypes.NewBTCDelegationResponse(btcDel, status)
 		}

@@ -8,7 +8,7 @@ import (
 
 	"cosmossdk.io/math"
 	"github.com/CosmWasm/wasmd/x/wasm/keeper"
-	"github.com/babylonlabs-io/babylon/app"
+	"github.com/babylonlabs-io/babylon/v3/app"
 	"github.com/cometbft/cometbft/crypto"
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
@@ -45,8 +45,8 @@ func FundAccount(
 	t *testing.T,
 	ctx sdk.Context,
 	bbn *app.BabylonApp,
-	acc sdk.AccAddress) {
-
+	acc sdk.AccAddress,
+) {
 	err := MintCoinsTo(bbn.BankKeeper, ctx, acc, sdk.NewCoins(
 		sdk.NewCoin("ubbn", math.NewInt(10000000000)),
 	))

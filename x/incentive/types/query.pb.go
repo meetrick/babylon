@@ -6,6 +6,7 @@ package types
 import (
 	context "context"
 	fmt "fmt"
+	_ "github.com/cosmos/cosmos-proto"
 	github_com_cosmos_cosmos_sdk_types "github.com/cosmos/cosmos-sdk/types"
 	types "github.com/cosmos/cosmos-sdk/types"
 	_ "github.com/cosmos/gogoproto/gogoproto"
@@ -114,7 +115,8 @@ func (m *QueryParamsResponse) GetParams() Params {
 	return Params{}
 }
 
-// QueryRewardGaugesRequest is request type for the Query/RewardGauges RPC method.
+// QueryRewardGaugesRequest is request type for the Query/RewardGauges RPC
+// method.
 type QueryRewardGaugesRequest struct {
 	// address is the address of the stakeholder in bech32 string
 	Address string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
@@ -160,12 +162,14 @@ func (m *QueryRewardGaugesRequest) GetAddress() string {
 	return ""
 }
 
-// RewardGaugesResponse is an object that stores rewards distributed to a BTC staking stakeholder
+// RewardGaugesResponse is an object that stores rewards distributed to a BTC
+// staking stakeholder
 type RewardGaugesResponse struct {
 	// coins are coins that have been in the gauge
 	// Can have multiple coin denoms
 	Coins github_com_cosmos_cosmos_sdk_types.Coins `protobuf:"bytes,1,rep,name=coins,proto3,castrepeated=github.com/cosmos/cosmos-sdk/types.Coins" json:"coins"`
-	// withdrawn_coins are coins that have been withdrawn by the stakeholder already
+	// withdrawn_coins are coins that have been withdrawn by the stakeholder
+	// already
 	WithdrawnCoins github_com_cosmos_cosmos_sdk_types.Coins `protobuf:"bytes,2,rep,name=withdrawn_coins,json=withdrawnCoins,proto3,castrepeated=github.com/cosmos/cosmos-sdk/types.Coins" json:"withdrawn_coins"`
 }
 
@@ -216,10 +220,12 @@ func (m *RewardGaugesResponse) GetWithdrawnCoins() github_com_cosmos_cosmos_sdk_
 	return nil
 }
 
-// QueryRewardGaugesResponse is response type for the Query/RewardGauges RPC method.
+// QueryRewardGaugesResponse is response type for the Query/RewardGauges RPC
+// method.
 type QueryRewardGaugesResponse struct {
-	// reward_gauges is the map of reward gauges, where key is the stakeholder type
-	// and value is the reward gauge holding all rewards for the stakeholder in that type
+	// reward_gauges is the map of reward gauges, where key is the stakeholder
+	// type and value is the reward gauge holding all rewards for the stakeholder
+	// in that type
 	RewardGauges map[string]*RewardGaugesResponse `protobuf:"bytes,1,rep,name=reward_gauges,json=rewardGauges,proto3" json:"reward_gauges,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
@@ -263,7 +269,8 @@ func (m *QueryRewardGaugesResponse) GetRewardGauges() map[string]*RewardGaugesRe
 	return nil
 }
 
-// QueryBTCStakingGaugeRequest is request type for the Query/BTCStakingGauge RPC method.
+// QueryBTCStakingGaugeRequest is request type for the Query/BTCStakingGauge RPC
+// method.
 type QueryBTCStakingGaugeRequest struct {
 	// height is the queried Babylon height
 	Height uint64 `protobuf:"varint,1,opt,name=height,proto3" json:"height,omitempty"`
@@ -309,7 +316,8 @@ func (m *QueryBTCStakingGaugeRequest) GetHeight() uint64 {
 	return 0
 }
 
-// BTCStakingGaugeResponse is response type for the Query/BTCStakingGauge RPC method.
+// BTCStakingGaugeResponse is response type for the Query/BTCStakingGauge RPC
+// method.
 type BTCStakingGaugeResponse struct {
 	// coins that have been in the gauge
 	// can have multiple coin denoms
@@ -356,7 +364,8 @@ func (m *BTCStakingGaugeResponse) GetCoins() github_com_cosmos_cosmos_sdk_types.
 	return nil
 }
 
-// QueryBTCStakingGaugeResponse is response type for the Query/BTCStakingGauge RPC method.
+// QueryBTCStakingGaugeResponse is response type for the Query/BTCStakingGauge
+// RPC method.
 type QueryBTCStakingGaugeResponse struct {
 	// gauge is the BTC staking gauge at the queried height
 	Gauge *BTCStakingGaugeResponse `protobuf:"bytes,1,opt,name=gauge,proto3" json:"gauge,omitempty"`
@@ -402,6 +411,170 @@ func (m *QueryBTCStakingGaugeResponse) GetGauge() *BTCStakingGaugeResponse {
 	return nil
 }
 
+// QueryDelegatorWithdrawAddressRequest is the request type for the
+// Query/DelegatorWithdrawAddress RPC method.
+type QueryDelegatorWithdrawAddressRequest struct {
+	// delegator_address defines the delegator address to query for.
+	DelegatorAddress string `protobuf:"bytes,1,opt,name=delegator_address,json=delegatorAddress,proto3" json:"delegator_address,omitempty"`
+}
+
+func (m *QueryDelegatorWithdrawAddressRequest) Reset()         { *m = QueryDelegatorWithdrawAddressRequest{} }
+func (m *QueryDelegatorWithdrawAddressRequest) String() string { return proto.CompactTextString(m) }
+func (*QueryDelegatorWithdrawAddressRequest) ProtoMessage()    {}
+func (*QueryDelegatorWithdrawAddressRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e1a59cc0c7c44135, []int{8}
+}
+func (m *QueryDelegatorWithdrawAddressRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryDelegatorWithdrawAddressRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryDelegatorWithdrawAddressRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryDelegatorWithdrawAddressRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryDelegatorWithdrawAddressRequest.Merge(m, src)
+}
+func (m *QueryDelegatorWithdrawAddressRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryDelegatorWithdrawAddressRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryDelegatorWithdrawAddressRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryDelegatorWithdrawAddressRequest proto.InternalMessageInfo
+
+// QueryDelegatorWithdrawAddressResponse is the response type for the
+// Query/DelegatorWithdrawAddress RPC method.
+type QueryDelegatorWithdrawAddressResponse struct {
+	// withdraw_address defines the delegator address to query for.
+	WithdrawAddress string `protobuf:"bytes,1,opt,name=withdraw_address,json=withdrawAddress,proto3" json:"withdraw_address,omitempty"`
+}
+
+func (m *QueryDelegatorWithdrawAddressResponse) Reset()         { *m = QueryDelegatorWithdrawAddressResponse{} }
+func (m *QueryDelegatorWithdrawAddressResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryDelegatorWithdrawAddressResponse) ProtoMessage()    {}
+func (*QueryDelegatorWithdrawAddressResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e1a59cc0c7c44135, []int{9}
+}
+func (m *QueryDelegatorWithdrawAddressResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryDelegatorWithdrawAddressResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryDelegatorWithdrawAddressResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryDelegatorWithdrawAddressResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryDelegatorWithdrawAddressResponse.Merge(m, src)
+}
+func (m *QueryDelegatorWithdrawAddressResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryDelegatorWithdrawAddressResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryDelegatorWithdrawAddressResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryDelegatorWithdrawAddressResponse proto.InternalMessageInfo
+
+// QueryDelegationRewardsRequest is the request type for the
+// Query/DelegationRewards RPC method.
+type QueryDelegationRewardsRequest struct {
+	// finality_provider_address defines the finality provider address of the
+	// delegation.
+	FinalityProviderAddress string `protobuf:"bytes,1,opt,name=finality_provider_address,json=finalityProviderAddress,proto3" json:"finality_provider_address,omitempty"`
+	// delegator_address defines the delegator address to query for.
+	DelegatorAddress string `protobuf:"bytes,2,opt,name=delegator_address,json=delegatorAddress,proto3" json:"delegator_address,omitempty"`
+}
+
+func (m *QueryDelegationRewardsRequest) Reset()         { *m = QueryDelegationRewardsRequest{} }
+func (m *QueryDelegationRewardsRequest) String() string { return proto.CompactTextString(m) }
+func (*QueryDelegationRewardsRequest) ProtoMessage()    {}
+func (*QueryDelegationRewardsRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e1a59cc0c7c44135, []int{10}
+}
+func (m *QueryDelegationRewardsRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryDelegationRewardsRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryDelegationRewardsRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryDelegationRewardsRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryDelegationRewardsRequest.Merge(m, src)
+}
+func (m *QueryDelegationRewardsRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryDelegationRewardsRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryDelegationRewardsRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryDelegationRewardsRequest proto.InternalMessageInfo
+
+// QueryDelegationRewardsResponse is the response type for the
+// Query/DelegationRewards RPC method.
+type QueryDelegationRewardsResponse struct {
+	// rewards are the delegation reward coins
+	// Can have multiple coin denoms
+	Rewards github_com_cosmos_cosmos_sdk_types.Coins `protobuf:"bytes,1,rep,name=rewards,proto3,castrepeated=github.com/cosmos/cosmos-sdk/types.Coins" json:"rewards"`
+}
+
+func (m *QueryDelegationRewardsResponse) Reset()         { *m = QueryDelegationRewardsResponse{} }
+func (m *QueryDelegationRewardsResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryDelegationRewardsResponse) ProtoMessage()    {}
+func (*QueryDelegationRewardsResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e1a59cc0c7c44135, []int{11}
+}
+func (m *QueryDelegationRewardsResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryDelegationRewardsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryDelegationRewardsResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryDelegationRewardsResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryDelegationRewardsResponse.Merge(m, src)
+}
+func (m *QueryDelegationRewardsResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryDelegationRewardsResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryDelegationRewardsResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryDelegationRewardsResponse proto.InternalMessageInfo
+
 func init() {
 	proto.RegisterType((*QueryParamsRequest)(nil), "babylon.incentive.QueryParamsRequest")
 	proto.RegisterType((*QueryParamsResponse)(nil), "babylon.incentive.QueryParamsResponse")
@@ -412,53 +585,72 @@ func init() {
 	proto.RegisterType((*QueryBTCStakingGaugeRequest)(nil), "babylon.incentive.QueryBTCStakingGaugeRequest")
 	proto.RegisterType((*BTCStakingGaugeResponse)(nil), "babylon.incentive.BTCStakingGaugeResponse")
 	proto.RegisterType((*QueryBTCStakingGaugeResponse)(nil), "babylon.incentive.QueryBTCStakingGaugeResponse")
+	proto.RegisterType((*QueryDelegatorWithdrawAddressRequest)(nil), "babylon.incentive.QueryDelegatorWithdrawAddressRequest")
+	proto.RegisterType((*QueryDelegatorWithdrawAddressResponse)(nil), "babylon.incentive.QueryDelegatorWithdrawAddressResponse")
+	proto.RegisterType((*QueryDelegationRewardsRequest)(nil), "babylon.incentive.QueryDelegationRewardsRequest")
+	proto.RegisterType((*QueryDelegationRewardsResponse)(nil), "babylon.incentive.QueryDelegationRewardsResponse")
 }
 
 func init() { proto.RegisterFile("babylon/incentive/query.proto", fileDescriptor_e1a59cc0c7c44135) }
 
 var fileDescriptor_e1a59cc0c7c44135 = []byte{
-	// 644 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x54, 0x4f, 0x6f, 0xd3, 0x30,
-	0x14, 0x6f, 0xba, 0xb5, 0x08, 0x33, 0x18, 0x33, 0x13, 0xb4, 0xdd, 0xc8, 0x58, 0x24, 0x60, 0x02,
-	0x1a, 0xd3, 0x95, 0x89, 0x3f, 0x12, 0x08, 0x75, 0x42, 0x9c, 0x40, 0x10, 0x38, 0x71, 0x29, 0x4e,
-	0x6a, 0xa5, 0x51, 0x5b, 0xbb, 0x8b, 0xdd, 0x96, 0x32, 0x76, 0xe1, 0x13, 0x20, 0xf1, 0x15, 0xb8,
-	0xc0, 0x27, 0xd9, 0x71, 0x12, 0x12, 0xe2, 0x04, 0xa8, 0xe5, 0xc4, 0x85, 0xaf, 0x80, 0x62, 0xbb,
-	0x55, 0x4a, 0x53, 0x31, 0x24, 0xc4, 0x29, 0x8e, 0xdf, 0xfb, 0xbd, 0xdf, 0xef, 0xf9, 0xfd, 0x6c,
-	0x70, 0xd6, 0xc5, 0x6e, 0xbf, 0xc9, 0x28, 0x0a, 0xa8, 0x47, 0xa8, 0x08, 0xba, 0x04, 0xed, 0x74,
-	0x48, 0xd8, 0xb7, 0xdb, 0x21, 0x13, 0x0c, 0x2e, 0xe9, 0xb0, 0x3d, 0x0e, 0x17, 0x96, 0x7d, 0xe6,
-	0x33, 0x19, 0x45, 0xd1, 0x4a, 0x25, 0x16, 0x56, 0x7d, 0xc6, 0xfc, 0x26, 0x41, 0xb8, 0x1d, 0x20,
-	0x4c, 0x29, 0x13, 0x58, 0x04, 0x8c, 0x72, 0x1d, 0x35, 0xa7, 0x59, 0xda, 0x38, 0xc4, 0xad, 0x51,
-	0x7c, 0x7d, 0x3a, 0x3e, 0x5e, 0x8d, 0x4a, 0x78, 0x8c, 0xb7, 0x18, 0x47, 0x2e, 0xe6, 0x04, 0x75,
-	0x4b, 0x2e, 0x11, 0xb8, 0x84, 0x3c, 0x16, 0x50, 0x15, 0xb7, 0x96, 0x01, 0x7c, 0x1c, 0x09, 0x7f,
-	0x24, 0xeb, 0x3a, 0x64, 0xa7, 0x43, 0xb8, 0xb0, 0x1e, 0x82, 0x53, 0x13, 0xbb, 0xbc, 0xcd, 0x28,
-	0x27, 0xf0, 0x3a, 0xc8, 0x2a, 0xfe, 0x9c, 0x71, 0xce, 0xd8, 0x38, 0xb6, 0x99, 0xb7, 0xa7, 0xfa,
-	0xb4, 0x15, 0xa4, 0x32, 0xbf, 0xff, 0x65, 0x2d, 0xe5, 0xe8, 0x74, 0xeb, 0x1a, 0xc8, 0xc9, 0x7a,
-	0x0e, 0xe9, 0xe1, 0xb0, 0x76, 0x1f, 0x77, 0x7c, 0x32, 0xe2, 0x82, 0x39, 0x70, 0x04, 0xd7, 0x6a,
-	0x21, 0xe1, 0xaa, 0xea, 0x51, 0x67, 0xf4, 0x6b, 0xfd, 0x34, 0xc0, 0xf2, 0x24, 0x42, 0xeb, 0xc0,
-	0x20, 0x13, 0xb5, 0x10, 0x01, 0xe6, 0xa4, 0x0c, 0xd5, 0xa4, 0x1d, 0x35, 0x69, 0xeb, 0x26, 0xed,
-	0x6d, 0x16, 0xd0, 0xca, 0xd5, 0x48, 0xc6, 0x87, 0xaf, 0x6b, 0x1b, 0x7e, 0x20, 0xea, 0x1d, 0xd7,
-	0xf6, 0x58, 0x0b, 0xe9, 0x13, 0x51, 0x9f, 0x22, 0xaf, 0x35, 0x90, 0xe8, 0xb7, 0x09, 0x97, 0x00,
-	0xee, 0xa8, 0xca, 0x50, 0x80, 0xc5, 0x5e, 0x20, 0xea, 0xb5, 0x10, 0xf7, 0x68, 0x55, 0x91, 0xa5,
-	0xff, 0x3d, 0xd9, 0x89, 0x31, 0x87, 0xfc, 0xb7, 0x7e, 0x18, 0x20, 0x9f, 0x70, 0x50, 0xba, 0x6d,
-	0x0f, 0x1c, 0x0f, 0xe5, 0x7e, 0xd5, 0x97, 0x01, 0xdd, 0xfe, 0x9d, 0x84, 0x29, 0xcc, 0x2c, 0x62,
-	0xc7, 0x37, 0xef, 0x51, 0x11, 0xf6, 0x9d, 0x85, 0x30, 0xb6, 0x55, 0xa8, 0x83, 0xa5, 0xa9, 0x14,
-	0x78, 0x12, 0xcc, 0x35, 0x48, 0x5f, 0xcf, 0x27, 0x5a, 0xc2, 0xdb, 0x20, 0xd3, 0xc5, 0xcd, 0x0e,
-	0xc9, 0xa5, 0xa5, 0x13, 0x2e, 0x26, 0x68, 0x48, 0xa2, 0x77, 0x14, 0xea, 0x56, 0xfa, 0x86, 0x61,
-	0x6d, 0x81, 0x15, 0x29, 0xb3, 0xf2, 0x74, 0xfb, 0x89, 0xc0, 0x8d, 0x80, 0xfa, 0x32, 0x77, 0xe4,
-	0x8b, 0xd3, 0x20, 0x5b, 0x27, 0x81, 0x5f, 0x17, 0x92, 0x76, 0xde, 0xd1, 0x7f, 0xd6, 0x2b, 0x70,
-	0x66, 0x0a, 0xf1, 0xdf, 0x7c, 0x61, 0x3d, 0x07, 0xab, 0xc9, 0xa2, 0xb5, 0x84, 0xbb, 0x20, 0x23,
-	0x87, 0xa3, 0x6f, 0xc8, 0xa5, 0x84, 0x73, 0x99, 0x01, 0x75, 0x14, 0x70, 0xf3, 0xd3, 0x1c, 0xc8,
-	0x48, 0x0a, 0xf8, 0x12, 0x64, 0xd5, 0x6d, 0x82, 0xe7, 0x67, 0x8d, 0x78, 0xe2, 0xda, 0x16, 0x2e,
-	0xfc, 0x29, 0x4d, 0x31, 0x59, 0xeb, 0xaf, 0x3f, 0x7e, 0x7f, 0x9b, 0x5e, 0x81, 0x79, 0x34, 0xeb,
-	0x81, 0x81, 0xef, 0x0c, 0xb0, 0x10, 0x1f, 0x20, 0xbc, 0x7c, 0x38, 0x97, 0x29, 0x21, 0x57, 0xfe,
-	0xc6, 0x92, 0xd6, 0x4d, 0x29, 0xa7, 0x0c, 0x4b, 0x09, 0x72, 0xf4, 0x5b, 0x80, 0x76, 0xf5, 0x62,
-	0x0f, 0xc5, 0xaf, 0x00, 0x7c, 0x6f, 0x80, 0xc5, 0xdf, 0xce, 0x13, 0xda, 0xb3, 0xc8, 0x93, 0x8d,
-	0x56, 0x40, 0x87, 0xce, 0xd7, 0x7a, 0xb7, 0xa4, 0x5e, 0x04, 0x8b, 0x09, 0x7a, 0x5d, 0xe1, 0x55,
-	0xb9, 0x02, 0x29, 0x89, 0x68, 0x57, 0xf9, 0x76, 0xaf, 0xf2, 0x60, 0x7f, 0x60, 0x1a, 0x07, 0x03,
-	0xd3, 0xf8, 0x36, 0x30, 0x8d, 0x37, 0x43, 0x33, 0x75, 0x30, 0x34, 0x53, 0x9f, 0x87, 0x66, 0xea,
-	0x59, 0x39, 0xe6, 0x42, 0x5d, 0xb2, 0x89, 0x5d, 0x5e, 0x0c, 0xd8, 0x98, 0xe1, 0x45, 0x8c, 0x43,
-	0xda, 0xd2, 0xcd, 0xca, 0x07, 0xbc, 0xfc, 0x2b, 0x00, 0x00, 0xff, 0xff, 0xe1, 0xe8, 0x0e, 0x15,
-	0x8b, 0x06, 0x00, 0x00,
+	// 885 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x56, 0xcf, 0x6f, 0x1b, 0x45,
+	0x18, 0xf5, 0xba, 0x4d, 0x02, 0x1f, 0x85, 0x26, 0x43, 0x44, 0x6d, 0xb7, 0xdd, 0xc0, 0x8a, 0x42,
+	0x05, 0x64, 0xa7, 0x6e, 0x28, 0x2d, 0x95, 0x40, 0xe0, 0xb4, 0x42, 0xe2, 0x80, 0xc2, 0xb6, 0x12,
+	0x12, 0x17, 0x33, 0xeb, 0x1d, 0xd6, 0xa3, 0x38, 0x3b, 0xee, 0xce, 0xd8, 0xc6, 0x18, 0x5f, 0x38,
+	0x71, 0x04, 0xf1, 0x0f, 0xf4, 0xc0, 0x85, 0x9e, 0xf9, 0x1b, 0x50, 0x8f, 0x15, 0x5c, 0xe0, 0x02,
+	0x28, 0xe1, 0x80, 0xb8, 0x70, 0xe2, 0x8e, 0x76, 0x66, 0x76, 0xb1, 0xbb, 0xbb, 0xb2, 0x23, 0x7e,
+	0x9c, 0xb2, 0x33, 0xdf, 0xbc, 0x79, 0xef, 0xcd, 0xcc, 0xf7, 0x1c, 0x38, 0xef, 0x13, 0x7f, 0xdc,
+	0xe3, 0x11, 0x66, 0x51, 0x87, 0x46, 0x92, 0x0d, 0x29, 0xbe, 0x33, 0xa0, 0xf1, 0xd8, 0xed, 0xc7,
+	0x5c, 0x72, 0xb4, 0x61, 0xca, 0x6e, 0x56, 0x6e, 0x6c, 0x86, 0x3c, 0xe4, 0xaa, 0x8a, 0x93, 0x2f,
+	0xbd, 0xb0, 0x71, 0x2e, 0xe4, 0x3c, 0xec, 0x51, 0x4c, 0xfa, 0x0c, 0x93, 0x28, 0xe2, 0x92, 0x48,
+	0xc6, 0x23, 0x61, 0xaa, 0x76, 0x9e, 0xa5, 0x4f, 0x62, 0x72, 0x90, 0xd5, 0x3b, 0x5c, 0x1c, 0x70,
+	0x81, 0x7d, 0x22, 0x28, 0x1e, 0x36, 0x7d, 0x2a, 0x49, 0x13, 0x77, 0x38, 0x8b, 0x4c, 0xbd, 0xae,
+	0xeb, 0x6d, 0x4d, 0xab, 0x07, 0xba, 0xe4, 0x6c, 0x02, 0x7a, 0x37, 0x11, 0xbc, 0xa7, 0xf6, 0xf3,
+	0xe8, 0x9d, 0x01, 0x15, 0xd2, 0x79, 0x07, 0x9e, 0x9c, 0x9b, 0x15, 0x7d, 0x1e, 0x09, 0x8a, 0xae,
+	0xc2, 0xaa, 0xe6, 0xad, 0x59, 0x4f, 0x5b, 0x17, 0x1f, 0xbb, 0x5c, 0x77, 0x73, 0xfe, 0x5c, 0x0d,
+	0x69, 0x9d, 0xbc, 0xff, 0xd3, 0x56, 0xc5, 0x33, 0xcb, 0x9d, 0x97, 0xa1, 0xa6, 0xf6, 0xf3, 0xe8,
+	0x88, 0xc4, 0xc1, 0x5b, 0x64, 0x10, 0xd2, 0x94, 0x0b, 0xd5, 0x60, 0x8d, 0x04, 0x41, 0x4c, 0x85,
+	0xde, 0xf5, 0x51, 0x2f, 0x1d, 0x3a, 0x7f, 0x58, 0xb0, 0x39, 0x8f, 0x30, 0x3a, 0x08, 0xac, 0x24,
+	0xee, 0x12, 0xc0, 0x09, 0x25, 0xc3, 0x58, 0x4a, 0xfc, 0xbb, 0xc6, 0xbf, 0xbb, 0xcb, 0x59, 0xd4,
+	0xba, 0x94, 0xc8, 0xb8, 0xf7, 0xf3, 0xd6, 0xc5, 0x90, 0xc9, 0xee, 0xc0, 0x77, 0x3b, 0xfc, 0xc0,
+	0xf8, 0x37, 0x7f, 0xb6, 0x45, 0xb0, 0x8f, 0xe5, 0xb8, 0x4f, 0x85, 0x02, 0x08, 0x4f, 0xef, 0x8c,
+	0x24, 0x9c, 0x1e, 0x31, 0xd9, 0x0d, 0x62, 0x32, 0x8a, 0xda, 0x9a, 0xac, 0xfa, 0xef, 0x93, 0x3d,
+	0x91, 0x71, 0xa8, 0xb1, 0xf3, 0xbb, 0x05, 0xf5, 0x82, 0x83, 0x32, 0xb6, 0x3b, 0xf0, 0x78, 0xac,
+	0xe6, 0xdb, 0xa1, 0x2a, 0x18, 0xfb, 0xaf, 0x17, 0xdc, 0x42, 0xe9, 0x26, 0xee, 0xec, 0xe4, 0xcd,
+	0x48, 0xc6, 0x63, 0xef, 0x54, 0x3c, 0x33, 0xd5, 0xe8, 0xc2, 0x46, 0x6e, 0x09, 0x5a, 0x87, 0x13,
+	0xfb, 0x74, 0x6c, 0xee, 0x27, 0xf9, 0x44, 0xaf, 0xc1, 0xca, 0x90, 0xf4, 0x06, 0xb4, 0x56, 0x55,
+	0x2f, 0xe1, 0xf9, 0x02, 0x0d, 0x45, 0xf4, 0x9e, 0x46, 0x5d, 0xaf, 0x5e, 0xb3, 0x9c, 0x2b, 0x70,
+	0x56, 0xc9, 0x6c, 0xdd, 0xde, 0xbd, 0x25, 0xc9, 0x3e, 0x8b, 0x42, 0xb5, 0x36, 0x7d, 0x17, 0x4f,
+	0xc1, 0x6a, 0x97, 0xb2, 0xb0, 0x2b, 0x15, 0xed, 0x49, 0xcf, 0x8c, 0x9c, 0x4f, 0xe0, 0x4c, 0x0e,
+	0xf1, 0xbf, 0xbd, 0x0b, 0xe7, 0x03, 0x38, 0x57, 0x2c, 0xda, 0x48, 0x78, 0x03, 0x56, 0xd4, 0xe5,
+	0x98, 0x0e, 0x79, 0xa1, 0xe0, 0x5c, 0x4a, 0xa0, 0x9e, 0x06, 0x3a, 0x23, 0x78, 0x56, 0x31, 0xdc,
+	0xa0, 0x3d, 0x1a, 0x12, 0xc9, 0xe3, 0xf7, 0xcc, 0x1b, 0x79, 0x53, 0xb7, 0x45, 0x7a, 0x3e, 0x37,
+	0x61, 0x23, 0x48, 0x97, 0xb4, 0xe7, 0x3a, 0xa8, 0x55, 0xfb, 0xee, 0x9b, 0xed, 0x4d, 0xe3, 0xdd,
+	0xa0, 0x6e, 0xc9, 0x98, 0x45, 0xa1, 0xb7, 0x9e, 0x41, 0xcc, 0xfc, 0xf5, 0x47, 0x3e, 0xbb, 0xbb,
+	0x55, 0xf9, 0xed, 0xee, 0x56, 0xc5, 0x19, 0xc2, 0x85, 0x05, 0xc4, 0xc6, 0xe3, 0x2e, 0xac, 0xa7,
+	0xef, 0x76, 0x69, 0xe2, 0xac, 0x9b, 0xf2, 0xbc, 0xdf, 0x5a, 0x70, 0x7e, 0x96, 0x98, 0xf1, 0x48,
+	0x3f, 0x9d, 0xcc, 0xea, 0x6d, 0xa8, 0x7f, 0xc8, 0x22, 0xd2, 0x63, 0x72, 0x9c, 0x64, 0xd8, 0x90,
+	0x05, 0x74, 0x79, 0xcb, 0x67, 0x52, 0xe8, 0x9e, 0x41, 0x9a, 0x72, 0xf1, 0x01, 0x56, 0xff, 0xc1,
+	0x01, 0x7e, 0x61, 0x81, 0x5d, 0x66, 0xc4, 0x1c, 0x1d, 0x85, 0x35, 0xdd, 0x6d, 0xff, 0xc9, 0x1b,
+	0x4d, 0xf7, 0xfe, 0x5b, 0xd3, 0xe5, 0x7b, 0x6b, 0xb0, 0xa2, 0x34, 0xa1, 0x8f, 0x61, 0x55, 0x67,
+	0x33, 0xba, 0x50, 0x16, 0x18, 0x73, 0x3f, 0x02, 0x8d, 0xe7, 0x16, 0x2d, 0xd3, 0x9e, 0x9c, 0x67,
+	0x3e, 0xfd, 0xfe, 0xd7, 0x2f, 0xab, 0x67, 0x51, 0x1d, 0x97, 0xfd, 0x4c, 0xa1, 0xaf, 0x2c, 0x38,
+	0x35, 0x1b, 0x07, 0xe8, 0xc5, 0xe5, 0x32, 0x4b, 0x0b, 0x79, 0xe9, 0x38, 0x01, 0xe7, 0xbc, 0xaa,
+	0xe4, 0xec, 0xa0, 0x66, 0x81, 0x1c, 0x73, 0xcb, 0x78, 0x62, 0x3e, 0xa6, 0x78, 0x36, 0x50, 0xd1,
+	0xd7, 0x16, 0x9c, 0x7e, 0xa8, 0x3b, 0x91, 0x5b, 0x46, 0x5e, 0x1c, 0x5b, 0x0d, 0xbc, 0xf4, 0x7a,
+	0xa3, 0xf7, 0x8a, 0xd2, 0x8b, 0xd1, 0x76, 0x81, 0x5e, 0x5f, 0x76, 0xda, 0x42, 0x83, 0xb4, 0x44,
+	0x3c, 0xd1, 0x29, 0x38, 0x45, 0x3f, 0x5a, 0x50, 0x2b, 0xeb, 0x54, 0x74, 0xb5, 0x4c, 0xc4, 0x82,
+	0x50, 0x69, 0x5c, 0x3b, 0x3e, 0xd0, 0xd8, 0x78, 0x5b, 0xd9, 0xb8, 0x81, 0x5a, 0x05, 0x36, 0xb2,
+	0x9e, 0x11, 0x78, 0x92, 0x6b, 0xb9, 0x29, 0x7e, 0x38, 0x4c, 0xd0, 0x9f, 0x16, 0x6c, 0xe4, 0x7a,
+	0x08, 0x5d, 0x5a, 0xa0, 0x2d, 0x97, 0x1b, 0x8d, 0xe6, 0x31, 0x10, 0xc6, 0xc6, 0x44, 0xd9, 0x18,
+	0x20, 0x51, 0x60, 0x23, 0x97, 0x41, 0x02, 0x4f, 0x4a, 0x73, 0x69, 0xba, 0xc8, 0x75, 0x90, 0x69,
+	0x68, 0x9b, 0xb6, 0x6d, 0xed, 0xdd, 0x3f, 0xb4, 0xad, 0x07, 0x87, 0xb6, 0xf5, 0xcb, 0xa1, 0x6d,
+	0x7d, 0x7e, 0x64, 0x57, 0x1e, 0x1c, 0xd9, 0x95, 0x1f, 0x8e, 0xec, 0xca, 0xfb, 0xaf, 0xcc, 0x64,
+	0x80, 0x11, 0xd6, 0x23, 0xbe, 0xd8, 0x66, 0x3c, 0xd3, 0x39, 0xdc, 0xc1, 0x1f, 0xcd, 0x88, 0x55,
+	0xb9, 0xe0, 0xaf, 0xaa, 0xff, 0xf2, 0x76, 0xfe, 0x0a, 0x00, 0x00, 0xff, 0xff, 0xf2, 0x3e, 0xda,
+	0x8c, 0xa8, 0x0a, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -479,6 +671,11 @@ type QueryClient interface {
 	RewardGauges(ctx context.Context, in *QueryRewardGaugesRequest, opts ...grpc.CallOption) (*QueryRewardGaugesResponse, error)
 	// BTCStakingGauge queries the BTC staking gauge of a given height
 	BTCStakingGauge(ctx context.Context, in *QueryBTCStakingGaugeRequest, opts ...grpc.CallOption) (*QueryBTCStakingGaugeResponse, error)
+	// DelegatorWithdrawAddress queries withdraw address of a delegator.
+	DelegatorWithdrawAddress(ctx context.Context, in *QueryDelegatorWithdrawAddressRequest, opts ...grpc.CallOption) (*QueryDelegatorWithdrawAddressResponse, error)
+	// DelegationRewards queries the delegation rewards of given finality provider
+	// and delegator addresses
+	DelegationRewards(ctx context.Context, in *QueryDelegationRewardsRequest, opts ...grpc.CallOption) (*QueryDelegationRewardsResponse, error)
 }
 
 type queryClient struct {
@@ -516,6 +713,24 @@ func (c *queryClient) BTCStakingGauge(ctx context.Context, in *QueryBTCStakingGa
 	return out, nil
 }
 
+func (c *queryClient) DelegatorWithdrawAddress(ctx context.Context, in *QueryDelegatorWithdrawAddressRequest, opts ...grpc.CallOption) (*QueryDelegatorWithdrawAddressResponse, error) {
+	out := new(QueryDelegatorWithdrawAddressResponse)
+	err := c.cc.Invoke(ctx, "/babylon.incentive.Query/DelegatorWithdrawAddress", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *queryClient) DelegationRewards(ctx context.Context, in *QueryDelegationRewardsRequest, opts ...grpc.CallOption) (*QueryDelegationRewardsResponse, error) {
+	out := new(QueryDelegationRewardsResponse)
+	err := c.cc.Invoke(ctx, "/babylon.incentive.Query/DelegationRewards", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // QueryServer is the server API for Query service.
 type QueryServer interface {
 	// Parameters queries the parameters of the module.
@@ -524,6 +739,11 @@ type QueryServer interface {
 	RewardGauges(context.Context, *QueryRewardGaugesRequest) (*QueryRewardGaugesResponse, error)
 	// BTCStakingGauge queries the BTC staking gauge of a given height
 	BTCStakingGauge(context.Context, *QueryBTCStakingGaugeRequest) (*QueryBTCStakingGaugeResponse, error)
+	// DelegatorWithdrawAddress queries withdraw address of a delegator.
+	DelegatorWithdrawAddress(context.Context, *QueryDelegatorWithdrawAddressRequest) (*QueryDelegatorWithdrawAddressResponse, error)
+	// DelegationRewards queries the delegation rewards of given finality provider
+	// and delegator addresses
+	DelegationRewards(context.Context, *QueryDelegationRewardsRequest) (*QueryDelegationRewardsResponse, error)
 }
 
 // UnimplementedQueryServer can be embedded to have forward compatible implementations.
@@ -538,6 +758,12 @@ func (*UnimplementedQueryServer) RewardGauges(ctx context.Context, req *QueryRew
 }
 func (*UnimplementedQueryServer) BTCStakingGauge(ctx context.Context, req *QueryBTCStakingGaugeRequest) (*QueryBTCStakingGaugeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BTCStakingGauge not implemented")
+}
+func (*UnimplementedQueryServer) DelegatorWithdrawAddress(ctx context.Context, req *QueryDelegatorWithdrawAddressRequest) (*QueryDelegatorWithdrawAddressResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DelegatorWithdrawAddress not implemented")
+}
+func (*UnimplementedQueryServer) DelegationRewards(ctx context.Context, req *QueryDelegationRewardsRequest) (*QueryDelegationRewardsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DelegationRewards not implemented")
 }
 
 func RegisterQueryServer(s grpc1.Server, srv QueryServer) {
@@ -598,6 +824,42 @@ func _Query_BTCStakingGauge_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Query_DelegatorWithdrawAddress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryDelegatorWithdrawAddressRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).DelegatorWithdrawAddress(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/babylon.incentive.Query/DelegatorWithdrawAddress",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).DelegatorWithdrawAddress(ctx, req.(*QueryDelegatorWithdrawAddressRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Query_DelegationRewards_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryDelegationRewardsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).DelegationRewards(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/babylon.incentive.Query/DelegationRewards",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).DelegationRewards(ctx, req.(*QueryDelegationRewardsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Query_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "babylon.incentive.Query",
 	HandlerType: (*QueryServer)(nil),
@@ -613,6 +875,14 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BTCStakingGauge",
 			Handler:    _Query_BTCStakingGauge_Handler,
+		},
+		{
+			MethodName: "DelegatorWithdrawAddress",
+			Handler:    _Query_DelegatorWithdrawAddress_Handler,
+		},
+		{
+			MethodName: "DelegationRewards",
+			Handler:    _Query_DelegationRewards_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -905,6 +1175,140 @@ func (m *QueryBTCStakingGaugeResponse) MarshalToSizedBuffer(dAtA []byte) (int, e
 	return len(dAtA) - i, nil
 }
 
+func (m *QueryDelegatorWithdrawAddressRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryDelegatorWithdrawAddressRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryDelegatorWithdrawAddressRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.DelegatorAddress) > 0 {
+		i -= len(m.DelegatorAddress)
+		copy(dAtA[i:], m.DelegatorAddress)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.DelegatorAddress)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryDelegatorWithdrawAddressResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryDelegatorWithdrawAddressResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryDelegatorWithdrawAddressResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.WithdrawAddress) > 0 {
+		i -= len(m.WithdrawAddress)
+		copy(dAtA[i:], m.WithdrawAddress)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.WithdrawAddress)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryDelegationRewardsRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryDelegationRewardsRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryDelegationRewardsRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.DelegatorAddress) > 0 {
+		i -= len(m.DelegatorAddress)
+		copy(dAtA[i:], m.DelegatorAddress)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.DelegatorAddress)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.FinalityProviderAddress) > 0 {
+		i -= len(m.FinalityProviderAddress)
+		copy(dAtA[i:], m.FinalityProviderAddress)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.FinalityProviderAddress)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryDelegationRewardsResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryDelegationRewardsResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryDelegationRewardsResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Rewards) > 0 {
+		for iNdEx := len(m.Rewards) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Rewards[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintQuery(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func encodeVarintQuery(dAtA []byte, offset int, v uint64) int {
 	offset -= sovQuery(v)
 	base := offset
@@ -1028,6 +1432,64 @@ func (m *QueryBTCStakingGaugeResponse) Size() (n int) {
 	if m.Gauge != nil {
 		l = m.Gauge.Size()
 		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryDelegatorWithdrawAddressRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.DelegatorAddress)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryDelegatorWithdrawAddressResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.WithdrawAddress)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryDelegationRewardsRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.FinalityProviderAddress)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	l = len(m.DelegatorAddress)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryDelegationRewardsResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Rewards) > 0 {
+		for _, e := range m.Rewards {
+			l = e.Size()
+			n += 1 + l + sovQuery(uint64(l))
+		}
 	}
 	return n
 }
@@ -1765,6 +2227,368 @@ func (m *QueryBTCStakingGaugeResponse) Unmarshal(dAtA []byte) error {
 				m.Gauge = &BTCStakingGaugeResponse{}
 			}
 			if err := m.Gauge.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryDelegatorWithdrawAddressRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryDelegatorWithdrawAddressRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryDelegatorWithdrawAddressRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DelegatorAddress", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DelegatorAddress = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryDelegatorWithdrawAddressResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryDelegatorWithdrawAddressResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryDelegatorWithdrawAddressResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WithdrawAddress", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WithdrawAddress = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryDelegationRewardsRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryDelegationRewardsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryDelegationRewardsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FinalityProviderAddress", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FinalityProviderAddress = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DelegatorAddress", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DelegatorAddress = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryDelegationRewardsResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryDelegationRewardsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryDelegationRewardsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Rewards", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Rewards = append(m.Rewards, types.Coin{})
+			if err := m.Rewards[len(m.Rewards)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

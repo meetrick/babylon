@@ -6,33 +6,35 @@ import (
 	"github.com/btcsuite/btcd/btcutil"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	btcckpttypes "github.com/babylonlabs-io/babylon/x/btccheckpoint/types"
-	"github.com/babylonlabs-io/babylon/x/btcstaking/types"
+	btcckpttypes "github.com/babylonlabs-io/babylon/v3/x/btccheckpoint/types"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
 )
 
-type delegationTimeRangeInfo struct {
-	startHeight uint32
-	endHeight   uint32
+type DelegationTimeRangeInfo struct {
+	StartHeight uint32
+	EndHeight   uint32
+	TipHeight   uint32
 }
 
 // VerifyInclusionProofAndGetHeight verifies the inclusion proof of the given staking tx
 // and returns the start height and end height
+// Note: the `minUnbondingTime` passed here should be from the corresponding params
+// of the staking tx
 func (k Keeper) VerifyInclusionProofAndGetHeight(
 	ctx sdk.Context,
 	stakingTx *btcutil.Tx,
 	confirmationDepth uint32,
 	stakingTime uint32,
-	minUnbondingTime uint32,
+	unbondingTime uint32,
 	inclusionProof *types.ParsedProofOfInclusion,
-) (*delegationTimeRangeInfo, error) {
+) (*DelegationTimeRangeInfo, error) {
 	// Check:
 	// - timelock of staking tx
 	// - staking tx is k-deep
 	// - staking tx inclusion proof
-	stakingTxHeader := k.btclcKeeper.GetHeaderByHash(ctx, inclusionProof.HeaderHash)
-
-	if stakingTxHeader == nil {
-		return nil, fmt.Errorf("header that includes the staking tx is not found")
+	stakingTxHeader, err := k.btclcKeeper.GetHeaderByHash(ctx, inclusionProof.HeaderHash)
+	if err != nil {
+		return nil, fmt.Errorf("staking tx inclusion proof header %s is not found in BTC light client state: %v", inclusionProof.HeaderHash.MarshalHex(), err)
 	}
 
 	// no need to do more validations to the btc header as it was already
@@ -50,6 +52,10 @@ func (k Keeper) VerifyInclusionProofAndGetHeight(
 		return nil, types.ErrInvalidStakingTx.Wrapf("not included in the Bitcoin chain")
 	}
 
+	if inclusionProof.Index == 0 {
+		return nil, types.ErrInvalidStakingTx.Wrapf("coinbase tx cannot be used for staking")
+	}
+
 	startHeight := stakingTxHeader.Height
 	endHeight := stakingTxHeader.Height + stakingTime
 
@@ -58,13 +64,16 @@ func (k Keeper) VerifyInclusionProofAndGetHeight(
 	if stakingTxDepth < confirmationDepth {
 		return nil, types.ErrInvalidStakingTx.Wrapf("not k-deep: k=%d; depth=%d", confirmationDepth, stakingTxDepth)
 	}
+
 	// ensure staking tx's timelock has more than unbonding BTC blocks left
-	if btcTip.Height+minUnbondingTime >= endHeight {
-		return nil, types.ErrInvalidStakingTx.Wrapf("staking tx's timelock has no more than unbonding(=%d) blocks left", minUnbondingTime)
+	if btcTip.Height+unbondingTime >= endHeight {
+		return nil, types.ErrInvalidStakingTx.
+			Wrapf("staking tx's timelock has no more than unbonding(=%d) blocks left", unbondingTime)
 	}
 
-	return &delegationTimeRangeInfo{
-		startHeight: startHeight,
-		endHeight:   endHeight,
+	return &DelegationTimeRangeInfo{
+		StartHeight: startHeight,
+		EndHeight:   endHeight,
+		TipHeight:   btcTip.Height,
 	}, nil
 }

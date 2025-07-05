@@ -11,11 +11,12 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
-	keepertest "github.com/babylonlabs-io/babylon/testutil/keeper"
-	bbn "github.com/babylonlabs-io/babylon/types"
-	"github.com/babylonlabs-io/babylon/x/finality/keeper"
-	"github.com/babylonlabs-io/babylon/x/finality/types"
+	"github.com/babylonlabs-io/babylon/v3/app/signingcontext"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
+	keepertest "github.com/babylonlabs-io/babylon/v3/testutil/keeper"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
+	"github.com/babylonlabs-io/babylon/v3/x/finality/keeper"
+	"github.com/babylonlabs-io/babylon/v3/x/finality/types"
 )
 
 func benchmarkAddFinalitySig(b *testing.B) {
@@ -34,7 +35,12 @@ func benchmarkAddFinalitySig(b *testing.B) {
 	fpBTCPK := bbn.NewBIP340PubKeyFromBTCPK(btcPK)
 	fpBTCPKBytes := fpBTCPK.MustMarshal()
 	require.NoError(b, err)
-	fp, err := datagen.GenRandomFinalityProviderWithBTCSK(r, btcSK, "")
+
+	fpPopContext := signingcontext.FpPopContextV0(ctx.ChainID(), fKeeper.ModuleAddress())
+	randCommitContext := signingcontext.FpRandCommitContextV0(ctx.ChainID(), fKeeper.ModuleAddress())
+	finalitySigContext := signingcontext.FpPopContextV0(ctx.ChainID(), fKeeper.ModuleAddress())
+
+	fp, err := datagen.GenRandomFinalityProviderWithBTCSK(r, btcSK, fpPopContext, "")
 	require.NoError(b, err)
 
 	// register the finality provider
@@ -43,7 +49,7 @@ func benchmarkAddFinalitySig(b *testing.B) {
 
 	// commit enough public randomness
 	// TODO: generalise commit public randomness to allow arbitrary benchtime
-	randListInfo, msg, err := datagen.GenRandomMsgCommitPubRandList(r, btcSK, 0, 100000)
+	randListInfo, msg, err := datagen.GenRandomMsgCommitPubRandList(r, btcSK, randCommitContext, 0, 100000)
 	require.NoError(b, err)
 	_, err = ms.CommitPubRandList(ctx, msg)
 	require.NoError(b, err)
@@ -71,7 +77,7 @@ func benchmarkAddFinalitySig(b *testing.B) {
 		// generate a vote
 		blockHash := datagen.GenRandomByteArray(r, 32)
 		signer := datagen.GenRandomAccount().Address
-		msg, err := datagen.NewMsgAddFinalitySig(signer, btcSK, 0, height, randListInfo, blockHash)
+		msg, err := datagen.NewMsgAddFinalitySig(signer, btcSK, finalitySigContext, 0, height, randListInfo, blockHash)
 		require.NoError(b, err)
 		ctx = ctx.WithHeaderInfo(header.Info{Height: int64(height), AppHash: blockHash})
 

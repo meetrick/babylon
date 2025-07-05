@@ -11,9 +11,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	txformat "github.com/babylonlabs-io/babylon/btctxformatter"
-	"github.com/babylonlabs-io/babylon/crypto/bls12381"
-	epochingtypes "github.com/babylonlabs-io/babylon/x/epoching/types"
+	txformat "github.com/babylonlabs-io/babylon/v3/btctxformatter"
+	"github.com/babylonlabs-io/babylon/v3/crypto/bls12381"
+	epochingtypes "github.com/babylonlabs-io/babylon/v3/x/epoching/types"
 )
 
 const (
@@ -21,6 +21,13 @@ const (
 	HashSize   = sha256.Size
 	BitmapBits = txformat.BitMapLength * 8 // 104 bits for 104 validators at top
 )
+
+// BlsSigner is an interface for signing BLS messages
+type BlsSigner interface {
+	SignMsgWithBls(msg []byte) (bls12381.Signature, error)
+	BlsPubKey() (bls12381.PublicKey, error)
+	BlsKeyFilePath() string
+}
 
 type BlockHash []byte
 
@@ -57,7 +64,6 @@ func (cm *RawCheckpointWithMeta) Accumulate(
 	signerBlsKey bls12381.PublicKey,
 	sig bls12381.Signature,
 	totalPower int64) error {
-
 	// the checkpoint should be accumulating
 	if cm.Status != Accumulating {
 		return ErrCkptNotAccumulating
@@ -182,9 +188,15 @@ func (ckpt RawCheckpoint) ValidateBasic() error {
 	if ckpt.Bitmap == nil {
 		return ErrInvalidRawCheckpoint.Wrapf("bitmap cannot be empty")
 	}
+	if ckpt.BlockHash == nil {
+		return ErrInvalidRawCheckpoint.Wrap("empty BlockHash")
+	}
 	err := ckpt.BlockHash.ValidateBasic()
 	if err != nil {
 		return ErrInvalidRawCheckpoint.Wrapf("error validating block hash: %s", err.Error())
+	}
+	if ckpt.BlsMultiSig == nil {
+		return ErrInvalidRawCheckpoint.Wrap("empty BLSMultiSig")
 	}
 	err = ckpt.BlsMultiSig.ValidateBasic()
 	if err != nil {

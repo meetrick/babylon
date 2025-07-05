@@ -10,12 +10,12 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/stretchr/testify/require"
 
-	bbn "github.com/babylonlabs-io/babylon/types"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
 
-	asig "github.com/babylonlabs-io/babylon/crypto/schnorr-adaptor-signature"
-	btctest "github.com/babylonlabs-io/babylon/testutil/bitcoin"
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
-	"github.com/babylonlabs-io/babylon/x/btcstaking/types"
+	asig "github.com/babylonlabs-io/babylon/v3/crypto/schnorr-adaptor-signature"
+	btctest "github.com/babylonlabs-io/babylon/v3/testutil/bitcoin"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
 )
 
 func FuzzBTCDelegation(f *testing.F) {
@@ -23,12 +23,12 @@ func FuzzBTCDelegation(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, seed int64) {
 		r := rand.New(rand.NewSource(seed))
-
+		unbondingTime := uint32(datagen.RandomInt(r, 50))
 		btcDel := &types.BTCDelegation{}
 		// randomise voting power
 		btcDel.TotalSat = datagen.RandomInt(r, 100000)
 		btcDel.BtcUndelegation = &types.BTCUndelegation{}
-
+		btcDel.UnbondingTime = unbondingTime
 		// randomise covenant sig
 		hasCovenantSig := datagen.RandomInt(r, 2) == 0
 		if hasCovenantSig {
@@ -56,11 +56,10 @@ func FuzzBTCDelegation(f *testing.F) {
 
 		// randomise BTC tip and w
 		btcHeight := btcDel.StartHeight + uint32(datagen.RandomInt(r, 50))
-		w := uint32(datagen.RandomInt(r, 50))
 
 		// test expected voting power
-		hasVotingPower := hasCovenantSig && btcDel.StartHeight <= btcHeight && btcHeight+w <= btcDel.EndHeight
-		actualVotingPower := btcDel.VotingPower(btcHeight, w, 1)
+		hasVotingPower := hasCovenantSig && btcDel.StartHeight <= btcHeight && btcHeight+unbondingTime < btcDel.EndHeight
+		actualVotingPower := btcDel.VotingPower(btcHeight, 1)
 		if hasVotingPower {
 			require.Equal(t, btcDel.TotalSat, actualVotingPower)
 		} else {
@@ -118,6 +117,7 @@ func FuzzBTCDelegation_SlashingTx(f *testing.F) {
 			&chaincfg.SimNetParams,
 			fpBTCPKs,
 			delSK,
+			"",
 			covenantSigners,
 			covenantPKs,
 			covenantQuorum,
@@ -164,4 +164,156 @@ func FuzzBTCDelegation_SlashingTx(f *testing.F) {
 		// assert execution
 		btctest.AssertSlashingTxExecution(t, stakingInfo.StakingOutput, slashingTxWithWitness)
 	})
+}
+
+func TestGetStatus(t *testing.T) {
+	covenantQuorum := 1
+	tcs := []struct {
+		title string
+
+		btcDel    types.BTCDelegation
+		btcHeight uint32
+		expStatus types.BTCDelegationStatus
+	}{
+		{
+			"unbonded",
+			types.BTCDelegation{
+				BtcUndelegation: &types.BTCUndelegation{
+					DelegatorUnbondingInfo: &types.DelegatorUnbondingInfo{},
+				},
+			},
+			1,
+			types.BTCDelegationStatus_UNBONDED,
+		},
+		{
+			"pending, missing cov sigs",
+			types.BTCDelegation{
+				CovenantSigs: make([]*types.CovenantAdaptorSignatures, 0),
+				BtcUndelegation: &types.BTCUndelegation{
+					CovenantUnbondingSigList: make([]*types.SignatureInfo, covenantQuorum),
+					CovenantSlashingSigs:     make([]*types.CovenantAdaptorSignatures, covenantQuorum),
+				},
+			},
+			1,
+			types.BTCDelegationStatus_PENDING,
+		},
+		{
+			"pending, missing cov sigs for unbonding",
+			types.BTCDelegation{
+				CovenantSigs: make([]*types.CovenantAdaptorSignatures, covenantQuorum),
+				BtcUndelegation: &types.BTCUndelegation{
+					CovenantUnbondingSigList: make([]*types.SignatureInfo, 0),
+					CovenantSlashingSigs:     make([]*types.CovenantAdaptorSignatures, covenantQuorum),
+				},
+			},
+			1,
+			types.BTCDelegationStatus_PENDING,
+		},
+		{
+			"pending, missing cov sigs for slashing",
+			types.BTCDelegation{
+				CovenantSigs: make([]*types.CovenantAdaptorSignatures, covenantQuorum),
+				BtcUndelegation: &types.BTCUndelegation{
+					CovenantUnbondingSigList: make([]*types.SignatureInfo, covenantQuorum),
+					CovenantSlashingSigs:     make([]*types.CovenantAdaptorSignatures, 0),
+				},
+			},
+			1,
+			types.BTCDelegationStatus_PENDING,
+		},
+		{
+			"verified: without inclusion proof",
+			types.BTCDelegation{
+				CovenantSigs: make([]*types.CovenantAdaptorSignatures, covenantQuorum),
+				BtcUndelegation: &types.BTCUndelegation{
+					CovenantUnbondingSigList: make([]*types.SignatureInfo, covenantQuorum),
+					CovenantSlashingSigs:     make([]*types.CovenantAdaptorSignatures, covenantQuorum),
+				},
+			},
+			1,
+			types.BTCDelegationStatus_VERIFIED,
+		},
+		{
+			"active: with inclusion proof",
+			types.BTCDelegation{
+				CovenantSigs: make([]*types.CovenantAdaptorSignatures, covenantQuorum),
+				BtcUndelegation: &types.BTCUndelegation{
+					CovenantUnbondingSigList: make([]*types.SignatureInfo, covenantQuorum),
+					CovenantSlashingSigs:     make([]*types.CovenantAdaptorSignatures, covenantQuorum),
+				},
+				StartHeight: 1,
+				EndHeight:   2,
+			},
+			1,
+			types.BTCDelegationStatus_ACTIVE,
+		},
+		{
+			"unbonded: btc height is less than start height",
+			types.BTCDelegation{
+				CovenantSigs: make([]*types.CovenantAdaptorSignatures, covenantQuorum),
+				BtcUndelegation: &types.BTCUndelegation{
+					CovenantUnbondingSigList: make([]*types.SignatureInfo, covenantQuorum),
+					CovenantSlashingSigs:     make([]*types.CovenantAdaptorSignatures, covenantQuorum),
+				},
+				StartHeight: 10,
+				EndHeight:   25,
+			},
+			8,
+			types.BTCDelegationStatus_UNBONDED,
+		},
+		{
+			"active: correct delegation",
+			types.BTCDelegation{
+				CovenantSigs: make([]*types.CovenantAdaptorSignatures, covenantQuorum),
+				BtcUndelegation: &types.BTCUndelegation{
+					CovenantUnbondingSigList: make([]*types.SignatureInfo, covenantQuorum),
+					CovenantSlashingSigs:     make([]*types.CovenantAdaptorSignatures, covenantQuorum),
+				},
+				StartHeight:   10,
+				EndHeight:     25,
+				UnbondingTime: 5,
+			},
+			15,
+			types.BTCDelegationStatus_ACTIVE,
+		},
+		{
+			"expired: btcHeight+d.UnbondingTime == d.EndHeight",
+			types.BTCDelegation{
+				CovenantSigs: make([]*types.CovenantAdaptorSignatures, covenantQuorum),
+				BtcUndelegation: &types.BTCUndelegation{
+					CovenantUnbondingSigList: make([]*types.SignatureInfo, covenantQuorum),
+					CovenantSlashingSigs:     make([]*types.CovenantAdaptorSignatures, covenantQuorum),
+				},
+				StartHeight:   10,
+				EndHeight:     25,
+				UnbondingTime: 5,
+			},
+			20,
+			types.BTCDelegationStatus_EXPIRED,
+		},
+		{
+			"expired: btcHeight+d.UnbondingTime > d.EndHeight",
+			types.BTCDelegation{
+				CovenantSigs: make([]*types.CovenantAdaptorSignatures, covenantQuorum),
+				BtcUndelegation: &types.BTCUndelegation{
+					CovenantUnbondingSigList: make([]*types.SignatureInfo, covenantQuorum),
+					CovenantSlashingSigs:     make([]*types.CovenantAdaptorSignatures, covenantQuorum),
+				},
+				StartHeight:   10,
+				EndHeight:     25,
+				UnbondingTime: 6,
+			},
+			20,
+			types.BTCDelegationStatus_EXPIRED,
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.title, func(t *testing.T) {
+			t.Parallel()
+
+			actStatus := tc.btcDel.GetStatus(tc.btcHeight, uint32(covenantQuorum))
+			require.Equal(t, tc.expStatus, actStatus)
+		})
+	}
 }

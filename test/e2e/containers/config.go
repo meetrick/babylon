@@ -18,13 +18,13 @@ const (
 	BabylonContainerName = "babylonlabs-io/babylond"
 	// name of babylon image before the upgrade
 	BabylonContainerNameBeforeUpgrade = "babylonlabs/babylond"
-	BabylonContainerTagBeforeUpgrade  = "v0.9.3"
+	BabylonContainerTagBeforeUpgrade  = "v1.0.1"
 
 	// name of the image produced by running `make e2e-init-chain` in contrib/images
 	InitChainContainerE2E = "babylonlabs-io/babylond-e2e-init-chain"
 
 	hermesRelayerRepository = "informalsystems/hermes"
-	hermesRelayerTag        = "v1.8.2"
+	hermesRelayerTag        = "1.13.1"
 	// Built using the `build-cosmos-relayer-docker` target on an Intel (amd64) machine and pushed to ECR
 	cosmosRelayerRepository = "public.ecr.aws/t9e9i3h0/cosmos-relayer"
 	// TODO: Replace with version tag once we have a working version

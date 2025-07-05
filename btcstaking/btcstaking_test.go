@@ -1,14 +1,13 @@
 package btcstaking_test
 
 import (
-	"bytes"
 	"math/rand"
-	"sort"
 	"testing"
 	"time"
 
-	"github.com/babylonlabs-io/babylon/btcstaking"
-	btctest "github.com/babylonlabs-io/babylon/testutil/bitcoin"
+	"github.com/babylonlabs-io/babylon/v3/btcstaking"
+	btctest "github.com/babylonlabs-io/babylon/v3/testutil/bitcoin"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/btcsuite/btcd/btcutil"
@@ -157,75 +156,6 @@ func TestSpendingTimeLockPath(t *testing.T) {
 	btctest.AssertEngineExecution(t, 0, true, newEngine)
 }
 
-type SignatureInfo struct {
-	SignerPubKey *btcec.PublicKey
-	Signature    *schnorr.Signature
-}
-
-func NewSignatureInfo(
-	signerPubKey *btcec.PublicKey,
-	signature *schnorr.Signature,
-) *SignatureInfo {
-	return &SignatureInfo{
-		SignerPubKey: signerPubKey,
-		Signature:    signature,
-	}
-}
-
-// Helper function to sort all signatures in reverse lexicographical order of signing public keys
-// this way signatures are ready to be used in multisig witness with corresponding public keys
-func sortSignatureInfo(infos []*SignatureInfo) []*SignatureInfo {
-	sortedInfos := make([]*SignatureInfo, len(infos))
-	copy(sortedInfos, infos)
-	sort.SliceStable(sortedInfos, func(i, j int) bool {
-		keyIBytes := schnorr.SerializePubKey(sortedInfos[i].SignerPubKey)
-		keyJBytes := schnorr.SerializePubKey(sortedInfos[j].SignerPubKey)
-		return bytes.Compare(keyIBytes, keyJBytes) == 1
-	})
-
-	return sortedInfos
-}
-
-// generate list of signatures in valid order
-func GenerateSignatures(
-	t *testing.T,
-	keys []*btcec.PrivateKey,
-	tx *wire.MsgTx,
-	stakingOutput *wire.TxOut,
-	leaf txscript.TapLeaf,
-) []*schnorr.Signature {
-
-	var si []*SignatureInfo
-
-	for _, key := range keys {
-		pubKey := key.PubKey()
-		sig, err := btcstaking.SignTxWithOneScriptSpendInputFromTapLeaf(
-			tx,
-			stakingOutput,
-			key,
-			leaf,
-		)
-		require.NoError(t, err)
-		info := NewSignatureInfo(
-			pubKey,
-			sig,
-		)
-		si = append(si, info)
-	}
-
-	// sort signatures by public key
-	sortedSigInfo := sortSignatureInfo(si)
-
-	var sigs []*schnorr.Signature = make([]*schnorr.Signature, len(sortedSigInfo))
-
-	for i, sigInfo := range sortedSigInfo {
-		sig := sigInfo
-		sigs[i] = sig.Signature
-	}
-
-	return sigs
-}
-
 func TestSpendingUnbondingPathCovenant35MultiSig(t *testing.T) {
 	r := rand.New(rand.NewSource(time.Now().Unix()))
 
@@ -267,7 +197,7 @@ func TestSpendingUnbondingPathCovenant35MultiSig(t *testing.T) {
 	require.NoError(t, err)
 
 	// scenario where all keys are available
-	covenantSigantures := GenerateSignatures(
+	covenantSigantures := datagen.GenerateSignatures(
 		t,
 		scenario.CovenantKeys,
 		spendStakeTx,
@@ -293,7 +223,6 @@ func TestSpendingUnbondingPathCovenant35MultiSig(t *testing.T) {
 		)
 	}
 	btctest.AssertEngineExecution(t, 0, true, newEngine)
-
 }
 
 func TestSpendingUnbondingPathSingleKeyCovenant(t *testing.T) {
@@ -336,7 +265,7 @@ func TestSpendingUnbondingPathSingleKeyCovenant(t *testing.T) {
 	require.NoError(t, err)
 
 	// scenario where all keys are available
-	covenantSigantures := GenerateSignatures(
+	covenantSigantures := datagen.GenerateSignatures(
 		t,
 		scenario.CovenantKeys,
 		spendStakeTx,
@@ -399,7 +328,7 @@ func TestSpendingSlashingPathCovenant35MultiSig(t *testing.T) {
 		si.RevealedLeaf,
 	)
 	require.NoError(t, err)
-	covenantSigantures := GenerateSignatures(
+	covenantSigantures := datagen.GenerateSignatures(
 		t,
 		scenario.CovenantKeys,
 		spendStakeTx,
@@ -479,7 +408,7 @@ func TestSpendingSlashingPathCovenant35MultiSigFinalityProviderRestaking(t *test
 	require.NoError(t, err)
 
 	// only use 3 out of 5 covenant signatures
-	covenantSigantures := GenerateSignatures(
+	covenantSigantures := datagen.GenerateSignatures(
 		t,
 		scenario.CovenantKeys,
 		spendStakeTx,
@@ -492,7 +421,7 @@ func TestSpendingSlashingPathCovenant35MultiSigFinalityProviderRestaking(t *test
 	// only use one of the finality provider signatures
 	// script should still be valid as we require only one finality provider signature
 	// to be present
-	fpSignatures := GenerateSignatures(
+	fpSignatures := datagen.GenerateSignatures(
 		t,
 		scenario.FinalityProviderKeys,
 		spendStakeTx,

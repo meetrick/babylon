@@ -7,17 +7,20 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	epochingtypes "github.com/babylonlabs-io/babylon/x/epoching/types"
+	epochingtypes "github.com/babylonlabs-io/babylon/v3/x/epoching/types"
 )
 
 // EpochingKeeper defines the expected interface needed to retrieve epoch info
 type EpochingKeeper interface {
 	GetEpoch(ctx context.Context) *epochingtypes.Epoch
+	GetEpochNumByHeight(ctx context.Context, height uint64) uint64
 	EnqueueMsg(ctx context.Context, msg epochingtypes.QueuedMessage)
 	GetValidatorSet(ctx context.Context, epochNumer uint64) epochingtypes.ValidatorSet
 	GetTotalVotingPower(ctx context.Context, epochNumber uint64) int64
 	CheckMsgCreateValidator(ctx context.Context, msg *stakingtypes.MsgCreateValidator) error
+	StkMsgCreateValidator(ctx context.Context, msg *stakingtypes.MsgCreateValidator) error
 	GetPubKeyByConsAddr(ctx context.Context, consAddr sdk.ConsAddress) (cmtprotocrypto.PublicKey, error)
+	GetValidator(ctx context.Context, addr sdk.ValAddress) (stakingtypes.Validator, error)
 }
 
 // Event Hooks

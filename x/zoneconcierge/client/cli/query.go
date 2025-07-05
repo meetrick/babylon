@@ -9,7 +9,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 
-	"github.com/babylonlabs-io/babylon/x/zoneconcierge/types"
+	"github.com/babylonlabs-io/babylon/v3/x/zoneconcierge/types"
 )
 
 // GetQueryCmd returns the cli query commands for this module
@@ -23,31 +23,8 @@ func GetQueryCmd(queryRoute string) *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 
-	cmd.AddCommand(CmdChainsInfo())
 	cmd.AddCommand(CmdFinalizedChainsInfo())
 	cmd.AddCommand(CmdEpochChainsInfoInfo())
-	return cmd
-}
-
-func CmdChainsInfo() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "chains-info <consumer-ids>",
-		Short: "retrieve the latest info for a given list of consumers",
-		Args:  cobra.ArbitraryArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx := client.GetClientContextFromCmd(cmd)
-			queryClient := types.NewQueryClient(clientCtx)
-			req := types.QueryChainsInfoRequest{ConsumerIds: args}
-			resp, err := queryClient.ChainsInfo(cmd.Context(), &req)
-			if err != nil {
-				return err
-			}
-
-			return clientCtx.PrintProto(resp)
-		},
-	}
-
-	flags.AddQueryFlagsToCmd(cmd)
 	return cmd
 }
 

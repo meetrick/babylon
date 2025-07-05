@@ -5,7 +5,7 @@ import (
 	"time"
 
 	sdkmath "cosmossdk.io/math"
-	bbn "github.com/babylonlabs-io/babylon/types"
+	bbn "github.com/babylonlabs-io/babylon/v3/types"
 	"github.com/btcsuite/btcd/blockchain"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -13,7 +13,9 @@ import (
 )
 
 type BtcChainReadStore interface {
+	// Contract: in case of non-existent header, return error
 	GetHeaderByHash(hash *bbn.BTCHeaderHashBytes) (*BTCHeaderInfo, error)
+	// Contract: in case of non-existent header, return error
 	GetHeaderByHeight(height uint32) (*BTCHeaderInfo, error)
 	GetTip() *BTCHeaderInfo
 }
@@ -31,7 +33,6 @@ var _ blockchain.ChainCtx = (*lightChainCtx)(nil)
 
 func newLightChainCtx(params *chaincfg.Params, blocksPerRetarget int32,
 	minRetargetTimespan, maxRetargetTimespan int64) *lightChainCtx {
-
 	return &lightChainCtx{
 		params:              params,
 		blocksPerRetarget:   blocksPerRetarget,
@@ -90,7 +91,6 @@ func newLocalHeaderInfo(
 	header *wire.BlockHeader,
 	height uint32,
 	totalWork sdkmath.Uint) *localHeaderInfo {
-
 	return &localHeaderInfo{
 		header:    header,
 		height:    height,
@@ -142,7 +142,6 @@ var _ blockchain.HeaderCtx = (*lightHeaderCtx)(nil)
 
 func newLightHeaderCtx(height uint32, header *wire.BlockHeader,
 	store *storeWithExtensionChain) *lightHeaderCtx {
-
 	return &lightHeaderCtx{
 		height:    height,
 		bits:      header.Bits,
@@ -176,9 +175,7 @@ func (l *lightHeaderCtx) Parent() blockchain.HeaderCtx {
 
 func (l *lightHeaderCtx) RelativeAncestorCtx(
 	distance int32) blockchain.HeaderCtx {
-
 	ancestorHeight := l.Height() - distance
-
 	if ancestorHeight < 0 {
 		// We don't have this header.
 		return nil
@@ -257,7 +254,7 @@ func (d *DisableHeaderInTheFutureValidationTimeSource) AdjustedTime() time.Time 
 }
 
 func (d *DisableHeaderInTheFutureValidationTimeSource) AddTimeSample(_ string, _ time.Time) {
-	//no op
+	// no op
 }
 
 func (d *DisableHeaderInTheFutureValidationTimeSource) Offset() time.Duration {
@@ -273,7 +270,6 @@ func newStoreWithExtensionChain(
 	store BtcChainReadStore,
 	maxExentsionHeaders int,
 ) *storeWithExtensionChain {
-
 	return &storeWithExtensionChain{
 		// large capacity to avoid reallocation
 		headers: make([]*localHeaderInfo, 0, maxExentsionHeaders),
@@ -373,6 +369,15 @@ func (l *BtcLightClient) InsertHeaders(readStore BtcChainReadStore, headers []*w
 			RollbackInfo:    nil,
 		}, nil
 	} else {
+		firstExtHeader := firstHeaderOfExtensionChain.BlockHash()
+		firstExtHeaderHash := bbn.NewBTCHeaderHashBytesFromChainhash(&firstExtHeader)
+
+		_, err := readStore.GetHeaderByHash(&firstExtHeaderHash)
+
+		if err == nil {
+			return nil, ErrForkStartWithKnownHeader.Wrapf("first header of extension chain is known header: %s", firstExtHeaderHash.String())
+		}
+
 		// here we received potential new fork
 		parentHash := bbn.NewBTCHeaderHashBytesFromChainhash(&firstHeaderOfExtensionChain.PrevBlock)
 		forkParent, err := readStore.GetHeaderByHash(&parentHash)

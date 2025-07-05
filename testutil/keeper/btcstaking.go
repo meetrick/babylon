@@ -19,21 +19,25 @@ import (
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/x/btcstaking/keeper"
-	"github.com/babylonlabs-io/babylon/x/btcstaking/types"
-	bsckeeper "github.com/babylonlabs-io/babylon/x/btcstkconsumer/keeper"
-	bsctypes "github.com/babylonlabs-io/babylon/x/btcstkconsumer/types"
+	appparams "github.com/babylonlabs-io/babylon/v3/app/params"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstaking/keeper"
+	"github.com/babylonlabs-io/babylon/v3/x/btcstaking/types"
+	bsckeeper "github.com/babylonlabs-io/babylon/v3/x/btcstkconsumer/keeper"
+	bsctypes "github.com/babylonlabs-io/babylon/v3/x/btcstkconsumer/types"
 )
 
 func BTCStakingKeeperWithStore(
 	t testing.TB,
 	db dbm.DB,
 	stateStore store.CommitMultiStore,
+	storeKey *storetypes.KVStoreKey,
 	btclcKeeper types.BTCLightClientKeeper,
 	btccKeeper types.BtcCheckpointKeeper,
 	iKeeper types.IncentiveKeeper,
 ) (*keeper.Keeper, sdk.Context) {
-	storeKey := storetypes.NewKVStoreKey(types.StoreKey)
+	if storeKey == nil {
+		storeKey = storetypes.NewKVStoreKey(types.StoreKey)
+	}
 
 	stateStore.MountStoreWithDB(storeKey, storetypes.StoreTypeIAVL, db)
 	require.NoError(t, stateStore.LoadLatestVersion())
@@ -64,7 +68,8 @@ func BTCStakingKeeperWithStore(
 		bscKeeper,
 		iKeeper,
 		&chaincfg.SimNetParams,
-		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		appparams.AccBTCStaking.String(),
+		appparams.AccGov.String(),
 	)
 
 	ctx := sdk.NewContext(stateStore, cmtproto.Header{}, false, log.NewNopLogger())
@@ -79,10 +84,20 @@ func BTCStakingKeeper(
 	btccKeeper types.BtcCheckpointKeeper,
 	iKeeper types.IncentiveKeeper,
 ) (*keeper.Keeper, sdk.Context) {
+	return BTCStakingKeeperWithStoreKey(t, nil, btclcKeeper, btccKeeper, iKeeper)
+}
+
+func BTCStakingKeeperWithStoreKey(
+	t testing.TB,
+	storeKey *storetypes.KVStoreKey,
+	btclcKeeper types.BTCLightClientKeeper,
+	btccKeeper types.BtcCheckpointKeeper,
+	iKeeper types.IncentiveKeeper,
+) (*keeper.Keeper, sdk.Context) {
 	db := dbm.NewMemDB()
 	stateStore := store.NewCommitMultiStore(db, log.NewTestLogger(t), storemetrics.NewNoOpMetrics())
 
-	k, ctx := BTCStakingKeeperWithStore(t, db, stateStore, btclcKeeper, btccKeeper, iKeeper)
+	k, ctx := BTCStakingKeeperWithStore(t, db, stateStore, storeKey, btclcKeeper, btccKeeper, iKeeper)
 
 	// Initialize params
 	if err := k.SetParams(ctx, types.DefaultParams()); err != nil {
